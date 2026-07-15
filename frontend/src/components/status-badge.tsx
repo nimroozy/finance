@@ -26,6 +26,20 @@ const STATUS_TONES: Record<string, Tone> = {
   ok: "success",
   warning: "warning",
   high_risk: "danger",
+  confirmed_local: "info",
+  pending_zoho_sync: "warning",
+  settled_pending_handover: "warning",
+  synced: "success",
+  sync_failed: "danger",
+  reversed: "danger",
+  expired: "neutral",
+  syncing: "warning",
+  failed: "danger",
+  dry_run: "info",
+  issued: "success",
+  voided: "danger",
+  approved: "success",
+  rejected: "danger",
 };
 
 export function StatusBadge({

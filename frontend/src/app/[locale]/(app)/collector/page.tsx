@@ -91,12 +91,29 @@ export default function CollectorDashboardPage() {
                   {t("newVisit")}
                 </Button>
               </Link>
+              <Link href="/collector/payments/new">
+                <Button className="h-12 w-full" variant="secondary">
+                  {t("newPayment")}
+                </Button>
+              </Link>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
               <Link href="/collector/promises/new">
                 <Button className="h-12 w-full" variant="secondary">
                   {t("newPromise")}
                 </Button>
               </Link>
+              <Link href="/collector/wallet">
+                <Button className="h-12 w-full" variant="secondary">
+                  {t("wallet")}
+                </Button>
+              </Link>
             </div>
+            <Link href="/collector/payments">
+              <Button className="h-12 w-full" variant="ghost">
+                {t("goPayments")}
+              </Button>
+            </Link>
             <Link href="/collector/visits">
               <Button className="h-12 w-full" variant="ghost">
                 {t("goVisits")}

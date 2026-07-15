@@ -47,6 +47,24 @@ const NAV_ITEMS: NavItem[] = [
     collectorOnly: true,
   },
   {
+    href: "/collector/payments",
+    labelKey: "myPayments",
+    permissions: ["payments.view"],
+    collectorOnly: true,
+  },
+  {
+    href: "/collector/payments/new",
+    labelKey: "newPayment",
+    permissions: ["payments.create"],
+    collectorOnly: true,
+  },
+  {
+    href: "/collector/wallet",
+    labelKey: "myWallet",
+    permissions: ["wallets.view"],
+    collectorOnly: true,
+  },
+  {
     href: "/collector/notifications",
     labelKey: "notifications",
     permissions: ["notifications.view"],
@@ -126,6 +144,42 @@ const NAV_ITEMS: NavItem[] = [
       "reports.visits",
       "reports.promises",
     ],
+    managerPrefer: true,
+  },
+  {
+    href: "/payments",
+    labelKey: "payments",
+    permissions: ["payments.view"],
+    managerPrefer: true,
+  },
+  {
+    href: "/payments/sync-failures",
+    labelKey: "paymentSyncFailures",
+    permissions: ["payments.view", "payments.retry_sync"],
+    managerPrefer: true,
+  },
+  {
+    href: "/payments/reversals",
+    labelKey: "paymentReversals",
+    permissions: ["reversals.request", "reversals.approve", "payments.manage"],
+    managerPrefer: true,
+  },
+  {
+    href: "/wallets",
+    labelKey: "wallets",
+    permissions: ["wallets.view"],
+    managerPrefer: true,
+  },
+  {
+    href: "/receipts",
+    labelKey: "receipts",
+    permissions: ["receipts.view"],
+    managerPrefer: true,
+  },
+  {
+    href: "/reports/payments",
+    labelKey: "paymentReports",
+    permissions: ["payments.view", "payments.export"],
     managerPrefer: true,
   },
   {

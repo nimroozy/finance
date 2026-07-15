@@ -746,3 +746,277 @@ export interface UpdateCollectorPayload {
   is_active?: boolean;
   notes?: string | null;
 }
+
+export type PaymentStatus =
+  | "draft"
+  | "confirmed_local"
+  | "pending_zoho_sync"
+  | "settled_pending_handover"
+  | "synced"
+  | "sync_failed"
+  | "reversed"
+  | "expired";
+
+export type ZohoPaymentSyncStatus =
+  | "pending"
+  | "syncing"
+  | "synced"
+  | "failed"
+  | "dry_run"
+  | "skipped";
+
+export interface PaymentMethod {
+  id: number;
+  code: string;
+  name_en: string;
+  name_fa?: string | null;
+  is_active: boolean;
+  collector_allowed?: boolean;
+  requires_reference?: boolean;
+  requires_evidence?: boolean;
+  affects_cash_wallet?: boolean;
+  receipt_enabled?: boolean;
+  sort_order?: number;
+}
+
+export interface PaymentAllocation {
+  id?: number;
+  payment_id?: number;
+  invoice_id: number;
+  amount: string | number;
+  currency?: string | null;
+  invoice?: Pick<
+    Invoice,
+    "id" | "invoice_number" | "balance" | "currency" | "status" | "due_date"
+  > | null;
+}
+
+export interface PaymentSyncAttempt {
+  id: number;
+  payment_id: number;
+  attempt?: number | null;
+  success?: boolean;
+  error_message?: string | null;
+  created_at?: string;
+}
+
+export interface PaymentStatusHistory {
+  id: number;
+  payment_id: number;
+  from_status: string | null;
+  to_status: string;
+  changed_by?: number | null;
+  reason?: string | null;
+  created_at?: string;
+}
+
+export type PaymentReversalStatus = "pending" | "approved" | "rejected";
+
+export interface PaymentReversal {
+  id: number;
+  payment_id: number;
+  requested_by?: number | null;
+  branch_id?: number | null;
+  status: PaymentReversalStatus | string;
+  reason: string;
+  rejection_reason?: string | null;
+  reviewed_by?: number | null;
+  reviewed_at?: string | null;
+  approved_at?: string | null;
+  rejected_at?: string | null;
+  wallet_reversed?: boolean;
+  zoho_void_attempted?: boolean;
+  zoho_void_error?: string | null;
+  payment?: Payment | null;
+}
+
+export interface Receipt {
+  id: number;
+  uuid: string;
+  receipt_number: string;
+  payment_id: number;
+  branch_id?: number | null;
+  verification_token: string;
+  status: string;
+  reprint_count?: number;
+  pdf_path?: string | null;
+  html_path?: string | null;
+  language?: string | null;
+  template_version?: string | null;
+  issued_at?: string | null;
+  voided_at?: string | null;
+  payment?: Payment | null;
+  branch?: BranchSummary | null;
+}
+
+export interface Payment {
+  id: number;
+  uuid: string;
+  payment_reference?: string | null;
+  customer_id: number;
+  collector_id?: number | null;
+  created_by?: number | null;
+  confirmed_by?: number | null;
+  branch_id?: number | null;
+  assignment_id?: number | null;
+  visit_id?: number | null;
+  promise_id?: number | null;
+  payment_method_id: number;
+  currency: string | null;
+  amount: string | number;
+  status: PaymentStatus | string;
+  zoho_sync_status?: ZohoPaymentSyncStatus | string | null;
+  zoho_payment_id?: string | null;
+  zoho_reference?: string | null;
+  sync_attempts?: number | null;
+  last_sync_error?: string | null;
+  idempotency_key?: string | null;
+  external_reference?: string | null;
+  notes?: string | null;
+  latitude?: string | number | null;
+  longitude?: string | number | null;
+  gps_accuracy?: string | number | null;
+  device_info?: string | null;
+  confirmed_at?: string | null;
+  reversed_at?: string | null;
+  receipt_id?: number | null;
+  draft_expires_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
+  method?: PaymentMethod | null;
+  customer?: Pick<
+    Customer,
+    | "id"
+    | "contact_name"
+    | "company_name"
+    | "customer_number"
+    | "phone"
+    | "mobile"
+    | "whatsapp_number"
+    | "currency"
+  > | null;
+  collector?: (Collector & { user?: CollectorUserSummary | null }) | null;
+  allocations?: PaymentAllocation[];
+  receipt?: Receipt | null;
+  status_history?: PaymentStatusHistory[];
+  sync_attempts_list?: PaymentSyncAttempt[];
+  syncAttempts?: PaymentSyncAttempt[];
+  latest_reversal?: PaymentReversal | null;
+  latestReversal?: PaymentReversal | null;
+  branch?: BranchSummary | null;
+}
+
+export interface PaymentPreview {
+  customer_id: number;
+  collector_id: number;
+  branch_id: number;
+  assignment_id?: number | null;
+  payment_method: Pick<
+    PaymentMethod,
+    "id" | "code" | "name_en" | "affects_cash_wallet" | "requires_reference"
+  >;
+  currency: string;
+  amount: string;
+  allocations: {
+    invoice_id: number;
+    invoice_number: string | null;
+    amount: string;
+    effective_available: string;
+    zoho_balance: string;
+  }[];
+  warnings?: string[];
+}
+
+export interface PaymentSyncStatus {
+  uuid: string;
+  status: string;
+  zoho_sync_status: string | null;
+  zoho_payment_id: string | null;
+  sync_attempts: number | null;
+  last_sync_error: string | null;
+  attempts: PaymentSyncAttempt[];
+}
+
+export interface PaymentListParams {
+  page?: number;
+  per_page?: number;
+  status?: string;
+  branch_id?: number | string;
+  collector_id?: number | string;
+  customer_id?: number | string;
+  zoho_sync_status?: string;
+  search?: string;
+}
+
+export interface CreatePaymentPayload {
+  customer_id: number;
+  collector_id?: number;
+  payment_method_id: number;
+  amount: number | string;
+  currency?: string;
+  allocations: { invoice_id: number; amount: number | string }[];
+  external_reference?: string;
+  notes?: string;
+  visit_id?: number;
+  promise_id?: number;
+  latitude?: number;
+  longitude?: number;
+  gps_accuracy?: number;
+  device_info?: string;
+  idempotency_key?: string;
+}
+
+export interface CollectorWallet {
+  id: number;
+  collector_id: number;
+  branch_id: number;
+  currency: string;
+  balance: string | number;
+  pending_handover_balance?: string | number;
+  last_transaction_at?: string | null;
+  collector?: (Collector & { user?: CollectorUserSummary | null }) | null;
+  branch?: BranchSummary | null;
+}
+
+export interface CollectorWalletTransaction {
+  id: number;
+  collector_wallet_id: number;
+  collector_id: number;
+  branch_id?: number | null;
+  payment_id?: number | null;
+  reversal_id?: number | null;
+  type: string;
+  amount: string | number;
+  balance_before?: string | number | null;
+  balance_after?: string | number | null;
+  currency: string | null;
+  reference?: string | null;
+  notes?: string | null;
+  created_by?: number | null;
+  created_at?: string;
+}
+
+export interface ReceiptVerification {
+  receipt_number: string;
+  status: string;
+  issued_at: string | null;
+  amount: string | number | null;
+  currency: string | null;
+  customer?: {
+    contact_name?: string | null;
+    customer_number?: string | null;
+  } | null;
+  branch?: Pick<BranchSummary, "code" | "name_en" | "name_fa"> | null;
+  payment_reference?: string | null;
+}
+
+export interface PaymentsSummary {
+  groups: {
+    status: string;
+    zoho_sync_status: string | null;
+    cnt: number;
+    total_amount: string | number;
+  }[];
+  total_count: number;
+  total_amount: string | number;
+}

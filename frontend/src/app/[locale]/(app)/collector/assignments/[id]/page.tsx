@@ -111,11 +111,20 @@ export default function CollectorAssignmentDetailPage() {
           assignment.customer?.contact_name || `#${assignment.customer_id}`
         }
         actions={
-          <Link
-            href={`/collector/visits/new?assignment_id=${assignment.id}&customer_id=${assignment.customer_id}`}
-          >
-            <Button className="h-11">{t("startVisit")}</Button>
-          </Link>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Link
+              href={`/collector/visits/new?assignment_id=${assignment.id}&customer_id=${assignment.customer_id}`}
+            >
+              <Button className="h-11 w-full">{t("startVisit")}</Button>
+            </Link>
+            <Link
+              href={`/collector/payments/new?assignment_id=${assignment.id}&customer_id=${assignment.customer_id}`}
+            >
+              <Button className="h-11 w-full" variant="secondary">
+                {t("startPayment")}
+              </Button>
+            </Link>
+          </div>
         }
       />
 
