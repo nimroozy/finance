@@ -4,6 +4,7 @@ use App\Jobs\RefreshZohoTokenJob;
 use App\Jobs\RetryFailedZohoSyncJob;
 use App\Jobs\SyncZohoCustomersJob;
 use App\Jobs\SyncZohoInvoicesJob;
+use App\Jobs\UpdatePromiseStatusesJob;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -54,3 +55,8 @@ $applyInterval(
     Schedule::job(new RetryFailedZohoSyncJob)->name('zoho-retry-failed')->withoutOverlapping(),
     $retryMinutes
 );
+
+Schedule::job(new UpdatePromiseStatusesJob)
+    ->daily()
+    ->name('update-promise-statuses')
+    ->withoutOverlapping();

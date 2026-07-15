@@ -115,9 +115,14 @@ class AuthController extends Controller
 
         $this->auditLogger->log('auth.logout', $user);
 
-        $user->currentAccessToken()?->delete();
+        $token = $user->currentAccessToken();
+        if ($token instanceof \Laravel\Sanctum\PersonalAccessToken) {
+            $token->delete();
+        } elseif (method_exists($token, 'delete')) {
+            $token->delete();
+        }
 
-        return ApiResponse::success(null, null, 200);
+        return ApiResponse::success(['message' => 'Logged out.'], null, 200);
     }
 
     public function me(Request $request): JsonResponse

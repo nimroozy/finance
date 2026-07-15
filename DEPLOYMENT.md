@@ -23,8 +23,12 @@ cd /opt/collection-system
 # or:
 docker compose build && docker compose up -d
 docker compose exec backend php artisan migrate --force
+# Stage 3 added many Spatie permissions (assignments.*, visits.*, routes.*, etc.).
+# Always refresh the seeder after migrate so roles pick up new permissions:
 docker compose exec backend php artisan db:seed --class=RolePermissionSeeder --force
 ```
+
+Stage 3 also stores visit evidence under the Laravel `local` disk (`storage/app/private/visit-evidence/…`). Ensure the backend volume persists `storage/` across deploys.
 
 ## Security rules
 

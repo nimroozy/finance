@@ -116,6 +116,64 @@ export async function apiFetch<T>(
   return payload;
 }
 
+/** Multipart upload — do not set Content-Type (browser sets boundary). */
+export async function apiUpload<T>(
+  path: string,
+  formData: FormData,
+  options: Omit<RequestInit, "body" | "method"> = {},
+): Promise<ApiSuccessResponse<T>> {
+  const headers = new Headers(options.headers);
+  if (!headers.has("Accept")) {
+    headers.set("Accept", "application/json");
+  }
+
+  const token = getToken();
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  const response = await fetch(`${API_BASE}${path}`, {
+    ...options,
+    method: "POST",
+    headers,
+    body: formData,
+  });
+
+  let payload: ApiSuccessResponse<T> | ApiErrorResponse | null = null;
+  try {
+    payload = (await response.json()) as
+      | ApiSuccessResponse<T>
+      | ApiErrorResponse;
+  } catch {
+    payload = null;
+  }
+
+  if (response.status === 401) {
+    onUnauthorized();
+    const message =
+      payload && !payload.success && payload.message
+        ? payload.message
+        : "Unauthenticated.";
+    throw new ApiError(
+      message,
+      401,
+      payload && !payload.success && payload.errors ? payload.errors : {},
+    );
+  }
+
+  if (!response.ok || !payload || payload.success === false) {
+    const message =
+      payload && !payload.success && payload.message
+        ? payload.message
+        : `Request failed (${response.status})`;
+    const errors =
+      payload && !payload.success && payload.errors ? payload.errors : {};
+    throw new ApiError(message, response.status, errors);
+  }
+
+  return payload;
+}
+
 export function getApiBase() {
   return API_BASE;
 }

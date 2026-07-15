@@ -11,74 +11,148 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { LoadingState } from "@/components/ui/layout";
 import { cn } from "@/lib/utils";
 
-type NavHref =
-  | "/dashboard"
-  | "/customers"
-  | "/debtors"
-  | "/invoices"
-  | "/zoho"
-  | "/users"
-  | "/roles"
-  | "/branches"
-  | "/audit-logs"
-  | "/settings";
-
-type NavLabelKey =
-  | "dashboard"
-  | "customers"
-  | "debtors"
-  | "invoices"
-  | "zoho"
-  | "users"
-  | "roles"
-  | "branches"
-  | "auditLogs"
-  | "settings";
-
 type NavItem = {
-  href: NavHref;
-  labelKey: NavLabelKey;
+  href: string;
+  labelKey: string;
   permissions: string[];
+  /** Prefer for Collector role when true; hide from managers when false. */
+  collectorOnly?: boolean;
+  managerPrefer?: boolean;
 };
 
 const NAV_ITEMS: NavItem[] = [
-  { href: "/dashboard", labelKey: "dashboard", permissions: ["dashboard.view"] },
+  { href: "/dashboard", labelKey: "dashboard", permissions: ["dashboard.view"], managerPrefer: true },
+  {
+    href: "/collector",
+    labelKey: "collectorHome",
+    permissions: ["assignments.view", "visits.view", "visits.create"],
+    collectorOnly: true,
+  },
+  {
+    href: "/collector/assignments",
+    labelKey: "myAssignments",
+    permissions: ["assignments.view"],
+    collectorOnly: true,
+  },
+  {
+    href: "/collector/routes",
+    labelKey: "myRoutes",
+    permissions: ["routes.view"],
+    collectorOnly: true,
+  },
+  {
+    href: "/collector/visits",
+    labelKey: "myVisits",
+    permissions: ["visits.view"],
+    collectorOnly: true,
+  },
+  {
+    href: "/collector/notifications",
+    labelKey: "notifications",
+    permissions: ["notifications.view"],
+    collectorOnly: true,
+  },
   {
     href: "/customers",
     labelKey: "customers",
     permissions: ["customers.view"],
+    managerPrefer: true,
   },
   {
     href: "/debtors",
     labelKey: "debtors",
     permissions: ["debtors.view"],
+    managerPrefer: true,
   },
   {
     href: "/invoices",
     labelKey: "invoices",
     permissions: ["invoices.view"],
+    managerPrefer: true,
+  },
+  {
+    href: "/assignments",
+    labelKey: "assignments",
+    permissions: ["assignments.view"],
+    managerPrefer: true,
+  },
+  {
+    href: "/assignments/unassigned",
+    labelKey: "unassigned",
+    permissions: ["assignments.view"],
+    managerPrefer: true,
+  },
+  {
+    href: "/assignments/workload",
+    labelKey: "workload",
+    permissions: ["assignments.view"],
+    managerPrefer: true,
+  },
+  {
+    href: "/collectors",
+    labelKey: "collectors",
+    permissions: ["collectors.view"],
+    managerPrefer: true,
+  },
+  {
+    href: "/routes",
+    labelKey: "routes",
+    permissions: ["routes.view"],
+    managerPrefer: true,
+  },
+  {
+    href: "/visits",
+    labelKey: "visits",
+    permissions: ["visits.view"],
+    managerPrefer: true,
+  },
+  {
+    href: "/promises",
+    labelKey: "promises",
+    permissions: ["promises.view"],
+    managerPrefer: true,
+  },
+  {
+    href: "/escalations",
+    labelKey: "escalations",
+    permissions: ["visits.view", "escalations.view"],
+    managerPrefer: true,
+  },
+  {
+    href: "/reports/collection",
+    labelKey: "collectionReports",
+    permissions: [
+      "reports.assignments",
+      "reports.visits",
+      "reports.promises",
+    ],
+    managerPrefer: true,
   },
   {
     href: "/zoho",
     labelKey: "zoho",
     permissions: ["zoho.view"],
+    managerPrefer: true,
   },
   {
     href: "/users",
     labelKey: "users",
     permissions: ["users.view", "users.manage"],
+    managerPrefer: true,
   },
-  { href: "/roles", labelKey: "roles", permissions: ["roles.view"] },
+  { href: "/roles", labelKey: "roles", permissions: ["roles.view"], managerPrefer: true },
   {
     href: "/branches",
     labelKey: "branches",
     permissions: ["branches.view", "branches.manage"],
+    managerPrefer: true,
   },
-  { href: "/audit-logs", labelKey: "auditLogs", permissions: ["audit.view"] },
+  { href: "/audit-logs", labelKey: "auditLogs", permissions: ["audit.view"], managerPrefer: true },
   {
     href: "/settings",
     labelKey: "settings",
     permissions: ["settings.manage"],
+    managerPrefer: true,
   },
 ];
 
@@ -96,6 +170,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const forcePassword = Boolean(user?.force_password_change);
   const isChangePassword = pathname.includes("/change-password");
+  const isCollectorRole = Boolean(user?.roles?.includes("Collector"));
 
   useEffect(() => {
     if (!hydrated) return;
@@ -110,8 +185,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const visibleNav = useMemo(() => {
     if (forcePassword) return [];
-    return NAV_ITEMS.filter((item) => hasAnyPermission(item.permissions));
-  }, [forcePassword, hasAnyPermission]);
+    return NAV_ITEMS.filter((item) => {
+      if (!hasAnyPermission(item.permissions)) return false;
+      if (isCollectorRole) {
+        if (item.managerPrefer && !item.collectorOnly) {
+          // Keep a light manager set off; show collector items + dashboard/settings essentials
+          const keep = ["dashboard", "settings", "changePassword"];
+          if (keep.includes(item.labelKey)) return true;
+          return false;
+        }
+        return true;
+      }
+      if (item.collectorOnly) return false;
+      return true;
+    });
+  }, [forcePassword, hasAnyPermission, isCollectorRole]);
 
   if (!hydrated || !token || !user) {
     return <LoadingState label={tCommon("loading")} />;
@@ -133,11 +221,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const navLink = (
-    item: NavItem,
-    onNavigate?: () => void,
-  ) => {
-    const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+  const navLink = (item: NavItem, onNavigate?: () => void) => {
+    const active =
+      pathname === item.href || pathname.startsWith(`${item.href}/`);
     return (
       <Link
         key={item.href}
@@ -150,7 +236,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             : "text-primary/90 hover:bg-sand-soft hover:text-primary",
         )}
       >
-        {t(item.labelKey)}
+        {t(item.labelKey as "dashboard")}
       </Link>
     );
   };
@@ -164,7 +250,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </p>
           <p className="mt-1 text-xs text-muted">{tApp("tagline")}</p>
         </div>
-        <nav className="flex flex-1 flex-col gap-1 p-3">
+        <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-3">
           {visibleNav.map((item) => navLink(item))}
           <Link
             href="/change-password"
@@ -217,7 +303,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {mobileOpen ? (
           <nav
             id="mobile-nav"
-            className="space-y-1 border-b border-border bg-surface-elevated p-3 lg:hidden"
+            className="max-h-[70vh] space-y-1 overflow-y-auto border-b border-border bg-surface-elevated p-3 lg:hidden"
           >
             {visibleNav.map((item) =>
               navLink(item, () => setMobileOpen(false)),
@@ -242,7 +328,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </nav>
         ) : null}
 
-        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6">
+        <main
+          className={cn(
+            "mx-auto w-full flex-1 px-4 py-6 sm:px-6",
+            isCollectorRole ? "max-w-lg" : "max-w-6xl",
+          )}
+        >
           {children}
         </main>
       </div>

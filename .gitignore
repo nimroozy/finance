@@ -45,5 +45,7 @@ tmp/
 temp/
 
 .admin-credentials.txt
+.secrets/
+.stage3-smoke-secret
 .env
 

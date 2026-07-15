@@ -3,8 +3,20 @@
 namespace App\Providers;
 
 use App\Models\Branch;
+use App\Models\CollectionRoute;
+use App\Models\CollectionVisit;
+use App\Models\CustomerAssignment;
+use App\Models\CustomerNote;
+use App\Models\PromiseToPay;
+use App\Models\UploadedVisitFile;
 use App\Models\User;
 use App\Policies\BranchPolicy;
+use App\Policies\CollectionRoutePolicy;
+use App\Policies\CollectionVisitPolicy;
+use App\Policies\CustomerAssignmentPolicy;
+use App\Policies\CustomerNotePolicy;
+use App\Policies\PromiseToPayPolicy;
+use App\Policies\UploadedVisitFilePolicy;
 use App\Policies\UserPolicy;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -29,6 +41,12 @@ class AppServiceProvider extends ServiceProvider
     {
         Gate::policy(User::class, UserPolicy::class);
         Gate::policy(Branch::class, BranchPolicy::class);
+        Gate::policy(CustomerAssignment::class, CustomerAssignmentPolicy::class);
+        Gate::policy(CollectionVisit::class, CollectionVisitPolicy::class);
+        Gate::policy(CollectionRoute::class, CollectionRoutePolicy::class);
+        Gate::policy(PromiseToPay::class, PromiseToPayPolicy::class);
+        Gate::policy(CustomerNote::class, CustomerNotePolicy::class);
+        Gate::policy(UploadedVisitFile::class, UploadedVisitFilePolicy::class);
 
         RateLimiter::for('login', function (Request $request) {
             return Limit::perMinute(5)->by($request->input('login', $request->ip()));
