@@ -17,5 +17,12 @@
 - Zoho tokens encrypted at rest; OAuth state validated; API logs sanitized (no Authorization headers)
 - Audit log for auth and administrative actions
 
+### Stage 3 additions
+
+- **Collector assignment isolation** — Collector-only users are scoped via `CollectorOwnedScope` to rows with their `collector_id` (assignments, visits, routes, promises, notes). They cannot list or act on other collectors’ work.
+- **Secure evidence downloads** — Visit files are stored on the private `local` disk (`storage/app/private/visit-evidence/…`), not under public web roots. Access is only through authenticated `GET /api/v1/files/{id}/download` plus `UploadedVisitFilePolicy` (collector must own the visit; managers restricted to branch).
+- **GPS privacy** — Location is captured **once per visit** (browser `getCurrentPosition`), not continuous tracking. If permission is `denied`, coordinates are cleared server-side. GPS is optional; visits still save with `gps_permission_state`.
+- **Branch isolation** — Non-global roles remain constrained by `BelongsToBranchScope` for Stage 3 entities. Branch managers only see their branches; Super Admin / Central Finance retain cross-branch visibility where permitted.
+
 Rotate secrets by regenerating `APP_KEY` / DB / Redis / Zoho credentials carefully and restarting containers after updates.
 

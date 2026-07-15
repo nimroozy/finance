@@ -38,4 +38,30 @@ docker compose exec backend php artisan queue:retry all
 docker compose logs -f backend queue-worker scheduler nginx
 ```
 
+## Stage 3 — field collection
+
+**Promise status job** — scheduled daily as `UpdatePromiseStatusesJob` (`update-promise-statuses` in `routes/console.php`). Open promises move between `active` / `due_soon` / `due_today` / `overdue` from `promised_date`. Requires the Compose `scheduler` + `queue-worker` containers running.
+
+**Visit evidence** — files land on the `local` disk at:
+
+`storage/app/private/visit-evidence/{visit_id}/{uuid}.{ext}`
+
+Downloads only via authenticated `GET /api/v1/files/{id}/download` (not public URLs).
+
+**GPS / map config** (`config/collection.php`, env overrides):
+
+| Key / env | Default | Purpose |
+|-----------|---------|---------|
+| `COLLECTION_GPS_WARNING_METERS` | `200` | Distance ≥ this → `gps_risk_level=warning` |
+| `COLLECTION_GPS_HIGH_RISK_METERS` | `1000` | Distance ≥ this → `high_risk` |
+| `COLLECTION_MAP_PROVIDER` | `leaflet` | `leaflet` or `google` |
+| `MAP_GOOGLE_API_KEY` | — | Required if provider is `google` |
+| `COLLECTION_MAP_TILE_URL` | OSM tiles | Leaflet tile URL |
+| `COLLECTION_VISIT_EDIT_GRACE_MINUTES` | `30` | Visit edit grace window |
+| `COLLECTION_BULK_SYNC_THRESHOLD` | `50` | Bulk assign sync vs queue split |
+| `COLLECTION_PROMISE_DUE_SOON_DAYS` | `3` | Days before due → `due_soon` |
+| `COLLECTION_PROMISE_MAX_ACTIVE` | `1` | Configured max open promises per customer |
+
+After changing these env values: `docker compose up -d --force-recreate backend queue-worker scheduler`.
+
 Health: `GET /api/v1/health` and `GET /up`

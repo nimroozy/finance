@@ -2,7 +2,7 @@
 
 Multi-branch customer debt collection system integrated with Zoho Books.
 
-**Stage status:** Stage 2 (Zoho Books integration) complete. Stage 3 not started.
+**Stage status:** Stage 3 (Assignments / Visits / Routes / Promises) complete. Stage 4 (Payments / Receipts / Wallets) not started.
 
 ## Stack
 
@@ -21,6 +21,11 @@ Multi-branch customer debt collection system integrated with Zoho Books.
 | [SECURITY.md](SECURITY.md) | Security notes |
 | [API.md](API.md) | API overview |
 | [ZOHO_SETUP.md](ZOHO_SETUP.md) | Zoho OAuth and sync |
+| [STAGE3_ASSIGNMENTS.md](STAGE3_ASSIGNMENTS.md) | Assignment workflow |
+| [COLLECTOR_GUIDE.md](COLLECTOR_GUIDE.md) | Collector mobile workflow |
+| [MANAGER_GUIDE.md](MANAGER_GUIDE.md) | Manager assignment & ops |
+| [ROUTES_AND_VISITS.md](ROUTES_AND_VISITS.md) | Routes, visits, GPS, evidence |
+| [PROMISE_TO_PAY.md](PROMISE_TO_PAY.md) | Promise statuses & fulfill |
 | [WHATSAPP_SETUP.md](WHATSAPP_SETUP.md) | Stage 6 (pending) |
 
 ## Production
@@ -37,6 +42,9 @@ Authentication, users, roles, branches, audit logs, settings, EN/FA UI, Docker s
 ### Stage 2 — Zoho Books
 OAuth connect/reconnect/disconnect, encrypted tokens, customer & invoice sync, branch mapping, unmapped queue, debtors list, sync jobs + API logs, scheduled queue workers.
 
+### Stage 3 — Assignments & field collection
+Collector profiles, customer assignments (manual / bulk / auto), reassignment & cancel, collection routes & stops, field visits with outcomes + GPS risk flags, promise-to-pay (manual fulfill), customer notes, visit evidence uploads, in-app notifications, collector dashboard, assignment/visit/promise reports. Stage 4 (payments / receipts / wallets) is **not** started.
+
 ## Remaining stages
 
-3 Assignments/Visits · 4 Payments/Receipts · 5 Handovers · 6 WhatsApp · 7 Offline PWA · 8 Reports/Hardening
+4 Payments/Receipts · 5 Handovers · 6 WhatsApp · 7 Offline PWA · 8 Reports/Hardening
