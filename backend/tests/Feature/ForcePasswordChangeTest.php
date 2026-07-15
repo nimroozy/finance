@@ -31,7 +31,8 @@ class ForcePasswordChangeTest extends TestCase
             ->assertJsonPath('message', 'Password change required before continuing.');
 
         $this->getJson('/api/v1/auth/me')
-            ->assertStatus(403);
+            ->assertOk()
+            ->assertJsonPath('data.force_password_change', true);
     }
 
     public function test_user_can_logout_and_change_password_when_forced(): void

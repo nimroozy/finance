@@ -11,6 +11,7 @@ use Spatie\Permission\PermissionRegistrar;
 class RolePermissionSeeder extends Seeder
 {
     public const PERMISSIONS = [
+        // Stage 1
         'users.view',
         'users.manage',
         'roles.view',
@@ -19,6 +20,15 @@ class RolePermissionSeeder extends Seeder
         'audit.view',
         'settings.manage',
         'dashboard.view',
+        // Stage 2 — Zoho / customers / invoices / debtors
+        'zoho.configure',
+        'zoho.view',
+        'zoho.sync',
+        'customers.view',
+        'customers.manage',
+        'invoices.view',
+        'debtors.view',
+        'debtors.export',
     ];
 
     public function run(): void
@@ -46,17 +56,29 @@ class RolePermissionSeeder extends Seeder
             'audit.view',
             'settings.manage',
             'dashboard.view',
+            'zoho.view',
+            'zoho.sync',
+            'customers.view',
+            'customers.manage',
+            'invoices.view',
+            'debtors.view',
+            'debtors.export',
+            // note: no zoho.configure (secrets / OAuth)
         ]);
 
         $branchManager->syncPermissions([
             'users.view',
             'branches.view',
             'dashboard.view',
+            'customers.view',
+            'invoices.view',
+            'debtors.view',
         ]);
 
         $collector->syncPermissions([
             'branches.view',
             'dashboard.view',
+            // Stage 2: collectors do NOT get customers.view / debtors.view yet
         ]);
 
         $auditor->syncPermissions([
@@ -65,6 +87,10 @@ class RolePermissionSeeder extends Seeder
             'branches.view',
             'audit.view',
             'dashboard.view',
+            'zoho.view',
+            'customers.view',
+            'invoices.view',
+            'debtors.view',
         ]);
     }
 }

@@ -42,10 +42,6 @@ class User extends Authenticatable
         'status',
         'password',
         'force_password_change',
-        'failed_login_attempts',
-        'locked_until',
-        'last_login_at',
-        'last_login_ip',
     ];
 
     /**

@@ -22,6 +22,10 @@ class UserController extends Controller
 
         $users = User::query()
             ->with(['roles', 'branches'])
+            ->when(! $request->user()->isSuperAdmin() && ! $request->user()->isCentralFinanceAdmin(), function ($q) use ($request) {
+                $branchIds = $request->user()->branchIds();
+                $q->whereHas('branches', fn ($bq) => $bq->whereIn('branches.id', $branchIds));
+            })
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))
             ->when($request->filled('search'), function ($q) use ($request) {
                 $search = '%'.$request->string('search').'%';
@@ -57,6 +61,7 @@ class UserController extends Controller
             $user = User::query()->create($data);
 
             if ($request->filled('roles')) {
+                $this->assertAssignableRoles($request->user(), $request->input('roles'));
                 $user->syncRoles($request->input('roles'));
             }
 
@@ -91,14 +96,23 @@ class UserController extends Controller
 
         DB::transaction(function () use ($request, $user) {
             $data = $request->safe()->except(['roles', 'branch_ids']);
+            $wasDisabled = $user->status !== User::STATUS_DISABLED
+                && (($data['status'] ?? null) === User::STATUS_DISABLED);
+
             $user->fill($data)->save();
 
             if ($request->has('roles')) {
-                $user->syncRoles($request->input('roles', []));
+                $roles = $request->input('roles', []);
+                $this->assertAssignableRoles($request->user(), $roles);
+                $user->syncRoles($roles);
             }
 
             if ($request->has('branch_ids')) {
                 $user->branches()->sync($request->input('branch_ids', []));
+            }
+
+            if ($wasDisabled) {
+                $user->tokens()->delete();
             }
         });
 
@@ -152,5 +166,15 @@ class UserController extends Controller
             'created_at' => $user->created_at,
             'updated_at' => $user->updated_at,
         ];
+    }
+
+    /**
+     * @param  list<string>  $roles
+     */
+    protected function assertAssignableRoles(User $actor, array $roles): void
+    {
+        if (in_array(User::ROLE_SUPER_ADMIN, $roles, true) && ! $actor->isSuperAdmin()) {
+            abort(403, 'Only Super Administrators may assign the Super Administrator role.');
+        }
     }
 }

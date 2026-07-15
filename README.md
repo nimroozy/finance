@@ -2,7 +2,7 @@
 
 Multi-branch customer debt collection system integrated with Zoho Books.
 
-**Stage status:** Stage 1 (Foundation) deployed.
+**Stage status:** Stage 2 (Zoho Books integration) complete. Stage 3 not started.
 
 ## Stack
 
@@ -20,24 +20,23 @@ Multi-branch customer debt collection system integrated with Zoho Books.
 | [BACKUP_RESTORE.md](BACKUP_RESTORE.md) | Backups |
 | [SECURITY.md](SECURITY.md) | Security notes |
 | [API.md](API.md) | API overview |
-| [ZOHO_SETUP.md](ZOHO_SETUP.md) | Stage 2 (pending) |
+| [ZOHO_SETUP.md](ZOHO_SETUP.md) | Zoho OAuth and sync |
 | [WHATSAPP_SETUP.md](WHATSAPP_SETUP.md) | Stage 6 (pending) |
 
 ## Production
 
 - Directory: `/opt/collection-system`
-- URL: `https://finance.mns.af` (HTTP fallback until DNS/SSL ready)
+- URL: https://finance.mns.af
 - Login: `/en/login` or `/fa/login`
 
-## Stage 1 features
+## Completed stages
 
-- Authentication with account lockout
-- Roles and permissions
-- Multi-branch access control (backend enforced)
-- Audit log foundation
-- Persian / English UI
-- Docker production stack
+### Stage 1 — Foundation
+Authentication, users, roles, branches, audit logs, settings, EN/FA UI, Docker stack, SSL.
 
-## Stages remaining
+### Stage 2 — Zoho Books
+OAuth connect/reconnect/disconnect, encrypted tokens, customer & invoice sync, branch mapping, unmapped queue, debtors list, sync jobs + API logs, scheduled queue workers.
 
-2 Zoho · 3 Assignments/Visits · 4 Payments/Receipts · 5 Handovers · 6 WhatsApp · 7 Offline PWA · 8 Reports/Hardening
+## Remaining stages
+
+3 Assignments/Visits · 4 Payments/Receipts · 5 Handovers · 6 WhatsApp · 7 Offline PWA · 8 Reports/Hardening

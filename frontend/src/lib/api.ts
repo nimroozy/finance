@@ -119,3 +119,64 @@ export async function apiFetch<T>(
 export function getApiBase() {
   return API_BASE;
 }
+
+/** Build a query string from defined values (skips empty/null/undefined). */
+export function toQuery(
+  params: Record<string, string | number | boolean | null | undefined>,
+): string {
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined || value === null || value === "") continue;
+    search.set(key, String(value));
+  }
+  const qs = search.toString();
+  return qs ? `?${qs}` : "";
+}
+
+/** Download a non-JSON response (e.g. CSV export) with bearer auth. */
+export async function apiDownload(
+  path: string,
+  filenameFallback = "download.csv",
+): Promise<void> {
+  const headers = new Headers({
+    Accept: "text/csv,application/octet-stream,*/*",
+  });
+  const token = getToken();
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  const response = await fetch(`${API_BASE}${path}`, { headers });
+
+  if (response.status === 401) {
+    onUnauthorized();
+    throw new ApiError("Unauthenticated.", 401);
+  }
+
+  if (!response.ok) {
+    let message = `Download failed (${response.status})`;
+    try {
+      const payload = (await response.json()) as ApiErrorResponse;
+      if (payload && !payload.success && payload.message) {
+        message = payload.message;
+      }
+    } catch {
+      // ignore non-JSON error body
+    }
+    throw new ApiError(message, response.status);
+  }
+
+  const blob = await response.blob();
+  const disposition = response.headers.get("Content-Disposition") ?? "";
+  const match = /filename\*?=(?:UTF-8'')?["']?([^"';]+)/i.exec(disposition);
+  const filename = match?.[1]?.trim() || filenameFallback;
+
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+}

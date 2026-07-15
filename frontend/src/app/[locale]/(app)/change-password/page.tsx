@@ -28,7 +28,6 @@ export default function ChangePasswordPage() {
   const tCommon = useTranslations("common");
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
-  const setUser = useAuthStore((s) => s.setUser);
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [password, setPassword] = useState("");
@@ -62,18 +61,10 @@ export default function ChangePasswordPage() {
         password_confirmation: confirmation,
       });
 
-      if (user) {
-        setUser({ ...user, force_password_change: false });
-      }
-
+      // Tokens are revoked server-side after password change.
+      useAuthStore.getState().clearAuth();
       setSuccess(t("success"));
-      setCurrentPassword("");
-      setPassword("");
-      setConfirmation("");
-
-      if (forced) {
-        setTimeout(() => router.replace("/dashboard"), 600);
-      }
+      setTimeout(() => router.replace("/login"), 800);
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message);

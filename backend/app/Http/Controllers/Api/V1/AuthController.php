@@ -142,10 +142,13 @@ class AuthController extends Controller
             'force_password_change' => false,
         ])->save();
 
+        // Invalidate existing sessions after a password change.
+        $user->tokens()->delete();
+
         $this->auditLogger->log('auth.password_changed', $user);
 
         return ApiResponse::success([
-            'message' => 'Password changed successfully.',
+            'message' => 'Password changed successfully. Please sign in again.',
         ]);
     }
 

@@ -11,20 +11,58 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { LoadingState } from "@/components/ui/layout";
 import { cn } from "@/lib/utils";
 
+type NavHref =
+  | "/dashboard"
+  | "/customers"
+  | "/debtors"
+  | "/invoices"
+  | "/zoho"
+  | "/users"
+  | "/roles"
+  | "/branches"
+  | "/audit-logs"
+  | "/settings";
+
+type NavLabelKey =
+  | "dashboard"
+  | "customers"
+  | "debtors"
+  | "invoices"
+  | "zoho"
+  | "users"
+  | "roles"
+  | "branches"
+  | "auditLogs"
+  | "settings";
+
 type NavItem = {
-  href: "/dashboard" | "/users" | "/roles" | "/branches" | "/audit-logs" | "/settings";
-  labelKey:
-    | "dashboard"
-    | "users"
-    | "roles"
-    | "branches"
-    | "auditLogs"
-    | "settings";
+  href: NavHref;
+  labelKey: NavLabelKey;
   permissions: string[];
 };
 
 const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard", labelKey: "dashboard", permissions: ["dashboard.view"] },
+  {
+    href: "/customers",
+    labelKey: "customers",
+    permissions: ["customers.view"],
+  },
+  {
+    href: "/debtors",
+    labelKey: "debtors",
+    permissions: ["debtors.view"],
+  },
+  {
+    href: "/invoices",
+    labelKey: "invoices",
+    permissions: ["invoices.view"],
+  },
+  {
+    href: "/zoho",
+    labelKey: "zoho",
+    permissions: ["zoho.view"],
+  },
   {
     href: "/users",
     labelKey: "users",

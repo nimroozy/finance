@@ -32,5 +32,13 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <env name="FRONTEND_URL" value="http://localhost:5173"/>
+        <env name="ZOHO_CLIENT_ID" value="test-client-id"/>
+        <env name="ZOHO_CLIENT_SECRET" value="test-client-secret"/>
+        <env name="ZOHO_REDIRECT_URI" value="http://localhost/api/v1/zoho/oauth/callback"/>
+        <env name="ZOHO_ORGANIZATION_ID" value="org-test-1"/>
+        <env name="ZOHO_ACCOUNTS_DOMAIN" value="https://accounts.zoho.com"/>
+        <env name="ZOHO_API_DOMAIN" value="https://www.zohoapis.com"/>
+        <env name="ZOHO_DATA_CENTER" value="us"/>
     </php>
 </phpunit>
