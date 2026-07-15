@@ -40,6 +40,9 @@
     "myPayments": "My payments",
     "newPayment": "New payment",
     "myWallet": "My wallet",
+    "cashHandover": "Cash handover",
+    "cashHandovers": "Cash handovers",
+    "cashboxes": "Cashboxes",
     "notifications": "Notifications"
   },
   "common": {

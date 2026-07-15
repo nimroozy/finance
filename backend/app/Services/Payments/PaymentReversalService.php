@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\Receipts\ReceiptService;
 use App\Services\Wallets\CollectorWalletService;
+use App\Services\Cash\CustodyAwareReversalService;
 use App\Services\Zoho\ZohoPaymentSyncService;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
@@ -22,6 +23,7 @@ class PaymentReversalService
         protected ReceiptService $receipts,
         protected ZohoPaymentSyncService $zohoSync,
         protected AuditLogger $audit,
+        protected CustodyAwareReversalService $custody,
     ) {}
 
     public function request(Payment $payment, User $actor, string $reason): PaymentReversal
@@ -51,6 +53,10 @@ class PaymentReversalService
             'reason' => $reason,
         ]);
 
+        if ($this->custody->requiresCustodyReview($payment)) {
+            $this->custody->createConflict($payment, $reversal, $actor, $reason);
+        }
+
         $this->audit->log('payment.reversal_requested', $reversal, null, $reversal->toArray(), $payment->branch_id);
 
         return $reversal;
@@ -74,6 +80,10 @@ class PaymentReversalService
 
             if ($payment->isReversed()) {
                 throw new InvalidArgumentException('Payment is already reversed.');
+            }
+
+            if ($this->custody->requiresCustodyReview($payment)) {
+                throw new InvalidArgumentException('Payment has been handed over; resolve the custody conflict before reversing.');
             }
 
             // Attempt Zoho void first for live synced payments (never fake success).

@@ -18,12 +18,15 @@ class CollectorWalletTransaction extends Model
 
     public const TYPE_ADJUSTMENT = 'adjustment';
 
+    public const TYPE_CASH_HANDOVER = 'cash_handover';
+
     protected $fillable = [
         'collector_wallet_id',
         'collector_id',
         'branch_id',
         'payment_id',
         'reversal_id',
+        'handover_id',
         'type',
         'amount',
         'balance_before',

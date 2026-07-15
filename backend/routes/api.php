@@ -4,6 +4,10 @@ use App\Http\Controllers\Api\V1\AssignmentController;
 use App\Http\Controllers\Api\V1\AuditLogController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BranchController;
+use App\Http\Controllers\Api\V1\CashboxController;
+use App\Http\Controllers\Api\V1\CashboxTransferController;
+use App\Http\Controllers\Api\V1\CashHandoverController;
+use App\Http\Controllers\Api\V1\CashReconciliationController;
 use App\Http\Controllers\Api\V1\CollectorController;
 use App\Http\Controllers\Api\V1\CustomerController;
 use App\Http\Controllers\Api\V1\CustomerNoteController;
@@ -320,6 +324,35 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         Route::middleware('permission:payment_settings.manage')->group(function () {
             Route::put('/payment-settings', [PaymentSettingController::class, 'update'])->name('payment-settings.update');
         });
+
+        // --- Stage 5: cash custody ---
+        Route::middleware('permission:handovers.view')->group(function () {
+            Route::get('/cash-handovers', [CashHandoverController::class, 'index'])->name('cash-handovers.index');
+            Route::get('/cash-handovers/eligible', [CashHandoverController::class, 'eligible'])->name('cash-handovers.eligible');
+            Route::get('/cash-handovers/{handover}', [CashHandoverController::class, 'show'])->name('cash-handovers.show');
+        });
+        Route::middleware('permission:handovers.create')->post('/cash-handovers/draft', [CashHandoverController::class, 'draft'])->name('cash-handovers.draft');
+        Route::middleware('permission:handovers.submit')->post('/cash-handovers/{handover}/submit', [CashHandoverController::class, 'submit'])->name('cash-handovers.submit');
+        Route::middleware('permission:handovers.review')->group(function () {
+            Route::post('/cash-handovers/{handover}/approve', [CashHandoverController::class, 'approve'])->name('cash-handovers.approve');
+            Route::post('/cash-handovers/{handover}/reject', [CashHandoverController::class, 'reject'])->name('cash-handovers.reject');
+        });
+        Route::middleware('permission:cashboxes.view')->group(function () {
+            Route::get('/cashboxes', [CashboxController::class, 'index'])->name('cashboxes.index');
+            Route::get('/cashboxes/{cashbox}', [CashboxController::class, 'show'])->name('cashboxes.show');
+        });
+        Route::middleware('permission:cashboxes.manage')->post('/cashboxes/ensure', [CashboxController::class, 'ensure'])->name('cashboxes.ensure');
+        Route::middleware('permission:cashbox_transfers.view')->get('/cashbox-transfers', [CashboxTransferController::class, 'index'])->name('cashbox-transfers.index');
+        Route::middleware('permission:cashbox_transfers.create')->post('/cashbox-transfers/draft', [CashboxTransferController::class, 'draft'])->name('cashbox-transfers.draft');
+        Route::middleware('permission:cashbox_transfers.approve')->group(function () {
+            Route::post('/cashbox-transfers/{transfer}/submit', [CashboxTransferController::class, 'submit'])->name('cashbox-transfers.submit');
+            Route::post('/cashbox-transfers/{transfer}/approve', [CashboxTransferController::class, 'approve'])->name('cashbox-transfers.approve');
+            Route::post('/cashbox-transfers/{transfer}/send', [CashboxTransferController::class, 'send'])->name('cashbox-transfers.send');
+            Route::post('/cashbox-transfers/{transfer}/receive', [CashboxTransferController::class, 'receive'])->name('cashbox-transfers.receive');
+            Route::post('/cashbox-transfers/{transfer}/reverse', [CashboxTransferController::class, 'reverse'])->name('cashbox-transfers.reverse');
+        });
+        Route::middleware('permission:cash_reconciliation.view')->get('/cash-reconciliations', [CashReconciliationController::class, 'index'])->name('cash-reconciliations.index');
+        Route::middleware('permission:cash_reconciliation.run')->post('/cash-reconciliations/run', [CashReconciliationController::class, 'run'])->name('cash-reconciliations.run');
 
         // --- Collectors ---
         Route::middleware('permission:collectors.view')->group(function () {

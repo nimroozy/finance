@@ -1,15 +1,16 @@
 openapi: 3.0.3
 info:
   title: Collection Management System API
-  version: 1.4.0
+  version: 1.5.0
   license:
     name: Proprietary
     url: https://finance.mns.af
   description: |
-    Stage 1–4 APIs for the Finance Collection Management System (auth, RBAC,
+    Stage 1–5 APIs for the Finance Collection Management System (auth, RBAC,
     Zoho sync, customers/invoices/debtors, assignments, visits, routes,
     promises, notes, evidence, notifications, collectors, reports, payments,
-    receipts, collector wallets, reversals, and Zoho payment sync).
+    receipts, collector wallets, reversals, Zoho payment sync, cash handovers,
+    and branch cashboxes).
 
     **Response envelope:** all JSON responses use
     `{ success, data, meta?, message?, errors? }`.
@@ -28,6 +29,11 @@ info:
     never deleted (use reversals); cash credits collector wallets; receipt
     numbers are issued only on confirm. Public receipt verification is
     available at `GET /verify-receipt/{token}` (rate limited).
+
+    **Cash custody (Stage 5):** collectors submit cash handovers; approval
+    debits the collector wallet and credits the branch cashbox. Rejected
+    handovers never move money. Already-handed-over payments require custody
+    review before reversal.
 servers:
   - url: https://finance.mns.af/api/v1
     description: Production

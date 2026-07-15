@@ -72,6 +72,24 @@ class RolePermissionSeeder extends Seeder
         'reversals.request',
         'reversals.approve',
         'payment_settings.manage',
+        'handovers.view',
+        'handovers.create',
+        'handovers.submit',
+        'handovers.review',
+        'cashboxes.view',
+        'cashboxes.manage',
+        'cashbox_transfers.view',
+        'cashbox_transfers.create',
+        'cashbox_transfers.approve',
+        'bank_deposits.view',
+        'bank_deposits.manage',
+        'cash_reconciliation.view',
+        'cash_reconciliation.run',
+        'cash_variances.view',
+        'cash_variances.manage',
+        'cash_adjustments.view',
+        'cash_adjustments.manage',
+        'custody_reversals.review',
     ];
 
     public function run(): void
@@ -137,6 +155,10 @@ class RolePermissionSeeder extends Seeder
             'reversals.request',
             'reversals.approve',
             'payment_settings.manage',
+            'handovers.view', 'handovers.create', 'handovers.submit', 'handovers.review',
+            'cashboxes.view', 'cashboxes.manage', 'cashbox_transfers.view', 'cashbox_transfers.create', 'cashbox_transfers.approve',
+            'bank_deposits.view', 'bank_deposits.manage', 'cash_reconciliation.view', 'cash_reconciliation.run',
+            'cash_variances.view', 'cash_variances.manage', 'cash_adjustments.view', 'cash_adjustments.manage', 'custody_reversals.review',
         ]);
 
         $branchManager->syncPermissions([
@@ -181,6 +203,9 @@ class RolePermissionSeeder extends Seeder
             'wallets.manage',
             'reversals.request',
             'reversals.approve',
+            'handovers.view', 'handovers.review', 'cashboxes.view', 'cashboxes.manage',
+            'cashbox_transfers.view', 'cashbox_transfers.create', 'cashbox_transfers.approve',
+            'cash_reconciliation.view', 'cash_reconciliation.run', 'cash_variances.view', 'cash_variances.manage',
         ]);
 
         $collector->syncPermissions([
@@ -206,6 +231,7 @@ class RolePermissionSeeder extends Seeder
             'receipts.print',
             'wallets.view',
             'reversals.request',
+            'handovers.view', 'handovers.create', 'handovers.submit',
         ]);
 
         $auditor->syncPermissions([
@@ -233,6 +259,8 @@ class RolePermissionSeeder extends Seeder
             'payments.export',
             'receipts.view',
             'wallets.view',
+            'handovers.view', 'cashboxes.view', 'cashbox_transfers.view', 'bank_deposits.view',
+            'cash_reconciliation.view', 'cash_variances.view', 'cash_adjustments.view',
         ]);
     }
 }

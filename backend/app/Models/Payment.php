@@ -71,6 +71,8 @@ class Payment extends Model
         'currency',
         'amount',
         'status',
+        'handover_status',
+        'cash_handover_request_id',
         'zoho_sync_status',
         'zoho_payment_id',
         'zoho_reference',
@@ -193,5 +195,10 @@ class Payment extends Model
     public function latestReversal(): HasOne
     {
         return $this->hasOne(PaymentReversal::class)->latestOfMany();
+    }
+
+    public function cashHandover(): BelongsTo
+    {
+        return $this->belongsTo(CashHandoverRequest::class, 'cash_handover_request_id');
     }
 }

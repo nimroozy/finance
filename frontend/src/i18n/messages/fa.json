@@ -40,6 +40,9 @@
     "myPayments": "پرداخت‌های من",
     "newPayment": "پرداخت جدید",
     "myWallet": "کیف‌پول من",
+    "cashHandover": "تحویل نقدی",
+    "cashHandovers": "تحویل‌های نقدی",
+    "cashboxes": "صندوق‌های شعبه",
     "notifications": "اعلان‌ها"
   },
   "common": {

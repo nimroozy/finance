@@ -94,6 +94,18 @@ return Application::configure(basePath: dirname(__DIR__))
             ], 404);
         });
 
+        $exceptions->render(function (\InvalidArgumentException $e, Request $request) {
+            if (! $request->is('api/*') && ! $request->expectsJson()) {
+                return null;
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage() ?: 'Invalid request.',
+                'errors' => (object) [],
+            ], 422);
+        });
+
         $exceptions->render(function (\Throwable $e, Request $request) {
             if (! $request->is('api/*') && ! $request->expectsJson()) {
                 return null;
@@ -103,7 +115,8 @@ return Application::configure(basePath: dirname(__DIR__))
                 || $e instanceof AuthenticationException
                 || $e instanceof AuthorizationException
                 || $e instanceof ModelNotFoundException
-                || $e instanceof NotFoundHttpException) {
+                || $e instanceof NotFoundHttpException
+                || $e instanceof \InvalidArgumentException) {
                 return null;
             }
 

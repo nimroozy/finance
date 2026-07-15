@@ -199,9 +199,13 @@ class PaymentService
             $payment->confirmed_by = $actor->id;
             $payment->confirmed_at = now();
             $payment->zoho_sync_status = Payment::ZOHO_PENDING;
-            $payment->save();
 
             $method = $payment->method;
+            $payment->handover_status = ($method && $method->affects_cash_wallet)
+                ? 'pending_handover'
+                : null;
+            $payment->save();
+
             $targetStatus = ($method && $method->affects_cash_wallet)
                 ? Payment::STATUS_SETTLED_PENDING_HANDOVER
                 : Payment::STATUS_PENDING_ZOHO_SYNC;

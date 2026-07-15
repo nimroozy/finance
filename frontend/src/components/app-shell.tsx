@@ -65,6 +65,12 @@ const NAV_ITEMS: NavItem[] = [
     collectorOnly: true,
   },
   {
+    href: "/collector/handovers/new",
+    labelKey: "cashHandover",
+    permissions: ["handovers.create", "handovers.submit"],
+    collectorOnly: true,
+  },
+  {
     href: "/collector/notifications",
     labelKey: "notifications",
     permissions: ["notifications.view"],
@@ -168,6 +174,18 @@ const NAV_ITEMS: NavItem[] = [
     href: "/wallets",
     labelKey: "wallets",
     permissions: ["wallets.view"],
+    managerPrefer: true,
+  },
+  {
+    href: "/handovers",
+    labelKey: "cashHandovers",
+    permissions: ["handovers.view", "handovers.review"],
+    managerPrefer: true,
+  },
+  {
+    href: "/cashboxes",
+    labelKey: "cashboxes",
+    permissions: ["cashboxes.view"],
     managerPrefer: true,
   },
   {

@@ -2,7 +2,7 @@
 
 Multi-branch customer debt collection system integrated with Zoho Books.
 
-**Stage status:** Stage 4 (Payments / Receipts / Wallets) complete. Stage 5 (Handovers) not started.
+**Stage status:** Stage 5 (Cash handovers / branch cashboxes) complete. Stage 6 (WhatsApp Cloud API) not started.
 
 ## Stack
 
@@ -55,8 +55,11 @@ OAuth connect/reconnect/disconnect, encrypted tokens, customer & invoice sync, b
 Collector profiles, customer assignments (manual / bulk / auto), reassignment & cancel, collection routes & stops, field visits with outcomes + GPS risk flags, promise-to-pay (manual fulfill), customer notes, visit evidence uploads, in-app notifications, collector dashboard, assignment/visit/promise reports.
 
 ### Stage 4 — Payments / receipts / wallets
-Payment draft → confirm with invoice allocations and idempotency; receipts (PDF + public verify token); collector cash wallets (append-only ledger); Zoho customer-payment sync with `ZOHO_PAYMENT_DRY_RUN`; reversal request/approve (no payment delete); daily reconciliation job; payment reports. Cash confirmations use `settled_pending_handover` (Stage 5 handovers not implemented).
+Payment draft → confirm with invoice allocations and idempotency; receipts (PDF + public verify token); collector cash wallets (append-only ledger); Zoho customer-payment sync with `ZOHO_PAYMENT_DRY_RUN` (scoped `--live-zoho` verify for labeled tests only); reversal request/approve (no payment delete); daily reconciliation job; payment reports.
+
+### Stage 5 — Cash handovers / branch cashboxes
+Eligible cash payment selection; handover draft/submit/approve/reject; collector wallet debit + cashbox credit on approval only; handover numbering; cashbox transfers & reconciliation foundations; custody-aware reversal gate for handed-over payments.
 
 ## Remaining stages
 
-5 Handovers · 6 WhatsApp · 7 Offline PWA · 8 Reports/Hardening
+6 WhatsApp Cloud API · 7 Offline PWA · 8 Reports/Hardening

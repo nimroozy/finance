@@ -6,6 +6,7 @@ use App\Models\CollectorWallet;
 use App\Models\CollectorWalletTransaction;
 use App\Models\Payment;
 use App\Models\PaymentReversal;
+use App\Models\CashHandoverRequest;
 use App\Models\User;
 use App\Support\Money;
 use Illuminate\Support\Facades\DB;
@@ -125,6 +126,35 @@ class CollectorWalletService
                 'notes' => 'Payment reversal debit',
                 'created_by' => $actor?->id,
                 'created_at' => now(),
+            ]);
+        });
+    }
+
+    public function debitForCashHandover(CashHandoverRequest $handover, string $amount, ?User $actor = null): CollectorWalletTransaction
+    {
+        return DB::transaction(function () use ($handover, $amount, $actor) {
+            $wallet = $this->getOrCreate($handover->collector_id, $handover->branch_id, $handover->currency);
+            $locked = CollectorWallet::withoutGlobalScopes()->whereKey($wallet->id)->lockForUpdate()->firstOrFail();
+            $amount = Money::normalize($amount);
+            $before = Money::normalize($locked->balance);
+            $after = Money::sub($before, $amount);
+
+            if (Money::isNegative($after)) {
+                throw new RuntimeException('Insufficient wallet balance for cash handover.');
+            }
+
+            $locked->balance = $after;
+            $locked->pending_handover_balance = Money::max('0', Money::sub($locked->pending_handover_balance, $amount));
+            $locked->last_transaction_at = now();
+            $locked->save();
+
+            return CollectorWalletTransaction::create([
+                'collector_wallet_id' => $locked->id, 'collector_id' => $locked->collector_id,
+                'branch_id' => $locked->branch_id, 'handover_id' => $handover->id,
+                'type' => CollectorWalletTransaction::TYPE_CASH_HANDOVER, 'amount' => Money::mul($amount, '-1'),
+                'balance_before' => $before, 'balance_after' => $after, 'currency' => $locked->currency,
+                'reference' => $handover->handover_number, 'notes' => 'Cash handover debit',
+                'created_by' => $actor?->id, 'created_at' => now(),
             ]);
         });
     }
