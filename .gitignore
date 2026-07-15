@@ -1,0 +1,49 @@
+# Secrets and local env
+.env
+.env.*
+!.env.example
+backend/.env
+frontend/.env
+frontend/.env.local
+frontend/.env.*.local
+
+# Dependencies
+backend/vendor/
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+
+# Runtime / data
+*.sqlite
+*.log
+storage/logs/
+docker/nginx/certs/*
+!docker/nginx/certs/.gitkeep
+docker/nginx/certbot/*
+!docker/nginx/certbot/.gitkeep
+backups/
+*.sql
+*.sql.gz
+*.dump
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Composer phar
+composer.phar
+
+# Test coverage
+backend/coverage/
+frontend/coverage/
+
+# Temporary
+tmp/
+temp/
+
+.admin-credentials.txt
+.env
+
