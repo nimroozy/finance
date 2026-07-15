@@ -38,6 +38,36 @@ docker compose exec backend php artisan queue:retry all
 docker compose logs -f backend queue-worker scheduler nginx
 ```
 
+## Admin password reset (secure)
+
+If the Super Administrator password is unknown (for example `.env` `ADMIN_PASSWORD` no longer matches the database hash):
+
+```bash
+mkdir -p /opt/collection-system/.secrets
+python3 - <<'PY'
+import secrets, string
+alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
+while True:
+    p = "".join(secrets.choice(alphabet) for _ in range(20))
+    if (any(c.islower() for c in p) and any(c.isupper() for c in p)
+        and any(c.isdigit() for c in p) and any(c in "!@#$%^&*" for c in p)):
+        open("/opt/collection-system/.secrets/admin-pass", "w").write(p)
+        break
+PY
+chmod 600 /opt/collection-system/.secrets/admin-pass
+
+docker cp /opt/collection-system/.secrets/admin-pass collection-system-backend-1:/tmp/admin-pass
+docker compose exec -T backend php artisan admin:reset-password admin@finance.mns.af \
+  --password-file=/tmp/admin-pass --unlock --force-change --no-interaction
+docker compose exec -T backend rm -f /tmp/admin-pass
+
+docker cp /opt/collection-system/.secrets/admin-pass collection-system-backend-1:/tmp/smoke-pass
+docker compose exec -T backend php artisan app:stage3-smoke --password-file=/tmp/smoke-pass --keep
+docker compose exec -T backend rm -f /tmp/smoke-pass
+```
+
+Login URL: `https://finance.mns.af/en/login` (email `admin@finance.mns.af` or username `admin`). Do not print the password file contents in logs.
+
 ## Stage 3 — field collection
 
 **Promise status job** — scheduled daily as `UpdatePromiseStatusesJob` (`update-promise-statuses` in `routes/console.php`). Open promises move between `active` / `due_soon` / `due_today` / `overdue` from `promised_date`. Requires the Compose `scheduler` + `queue-worker` containers running.
