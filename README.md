@@ -20,6 +20,9 @@ Multi-branch customer debt collection system integrated with Zoho Books.
 | [BACKUP_RESTORE.md](BACKUP_RESTORE.md) | Backups |
 | [SECURITY.md](SECURITY.md) | Security notes |
 | [API.md](API.md) | API overview |
+| [docs/openapi.yaml](docs/openapi.yaml) | OpenAPI 3.0 Stage 1–3 |
+| [STAGE3_ASSIGNMENTS.md](STAGE3_ASSIGNMENTS.md) | Assignment workflow |
+| [STAGE3_STATUSES.md](STAGE3_STATUSES.md) | Supported status codes |
 | [ZOHO_SETUP.md](ZOHO_SETUP.md) | Zoho OAuth and sync |
 | [STAGE3_ASSIGNMENTS.md](STAGE3_ASSIGNMENTS.md) | Assignment workflow |
 | [COLLECTOR_GUIDE.md](COLLECTOR_GUIDE.md) | Collector mobile workflow |
