@@ -56,6 +56,22 @@ class RolePermissionSeeder extends Seeder
         'collectors.manage',
         'escalations.view',
         'escalations.manage',
+        // Stage 4 — payments / receipts / wallets / reversals
+        'payments.view',
+        'payments.create',
+        'payments.confirm',
+        'payments.manage',
+        'payments.export',
+        'payments.retry_sync',
+        'payments.reconcile',
+        'receipts.view',
+        'receipts.print',
+        'receipts.manage',
+        'wallets.view',
+        'wallets.manage',
+        'reversals.request',
+        'reversals.approve',
+        'payment_settings.manage',
     ];
 
     public function run(): void
@@ -106,6 +122,21 @@ class RolePermissionSeeder extends Seeder
             'reports.promises',
             'collectors.view',
             'escalations.view',
+            'payments.view',
+            'payments.create',
+            'payments.confirm',
+            'payments.manage',
+            'payments.export',
+            'payments.retry_sync',
+            'payments.reconcile',
+            'receipts.view',
+            'receipts.print',
+            'receipts.manage',
+            'wallets.view',
+            'wallets.manage',
+            'reversals.request',
+            'reversals.approve',
+            'payment_settings.manage',
         ]);
 
         $branchManager->syncPermissions([
@@ -137,6 +168,19 @@ class RolePermissionSeeder extends Seeder
             'collectors.view',
             'escalations.view',
             'escalations.manage',
+            'payments.view',
+            'payments.create',
+            'payments.confirm',
+            'payments.manage',
+            'payments.export',
+            'payments.retry_sync',
+            'receipts.view',
+            'receipts.print',
+            'receipts.manage',
+            'wallets.view',
+            'wallets.manage',
+            'reversals.request',
+            'reversals.approve',
         ]);
 
         $collector->syncPermissions([
@@ -155,6 +199,13 @@ class RolePermissionSeeder extends Seeder
             'evidence.view',
             'evidence.upload',
             'notifications.view',
+            'payments.view',
+            'payments.create',
+            'payments.confirm',
+            'receipts.view',
+            'receipts.print',
+            'wallets.view',
+            'reversals.request',
         ]);
 
         $auditor->syncPermissions([
@@ -178,6 +229,10 @@ class RolePermissionSeeder extends Seeder
             'reports.promises',
             'collectors.view',
             'escalations.view',
+            'payments.view',
+            'payments.export',
+            'receipts.view',
+            'wallets.view',
         ]);
     }
 }

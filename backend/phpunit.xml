@@ -40,5 +40,6 @@
         <env name="ZOHO_ACCOUNTS_DOMAIN" value="https://accounts.zoho.com"/>
         <env name="ZOHO_API_DOMAIN" value="https://www.zohoapis.com"/>
         <env name="ZOHO_DATA_CENTER" value="us"/>
+        <env name="ZOHO_PAYMENT_DRY_RUN" value="true" force="true"/>
     </php>
 </phpunit>

@@ -12,18 +12,26 @@ use App\Http\Controllers\Api\V1\EvidenceController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\InvoiceController;
 use App\Http\Controllers\Api\V1\NotificationController;
+use App\Http\Controllers\Api\V1\PaymentController;
+use App\Http\Controllers\Api\V1\PaymentSettingController;
 use App\Http\Controllers\Api\V1\PromiseController;
+use App\Http\Controllers\Api\V1\ReceiptController;
 use App\Http\Controllers\Api\V1\ReportController;
 use App\Http\Controllers\Api\V1\RoleController;
 use App\Http\Controllers\Api\V1\RouteController as CollectionRouteController;
 use App\Http\Controllers\Api\V1\SettingController;
 use App\Http\Controllers\Api\V1\UserController;
 use App\Http\Controllers\Api\V1\VisitController;
+use App\Http\Controllers\Api\V1\WalletController;
 use App\Http\Controllers\Api\V1\Zoho\ZohoController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->name('api.v1.')->group(function () {
     Route::get('/health', HealthController::class)->name('health');
+
+    Route::get('/verify-receipt/{token}', [ReceiptController::class, 'verify'])
+        ->middleware('throttle:30,1')
+        ->name('verify-receipt');
 
     Route::prefix('auth')->name('auth.')->group(function () {
         Route::post('/login', [AuthController::class, 'login'])
@@ -257,6 +265,60 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
 
         Route::middleware('permission:reports.promises')->group(function () {
             Route::get('/reports/overdue-promises', [ReportController::class, 'overduePromises'])->name('reports.overdue-promises');
+        });
+
+        // --- Stage 4: Payments ---
+        Route::middleware('permission:payments.view')->group(function () {
+            Route::get('/payment-methods', [PaymentController::class, 'methods'])->name('payment-methods.index');
+            Route::get('/payments', [PaymentController::class, 'index'])->name('payments.index');
+            Route::get('/payments/{uuid}', [PaymentController::class, 'show'])->name('payments.show');
+            Route::get('/payments/{uuid}/sync-status', [PaymentController::class, 'syncStatus'])->name('payments.sync-status');
+            Route::get('/reports/payments-summary', [ReportController::class, 'paymentsSummary'])->name('reports.payments-summary');
+            Route::get('/reports/payments-sync-failures', [ReportController::class, 'paymentsSyncFailures'])->name('reports.payments-sync-failures');
+        });
+
+        Route::middleware('permission:payments.create|payments.manage')->group(function () {
+            Route::post('/payments/preview', [PaymentController::class, 'preview'])->name('payments.preview');
+            Route::post('/payments/draft', [PaymentController::class, 'draft'])->name('payments.draft');
+        });
+
+        Route::middleware('permission:payments.confirm|payments.create|payments.manage')->group(function () {
+            Route::post('/payments/{uuid}/confirm', [PaymentController::class, 'confirm'])->name('payments.confirm');
+        });
+
+        Route::middleware('permission:payments.retry_sync')->group(function () {
+            Route::post('/payments/{uuid}/retry-sync', [PaymentController::class, 'retrySync'])->name('payments.retry-sync');
+        });
+
+        Route::middleware('permission:reversals.request')->group(function () {
+            Route::post('/payments/{uuid}/reversal-request', [PaymentController::class, 'requestReversal'])->name('payments.reversal-request');
+        });
+
+        Route::middleware('permission:reversals.approve')->group(function () {
+            Route::post('/reversals/{id}/approve', [PaymentController::class, 'approveReversal'])->whereNumber('id')->name('reversals.approve');
+            Route::post('/reversals/{id}/reject', [PaymentController::class, 'rejectReversal'])->whereNumber('id')->name('reversals.reject');
+        });
+
+        Route::middleware('permission:receipts.view')->group(function () {
+            Route::get('/receipts/{uuid}', [ReceiptController::class, 'show'])->name('receipts.show');
+            Route::get('/receipts/{uuid}/pdf', [ReceiptController::class, 'pdf'])->name('receipts.pdf');
+        });
+
+        Route::middleware('permission:receipts.print|receipts.manage')->group(function () {
+            Route::post('/receipts/{uuid}/print-log', [ReceiptController::class, 'printLog'])->name('receipts.print-log');
+        });
+
+        Route::middleware('permission:wallets.view')->group(function () {
+            Route::get('/collector/wallet', [WalletController::class, 'show'])->name('collector.wallet');
+            Route::get('/collector/wallet/transactions', [WalletController::class, 'transactions'])->name('collector.wallet.transactions');
+        });
+
+        Route::middleware('permission:payment_settings.manage|payments.view')->group(function () {
+            Route::get('/payment-settings', [PaymentSettingController::class, 'show'])->name('payment-settings.show');
+        });
+
+        Route::middleware('permission:payment_settings.manage')->group(function () {
+            Route::put('/payment-settings', [PaymentSettingController::class, 'update'])->name('payment-settings.update');
         });
 
         // --- Collectors ---

@@ -7,7 +7,10 @@ use App\Models\CollectionRoute;
 use App\Models\CollectionVisit;
 use App\Models\CustomerAssignment;
 use App\Models\CustomerNote;
+use App\Models\Payment;
+use App\Models\PaymentReversal;
 use App\Models\PromiseToPay;
+use App\Models\Receipt;
 use App\Models\UploadedVisitFile;
 use App\Models\User;
 use App\Policies\BranchPolicy;
@@ -15,7 +18,10 @@ use App\Policies\CollectionRoutePolicy;
 use App\Policies\CollectionVisitPolicy;
 use App\Policies\CustomerAssignmentPolicy;
 use App\Policies\CustomerNotePolicy;
+use App\Policies\PaymentPolicy;
+use App\Policies\PaymentReversalPolicy;
 use App\Policies\PromiseToPayPolicy;
+use App\Policies\ReceiptPolicy;
 use App\Policies\UploadedVisitFilePolicy;
 use App\Policies\UserPolicy;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -47,6 +53,9 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(PromiseToPay::class, PromiseToPayPolicy::class);
         Gate::policy(CustomerNote::class, CustomerNotePolicy::class);
         Gate::policy(UploadedVisitFile::class, UploadedVisitFilePolicy::class);
+        Gate::policy(Payment::class, PaymentPolicy::class);
+        Gate::policy(PaymentReversal::class, PaymentReversalPolicy::class);
+        Gate::policy(Receipt::class, ReceiptPolicy::class);
 
         RateLimiter::for('login', function (Request $request) {
             return Limit::perMinute(5)->by($request->input('login', $request->ip()));

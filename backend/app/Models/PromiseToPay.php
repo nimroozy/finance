@@ -29,6 +29,8 @@ class PromiseToPay extends Model
 
     public const STATUS_FULFILLED = 'fulfilled';
 
+    public const STATUS_PARTIALLY_FULFILLED = 'partially_fulfilled';
+
     public const STATUS_CANCELLED = 'cancelled';
 
     public const STATUS_SUPERSEDED = 'superseded';
@@ -38,6 +40,7 @@ class PromiseToPay extends Model
         self::STATUS_DUE_SOON,
         self::STATUS_DUE_TODAY,
         self::STATUS_OVERDUE,
+        self::STATUS_PARTIALLY_FULFILLED,
     ];
 
     protected $fillable = [

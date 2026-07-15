@@ -60,3 +60,8 @@ Schedule::job(new UpdatePromiseStatusesJob)
     ->daily()
     ->name('update-promise-statuses')
     ->withoutOverlapping();
+
+Schedule::job(new \App\Jobs\RunPaymentReconciliationJob)
+    ->daily()
+    ->name('payment-reconciliation-daily')
+    ->withoutOverlapping();

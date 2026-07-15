@@ -85,4 +85,32 @@ class ReportController extends Controller
 
         return ApiResponse::success($rows);
     }
+
+    public function paymentsSummary(Request $request): JsonResponse
+    {
+        abort_unless($request->user()->can('payments.view') || $request->user()->can('payments.export'), 403);
+
+        $summary = app(\App\Services\Payments\PaymentReconciliationService::class)->paymentsSummary(
+            $request->integer('branch_id') ?: null,
+            $request->query('from'),
+            $request->query('to'),
+        );
+
+        return ApiResponse::success($summary);
+    }
+
+    public function paymentsSyncFailures(Request $request): JsonResponse
+    {
+        abort_unless($request->user()->can('payments.view') || $request->user()->can('payments.retry_sync'), 403);
+
+        $rows = \App\Models\Payment::query()
+            ->with(['customer:id,contact_name', 'method'])
+            ->where('zoho_sync_status', \App\Models\Payment::ZOHO_FAILED)
+            ->when($request->filled('branch_id'), fn ($q) => $q->where('branch_id', $request->integer('branch_id')))
+            ->orderByDesc('id')
+            ->limit(200)
+            ->get();
+
+        return ApiResponse::success($rows);
+    }
 }

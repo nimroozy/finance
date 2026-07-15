@@ -1,0 +1,28 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class ReceiptSequence extends Model
+{
+    protected $fillable = [
+        'branch_id',
+        'year',
+        'last_sequence',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'year' => 'integer',
+            'last_sequence' => 'integer',
+        ];
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
+    }
+}
