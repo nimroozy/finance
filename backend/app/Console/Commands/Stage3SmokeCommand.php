@@ -59,9 +59,10 @@ class Stage3SmokeCommand extends Command
                 [
                     'name_en' => 'STAGE3-TEST Branch A',
                     'name_fa' => 'شاخه تست مرحله ۳ الف',
+                    'province_en' => 'STAGE3',
+                    'province_fa' => 'تست',
+                    'receipt_prefix' => 'S3A',
                     'is_active' => true,
-                    'timezone' => 'Asia/Kabul',
-                    'currency' => 'AFN',
                 ]
             );
 
@@ -70,9 +71,10 @@ class Stage3SmokeCommand extends Command
                 [
                     'name_en' => 'STAGE3-TEST Branch B',
                     'name_fa' => 'شاخه تست مرحله ۳ ب',
+                    'province_en' => 'STAGE3',
+                    'province_fa' => 'تست',
+                    'receipt_prefix' => 'S3B',
                     'is_active' => true,
-                    'timezone' => 'Asia/Kabul',
-                    'currency' => 'AFN',
                 ]
             );
 
