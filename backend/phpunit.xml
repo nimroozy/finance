@@ -18,14 +18,14 @@
         </include>
     </source>
     <php>
-        <env name="APP_ENV" value="testing"/>
+        <env name="APP_ENV" value="testing" force="true"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>
         <env name="CACHE_STORE" value="array"/>
-        <env name="DB_CONNECTION" value="sqlite"/>
-        <env name="DB_DATABASE" value=":memory:"/>
-        <env name="DB_URL" value=""/>
+        <env name="DB_CONNECTION" value="sqlite" force="true"/>
+        <env name="DB_DATABASE" value=":memory:" force="true"/>
+        <env name="DB_URL" value="" force="true"/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
@@ -40,5 +40,6 @@
         <env name="ZOHO_ACCOUNTS_DOMAIN" value="https://accounts.zoho.com"/>
         <env name="ZOHO_API_DOMAIN" value="https://www.zohoapis.com"/>
         <env name="ZOHO_DATA_CENTER" value="us"/>
+        <env name="ZOHO_PAYMENT_DRY_RUN" value="true" force="true"/>
     </php>
 </phpunit>
