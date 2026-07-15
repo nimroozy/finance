@@ -32,6 +32,11 @@ class SyncZohoInvoicesJob implements ShouldQueue
             $job->markCompleted($stats);
         } catch (Throwable $e) {
             $job->markFailed($e->getMessage());
+
+            if (str_contains($e->getMessage(), 'Zoho is not connected')) {
+                return;
+            }
+
             throw $e;
         }
     }

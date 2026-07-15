@@ -23,6 +23,9 @@ cd backend && php artisan test
 # Cache
 docker compose exec backend php artisan optimize:clear
 
+# After editing .env (Zoho secrets, etc.), recreate affected containers:
+docker compose up -d --force-recreate backend queue-worker scheduler
+
 # Failed jobs
 docker compose exec backend php artisan queue:failed
 docker compose exec backend php artisan queue:retry all

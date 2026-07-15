@@ -33,6 +33,12 @@ class SyncZohoCustomersJob implements ShouldQueue
             $job->markCompleted($stats);
         } catch (Throwable $e) {
             $job->markFailed($e->getMessage());
+
+            // Scheduled runs before OAuth connects should not poison the failed-job queue.
+            if (str_contains($e->getMessage(), 'Zoho is not connected')) {
+                return;
+            }
+
             throw $e;
         }
     }

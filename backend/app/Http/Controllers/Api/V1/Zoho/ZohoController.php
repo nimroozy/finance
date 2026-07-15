@@ -101,11 +101,23 @@ class ZohoController extends Controller
 
     public function oauthRedirect(Request $request): JsonResponse
     {
-        $data = $request->validate([
-            'data_center' => ['sometimes', 'string', Rule::in(array_keys($this->config->dataCenters()))],
-        ]);
+        try {
+            $data = $request->validate([
+                'data_center' => ['sometimes', 'string', Rule::in(array_keys($this->config->dataCenters()))],
+            ]);
 
-        $result = $this->oauth->authorizeUrl($data['data_center'] ?? null);
+            $result = $this->oauth->authorizeUrl($data['data_center'] ?? null);
+        } catch (\InvalidArgumentException $e) {
+            return ApiResponse::error($e->getMessage(), [], 422);
+        } catch (Throwable $e) {
+            report($e);
+
+            return ApiResponse::error(
+                'Unable to start Zoho connection. Check ZOHO_CLIENT_ID, ZOHO_CLIENT_SECRET, and ZOHO_REDIRECT_URI, then recreate backend containers.',
+                [],
+                500
+            );
+        }
 
         return ApiResponse::success([
             'authorize_url' => $result['url'],
