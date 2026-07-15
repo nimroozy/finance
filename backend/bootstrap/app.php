@@ -29,7 +29,8 @@ return Application::configure(basePath: dirname(__DIR__))
             ForceJsonResponse::class,
         ]);
 
-        $middleware->statefulApi();
+        // Token-based API auth (Bearer). Do not enable statefulApi() — that
+        // applies CSRF to first-party browser calls and breaks SPA token login.
 
         $middleware->alias([
             'role' => RoleMiddleware::class,
