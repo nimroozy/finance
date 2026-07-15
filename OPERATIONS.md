@@ -18,7 +18,11 @@ docker compose down
 docker compose exec backend php artisan migrate --force
 
 # Tests (inside backend image with dev deps; prefer CI/local)
+# NEVER run php artisan test against the production DB.
+# Local/CI only:
 cd backend && php artisan test
+# On the VPS, use a one-off image with sqlite and do not mount production .env, or run tests locally.
+# Production images are built with --no-dev (no PHPUnit).
 
 # Cache
 docker compose exec backend php artisan optimize:clear
