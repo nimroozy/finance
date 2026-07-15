@@ -1,20 +1,41 @@
 <?php
 
+use App\Http\Controllers\Api\V1\AssignmentController;
 use App\Http\Controllers\Api\V1\AuditLogController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BranchController;
+use App\Http\Controllers\Api\V1\CashboxController;
+use App\Http\Controllers\Api\V1\CashboxTransferController;
+use App\Http\Controllers\Api\V1\CashHandoverController;
+use App\Http\Controllers\Api\V1\CashReconciliationController;
+use App\Http\Controllers\Api\V1\CollectorController;
 use App\Http\Controllers\Api\V1\CustomerController;
+use App\Http\Controllers\Api\V1\CustomerNoteController;
 use App\Http\Controllers\Api\V1\DebtorController;
+use App\Http\Controllers\Api\V1\EvidenceController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\InvoiceController;
+use App\Http\Controllers\Api\V1\NotificationController;
+use App\Http\Controllers\Api\V1\PaymentController;
+use App\Http\Controllers\Api\V1\PaymentSettingController;
+use App\Http\Controllers\Api\V1\PromiseController;
+use App\Http\Controllers\Api\V1\ReceiptController;
+use App\Http\Controllers\Api\V1\ReportController;
 use App\Http\Controllers\Api\V1\RoleController;
+use App\Http\Controllers\Api\V1\RouteController as CollectionRouteController;
 use App\Http\Controllers\Api\V1\SettingController;
 use App\Http\Controllers\Api\V1\UserController;
+use App\Http\Controllers\Api\V1\VisitController;
+use App\Http\Controllers\Api\V1\WalletController;
 use App\Http\Controllers\Api\V1\Zoho\ZohoController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->name('api.v1.')->group(function () {
     Route::get('/health', HealthController::class)->name('health');
+
+    Route::get('/verify-receipt/{token}', [ReceiptController::class, 'verify'])
+        ->middleware('throttle:30,1')
+        ->name('verify-receipt');
 
     Route::prefix('auth')->name('auth.')->group(function () {
         Route::post('/login', [AuthController::class, 'login'])
@@ -133,5 +154,216 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         Route::middleware('permission:debtors.export')->group(function () {
             Route::get('/debtors/export', [DebtorController::class, 'export'])->name('debtors.export');
         });
+
+        // --- Stage 3: Assignments ---
+        Route::middleware('permission:assignments.view')->group(function () {
+            Route::get('/assignments', [AssignmentController::class, 'index'])->name('assignments.index');
+            Route::get('/assignments/unassigned-debtors', [AssignmentController::class, 'unassignedDebtors'])->name('assignments.unassigned-debtors');
+            Route::get('/assignments/export', [AssignmentController::class, 'export'])->name('assignments.export');
+            Route::get('/collectors/workload', [AssignmentController::class, 'collectorsWorkload'])->name('collectors.workload');
+            Route::get('/assignments/{id}/history', [AssignmentController::class, 'history'])->whereNumber('id')->name('assignments.history');
+            Route::get('/assignments/{id}', [AssignmentController::class, 'show'])->whereNumber('id')->name('assignments.show');
+        });
+
+        Route::middleware('permission:assignments.manage')->group(function () {
+            Route::post('/assignments', [AssignmentController::class, 'store'])->name('assignments.store');
+            Route::post('/assignments/bulk', [AssignmentController::class, 'bulk'])->name('assignments.bulk');
+            Route::post('/assignments/auto-preview', [AssignmentController::class, 'autoPreview'])->name('assignments.auto-preview');
+            Route::post('/assignments/auto-confirm', [AssignmentController::class, 'autoConfirm'])->name('assignments.auto-confirm');
+        });
+
+        Route::middleware('permission:assignments.reassign')->group(function () {
+            Route::post('/assignments/{id}/reassign', [AssignmentController::class, 'reassign'])->whereNumber('id')->name('assignments.reassign');
+        });
+
+        Route::middleware('permission:assignments.cancel')->group(function () {
+            Route::post('/assignments/{id}/cancel', [AssignmentController::class, 'cancel'])->whereNumber('id')->name('assignments.cancel');
+        });
+
+        Route::post('/assignments/{id}/accept', [AssignmentController::class, 'accept'])->whereNumber('id')->name('assignments.accept');
+        Route::post('/assignments/{id}/viewed', [AssignmentController::class, 'viewed'])->whereNumber('id')->name('assignments.viewed');
+
+        // --- Visits ---
+        Route::middleware('permission:visits.view')->group(function () {
+            Route::get('/visits', [VisitController::class, 'index'])->name('visits.index');
+            Route::get('/visits/outcomes', [VisitController::class, 'outcomes'])->name('visits.outcomes');
+            Route::get('/visits/{id}', [VisitController::class, 'show'])->whereNumber('id')->name('visits.show');
+        });
+
+        Route::middleware('permission:visits.create|visits.manage')->group(function () {
+            Route::post('/visits', [VisitController::class, 'store'])->name('visits.store');
+        });
+
+        Route::middleware('permission:visits.manage')->group(function () {
+            Route::post('/visits/{id}/correction-note', [VisitController::class, 'correctionNote'])->whereNumber('id')->name('visits.correction-note');
+        });
+
+        // --- Routes ---
+        Route::middleware('permission:routes.view')->group(function () {
+            Route::get('/routes', [CollectionRouteController::class, 'index'])->name('routes.index');
+            Route::get('/routes/{id}', [CollectionRouteController::class, 'show'])->whereNumber('id')->name('routes.show');
+            Route::post('/routes/{id}/start', [CollectionRouteController::class, 'start'])->whereNumber('id')->name('routes.start');
+            Route::post('/routes/{id}/complete', [CollectionRouteController::class, 'complete'])->whereNumber('id')->name('routes.complete');
+        });
+
+        Route::middleware('permission:routes.manage')->group(function () {
+            Route::post('/routes', [CollectionRouteController::class, 'store'])->name('routes.store');
+            Route::put('/routes/{id}', [CollectionRouteController::class, 'update'])->whereNumber('id')->name('routes.update');
+            Route::delete('/routes/{id}', [CollectionRouteController::class, 'destroy'])->whereNumber('id')->name('routes.destroy');
+            Route::post('/routes/{id}/publish', [CollectionRouteController::class, 'publish'])->whereNumber('id')->name('routes.publish');
+            Route::post('/routes/{id}/cancel', [CollectionRouteController::class, 'cancel'])->whereNumber('id')->name('routes.cancel');
+            Route::put('/routes/{id}/stops', [CollectionRouteController::class, 'reorderStops'])->whereNumber('id')->name('routes.reorder-stops');
+        });
+
+        // --- Promises ---
+        Route::middleware('permission:promises.view')->group(function () {
+            Route::get('/promises', [PromiseController::class, 'index'])->name('promises.index');
+        });
+
+        Route::middleware('permission:promises.create|promises.manage')->group(function () {
+            Route::post('/promises', [PromiseController::class, 'store'])->name('promises.store');
+            Route::post('/promises/{id}/cancel', [PromiseController::class, 'cancel'])->whereNumber('id')->name('promises.cancel');
+        });
+
+        Route::middleware('permission:promises.manage')->group(function () {
+            Route::post('/promises/{id}/fulfill', [PromiseController::class, 'fulfill'])->whereNumber('id')->name('promises.fulfill');
+            Route::post('/promises/{id}/supersede', [PromiseController::class, 'supersede'])->whereNumber('id')->name('promises.supersede');
+        });
+
+        // --- Notes ---
+        Route::middleware('permission:notes.view')->group(function () {
+            Route::get('/notes', [CustomerNoteController::class, 'index'])->name('notes.index');
+        });
+
+        Route::middleware('permission:notes.create|notes.manage')->group(function () {
+            Route::post('/notes', [CustomerNoteController::class, 'store'])->name('notes.store');
+            Route::patch('/notes/{id}', [CustomerNoteController::class, 'update'])->whereNumber('id')->name('notes.update');
+        });
+
+        // --- Evidence ---
+        Route::middleware('permission:evidence.upload')->group(function () {
+            Route::post('/visits/{id}/files', [EvidenceController::class, 'store'])->whereNumber('id')->name('visits.files.store');
+        });
+
+        Route::middleware('permission:evidence.view')->group(function () {
+            Route::get('/files/{id}/download', [EvidenceController::class, 'download'])->whereNumber('id')->name('files.download');
+        });
+
+        // --- Notifications ---
+        Route::middleware('permission:notifications.view')->group(function () {
+            Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+            Route::post('/notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.read-all');
+            Route::post('/notifications/{id}/read', [NotificationController::class, 'read'])->whereNumber('id')->name('notifications.read');
+        });
+
+        // --- Reports ---
+        Route::middleware('permission:reports.assignments')->group(function () {
+            Route::get('/reports/assignments-by-collector', [ReportController::class, 'assignmentsByCollector'])->name('reports.assignments-by-collector');
+            Route::get('/reports/unassigned-debtors', [ReportController::class, 'unassignedDebtors'])->name('reports.unassigned-debtors');
+        });
+
+        Route::middleware('permission:reports.visits')->group(function () {
+            Route::get('/reports/visits-by-outcome', [ReportController::class, 'visitsByOutcome'])->name('reports.visits-by-outcome');
+            Route::get('/reports/gps-mismatch', [ReportController::class, 'gpsMismatch'])->name('reports.gps-mismatch');
+        });
+
+        Route::middleware('permission:reports.promises')->group(function () {
+            Route::get('/reports/overdue-promises', [ReportController::class, 'overduePromises'])->name('reports.overdue-promises');
+        });
+
+        // --- Stage 4: Payments ---
+        Route::middleware('permission:payments.view')->group(function () {
+            Route::get('/payment-methods', [PaymentController::class, 'methods'])->name('payment-methods.index');
+            Route::get('/payments', [PaymentController::class, 'index'])->name('payments.index');
+            Route::get('/payments/{uuid}', [PaymentController::class, 'show'])->name('payments.show');
+            Route::get('/payments/{uuid}/sync-status', [PaymentController::class, 'syncStatus'])->name('payments.sync-status');
+            Route::get('/reports/payments-summary', [ReportController::class, 'paymentsSummary'])->name('reports.payments-summary');
+            Route::get('/reports/payments-sync-failures', [ReportController::class, 'paymentsSyncFailures'])->name('reports.payments-sync-failures');
+        });
+
+        Route::middleware('permission:payments.create|payments.manage')->group(function () {
+            Route::post('/payments/preview', [PaymentController::class, 'preview'])->name('payments.preview');
+            Route::post('/payments/draft', [PaymentController::class, 'draft'])->name('payments.draft');
+        });
+
+        Route::middleware('permission:payments.confirm|payments.create|payments.manage')->group(function () {
+            Route::post('/payments/{uuid}/confirm', [PaymentController::class, 'confirm'])->name('payments.confirm');
+        });
+
+        Route::middleware('permission:payments.retry_sync')->group(function () {
+            Route::post('/payments/{uuid}/retry-sync', [PaymentController::class, 'retrySync'])->name('payments.retry-sync');
+        });
+
+        Route::middleware('permission:reversals.request')->group(function () {
+            Route::post('/payments/{uuid}/reversal-request', [PaymentController::class, 'requestReversal'])->name('payments.reversal-request');
+        });
+
+        Route::middleware('permission:reversals.approve')->group(function () {
+            Route::post('/reversals/{id}/approve', [PaymentController::class, 'approveReversal'])->whereNumber('id')->name('reversals.approve');
+            Route::post('/reversals/{id}/reject', [PaymentController::class, 'rejectReversal'])->whereNumber('id')->name('reversals.reject');
+        });
+
+        Route::middleware('permission:receipts.view')->group(function () {
+            Route::get('/receipts/{uuid}', [ReceiptController::class, 'show'])->name('receipts.show');
+            Route::get('/receipts/{uuid}/pdf', [ReceiptController::class, 'pdf'])->name('receipts.pdf');
+        });
+
+        Route::middleware('permission:receipts.print|receipts.manage')->group(function () {
+            Route::post('/receipts/{uuid}/print-log', [ReceiptController::class, 'printLog'])->name('receipts.print-log');
+        });
+
+        Route::middleware('permission:wallets.view')->group(function () {
+            Route::get('/collector/wallet', [WalletController::class, 'show'])->name('collector.wallet');
+            Route::get('/collector/wallet/transactions', [WalletController::class, 'transactions'])->name('collector.wallet.transactions');
+        });
+
+        Route::middleware('permission:payment_settings.manage|payments.view')->group(function () {
+            Route::get('/payment-settings', [PaymentSettingController::class, 'show'])->name('payment-settings.show');
+        });
+
+        Route::middleware('permission:payment_settings.manage')->group(function () {
+            Route::put('/payment-settings', [PaymentSettingController::class, 'update'])->name('payment-settings.update');
+        });
+
+        // --- Stage 5: cash custody ---
+        Route::middleware('permission:handovers.view')->group(function () {
+            Route::get('/cash-handovers', [CashHandoverController::class, 'index'])->name('cash-handovers.index');
+            Route::get('/cash-handovers/eligible', [CashHandoverController::class, 'eligible'])->name('cash-handovers.eligible');
+            Route::get('/cash-handovers/{handover}', [CashHandoverController::class, 'show'])->name('cash-handovers.show');
+        });
+        Route::middleware('permission:handovers.create')->post('/cash-handovers/draft', [CashHandoverController::class, 'draft'])->name('cash-handovers.draft');
+        Route::middleware('permission:handovers.submit')->post('/cash-handovers/{handover}/submit', [CashHandoverController::class, 'submit'])->name('cash-handovers.submit');
+        Route::middleware('permission:handovers.review')->group(function () {
+            Route::post('/cash-handovers/{handover}/approve', [CashHandoverController::class, 'approve'])->name('cash-handovers.approve');
+            Route::post('/cash-handovers/{handover}/reject', [CashHandoverController::class, 'reject'])->name('cash-handovers.reject');
+        });
+        Route::middleware('permission:cashboxes.view')->group(function () {
+            Route::get('/cashboxes', [CashboxController::class, 'index'])->name('cashboxes.index');
+            Route::get('/cashboxes/{cashbox}', [CashboxController::class, 'show'])->name('cashboxes.show');
+        });
+        Route::middleware('permission:cashboxes.manage')->post('/cashboxes/ensure', [CashboxController::class, 'ensure'])->name('cashboxes.ensure');
+        Route::middleware('permission:cashbox_transfers.view')->get('/cashbox-transfers', [CashboxTransferController::class, 'index'])->name('cashbox-transfers.index');
+        Route::middleware('permission:cashbox_transfers.create')->post('/cashbox-transfers/draft', [CashboxTransferController::class, 'draft'])->name('cashbox-transfers.draft');
+        Route::middleware('permission:cashbox_transfers.approve')->group(function () {
+            Route::post('/cashbox-transfers/{transfer}/submit', [CashboxTransferController::class, 'submit'])->name('cashbox-transfers.submit');
+            Route::post('/cashbox-transfers/{transfer}/approve', [CashboxTransferController::class, 'approve'])->name('cashbox-transfers.approve');
+            Route::post('/cashbox-transfers/{transfer}/send', [CashboxTransferController::class, 'send'])->name('cashbox-transfers.send');
+            Route::post('/cashbox-transfers/{transfer}/receive', [CashboxTransferController::class, 'receive'])->name('cashbox-transfers.receive');
+            Route::post('/cashbox-transfers/{transfer}/reverse', [CashboxTransferController::class, 'reverse'])->name('cashbox-transfers.reverse');
+        });
+        Route::middleware('permission:cash_reconciliation.view')->get('/cash-reconciliations', [CashReconciliationController::class, 'index'])->name('cash-reconciliations.index');
+        Route::middleware('permission:cash_reconciliation.run')->post('/cash-reconciliations/run', [CashReconciliationController::class, 'run'])->name('cash-reconciliations.run');
+
+        // --- Collectors ---
+        Route::middleware('permission:collectors.view')->group(function () {
+            Route::get('/collectors', [CollectorController::class, 'index'])->name('collectors.index');
+        });
+
+        Route::middleware('permission:collectors.manage')->group(function () {
+            Route::post('/collectors', [CollectorController::class, 'store'])->name('collectors.store');
+            Route::put('/collectors/{id}', [CollectorController::class, 'update'])->whereNumber('id')->name('collectors.update');
+        });
+
+        Route::get('/collector/dashboard', [CollectorController::class, 'dashboard'])->name('collector.dashboard');
     });
 });
