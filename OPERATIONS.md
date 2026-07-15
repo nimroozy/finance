@@ -42,6 +42,20 @@ docker compose exec backend php artisan queue:retry all
 docker compose logs -f backend queue-worker scheduler nginx
 ```
 
+## Admin credential lifecycle
+
+Rules:
+
+1. **Deployments never reset an existing Super Administrator password.**
+2. `.env` `ADMIN_PASSWORD` is **first-time bootstrap only** (when no Super Admin exists).
+3. `/opt/collection-system/.secrets/admin-pass` is an **optional emergency reset source**, not a permanent authentication source and not synced on every deploy.
+4. After any emergency `admin:reset-password`, operators must log in and change the password (or keep `force_password_change`).
+5. Rotating credentials requires an **explicit** `php artisan admin:reset-password` (or `app:install --reset-password`).
+
+Root cause fixed (Stage 4→5 gate): older `scripts/deploy.sh` re-ran `app:install` whenever a fragile `setup_completed` tinker|grep check failed during container recreation. That overwrote the DB hash with `ADMIN_PASSWORD` from `.env`, which no longer matched a previously rotated `.secrets/admin-pass` value.
+
+Deploy now checks whether a Super Administrator **user** already exists and skips install entirely.
+
 ## Admin password reset (secure)
 
 If the Super Administrator password is unknown (for example `.env` `ADMIN_PASSWORD` no longer matches the database hash):

@@ -93,6 +93,9 @@ return [
     'payments' => [
         'dry_run' => (bool) env('ZOHO_PAYMENT_DRY_RUN', false),
         'endpoint' => env('ZOHO_PAYMENT_ENDPOINT', 'customerpayments'),
+        // Deposit / undeposited funds account used when creating customer payments.
+        'default_account_id' => env('ZOHO_PAYMENT_ACCOUNT_ID'),
+        'default_account_name' => env('ZOHO_PAYMENT_ACCOUNT_NAME', 'Undeposited Funds'),
     ],
 
 ];

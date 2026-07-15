@@ -63,14 +63,28 @@ class ReceiptController extends Controller
             return ApiResponse::error('Receipt not found.', [], 404);
         }
 
+        $customer = $receipt->payment?->customer;
+        $maskedName = null;
+        if ($customer?->contact_name) {
+            $name = trim((string) $customer->contact_name);
+            $maskedName = mb_substr($name, 0, 1).str_repeat('*', max(3, mb_strlen($name) - 1));
+        }
+
         return ApiResponse::success([
+            'valid' => true,
             'receipt_number' => $receipt->receipt_number,
             'status' => $receipt->status,
+            'reversed' => $receipt->status === \App\Models\Receipt::STATUS_VOIDED
+                || $receipt->payment?->status === \App\Models\Payment::STATUS_REVERSED,
             'issued_at' => $receipt->issued_at,
             'amount' => $receipt->payment?->amount,
             'currency' => $receipt->payment?->currency,
-            'customer' => $receipt->payment?->customer?->only(['contact_name', 'customer_number']),
+            'customer' => [
+                'contact_name_masked' => $maskedName,
+                'customer_number' => $customer?->customer_number,
+            ],
             'branch' => $receipt->branch?->only(['code', 'name_en', 'name_fa']),
+            'payment_method' => $receipt->payment?->method?->code,
             'payment_reference' => $receipt->payment?->payment_reference,
         ]);
     }

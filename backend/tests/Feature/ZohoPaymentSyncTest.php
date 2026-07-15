@@ -93,4 +93,70 @@ class ZohoPaymentSyncTest extends TestCase
 
         Http::assertSent(fn ($request) => str_contains($request->url(), 'customerpayments'));
     }
+
+    public function test_force_live_sync_bypasses_dry_run_config(): void
+    {
+        config([
+            'zoho.payments.dry_run' => true,
+            'zoho.payments.default_account_id' => 'acct-undeposited',
+        ]);
+
+        ZohoConnection::query()->create([
+            'data_center' => 'us',
+            'accounts_domain' => 'https://accounts.zoho.com',
+            'api_domain' => 'https://www.zohoapis.com',
+            'organization_id' => 'org-test-1',
+            'access_token' => 'access-token',
+            'refresh_token' => 'refresh-token',
+            'token_expires_at' => now()->addHour(),
+            'status' => 'connected',
+            'last_connected_at' => now(),
+        ]);
+
+        Http::fake([
+            'https://www.zohoapis.com/*/customerpayments*' => Http::sequence()
+                ->push(['code' => 0, 'customerpayments' => []], 200)
+                ->push([
+                    'code' => 0,
+                    'payment' => [
+                        'payment_id' => 'zoho-live-1',
+                        'payment_number' => 'L-1',
+                    ],
+                ], 201)
+                ->push([
+                    'code' => 0,
+                    'customerpayments' => [
+                        [
+                            'payment_id' => 'zoho-live-1',
+                            'payment_number' => 'L-1',
+                            'reference_number' => 'will-rewrite',
+                        ],
+                    ],
+                ], 200),
+        ]);
+
+        $branch = $this->makeBranch();
+        $manager = $this->makeManager($branch);
+        [$collectorUser, $collector] = $this->makeCollectorUser($branch);
+        $customer = $this->makeCustomer($branch, ['zoho_contact_id' => 'contact-live']);
+        $invoice = $this->makeInvoiceForCustomer($customer, ['zoho_invoice_id' => 'inv-live']);
+        $this->makeActiveAssignment($manager, $customer, $collector);
+
+        $this->actingAsUser($collectorUser);
+        $payload = $this->draftPaymentPayload($customer, $collector, $invoice, $this->bankMethod(), '10.0000', [
+            'external_reference' => 'BNK-LIVE',
+        ]);
+        $draft = $this->postJson('/api/v1/payments/draft', $payload)->assertCreated()->json('data');
+        $confirmed = $this->postJson('/api/v1/payments/'.$draft['uuid'].'/confirm')->assertOk()->json('data');
+
+        $payment = Payment::withoutGlobalScopes()->findOrFail($confirmed['id']);
+        $this->assertSame(Payment::ZOHO_DRY_RUN, $payment->zoho_sync_status);
+
+        $synced = app(\App\Services\Zoho\ZohoPaymentSyncService::class)->sync($payment, forceLive: true);
+        $this->assertSame(Payment::ZOHO_SYNCED, $synced->zoho_sync_status);
+        $this->assertSame('zoho-live-1', $synced->zoho_payment_id);
+
+        $again = app(\App\Services\Zoho\ZohoPaymentSyncService::class)->sync($synced->fresh(), forceLive: true);
+        $this->assertSame('zoho-live-1', $again->zoho_payment_id);
+    }
 }

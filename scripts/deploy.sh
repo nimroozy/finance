@@ -36,14 +36,22 @@ done
 docker compose exec -T backend php artisan migrate --force
 docker compose exec -T backend php artisan db:seed --class=RolePermissionSeeder --force || true
 
-if ! docker compose exec -T backend php artisan tinker --execute="echo \\App\\Models\\SystemSetting::where('key','setup_completed')->value('value');" 2>/dev/null | grep -q true; then
-  PASS="${ADMIN_PASSWORD:?Set ADMIN_PASSWORD in .env}"
+# Bootstrap Super Admin only when none exists.
+# Never reset an existing admin password from ADMIN_PASSWORD / .secrets during deploy.
+# Fragile setup_completed tinker greps previously could re-run app:install and overwrite
+# the production admin hash after an operational password rotation.
+ADMIN_EXISTS="$(docker compose exec -T backend php artisan tinker --execute="echo \\App\\Models\\User::query()->whereHas('roles', fn (\$q) => \$q->where('name', 'Super Administrator'))->exists() ? 'yes' : 'no';" 2>/dev/null | tr -d '\\r' | tail -n 1 | tr -d '[:space:]' || true)"
+if [ "${ADMIN_EXISTS}" != "yes" ]; then
+  PASS="${ADMIN_PASSWORD:?Set ADMIN_PASSWORD in .env for first-time bootstrap only}"
   docker compose exec -T backend php artisan app:install \
     --name="${ADMIN_NAME:-Super Administrator}" \
     --email="${ADMIN_EMAIL:-admin@finance.mns.af}" \
     --username="${ADMIN_USERNAME:-admin}" \
     --password="${PASS}" \
     --company="${COMPANY_NAME:-MNS Collection}"
+else
+  echo "==> Super Administrator already present — skipping app:install (password unchanged)."
+  docker compose exec -T backend php artisan tinker --execute="\\App\\Models\\SystemSetting::setValue('setup_completed','true');" >/dev/null 2>&1 || true
 fi
 
 docker compose ps

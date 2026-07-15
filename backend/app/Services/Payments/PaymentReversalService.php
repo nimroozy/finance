@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\Receipts\ReceiptService;
 use App\Services\Wallets\CollectorWalletService;
+use App\Services\Zoho\ZohoPaymentSyncService;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
@@ -19,6 +20,7 @@ class PaymentReversalService
         protected AllocationService $allocations,
         protected CollectorWalletService $wallets,
         protected ReceiptService $receipts,
+        protected ZohoPaymentSyncService $zohoSync,
         protected AuditLogger $audit,
     ) {}
 
@@ -54,9 +56,9 @@ class PaymentReversalService
         return $reversal;
     }
 
-    public function approve(PaymentReversal $reversal, User $actor): PaymentReversal
+    public function approve(PaymentReversal $reversal, User $actor, bool $forceLiveZoho = false): PaymentReversal
     {
-        return DB::transaction(function () use ($reversal, $actor) {
+        return DB::transaction(function () use ($reversal, $actor, $forceLiveZoho) {
             /** @var PaymentReversal $locked */
             $locked = PaymentReversal::query()->whereKey($reversal->id)->lockForUpdate()->firstOrFail();
 
@@ -72,6 +74,25 @@ class PaymentReversalService
 
             if ($payment->isReversed()) {
                 throw new InvalidArgumentException('Payment is already reversed.');
+            }
+
+            // Attempt Zoho void first for live synced payments (never fake success).
+            $void = $this->zohoSync->voidPayment($payment, $forceLiveZoho);
+            $locked->zoho_void_attempted = true;
+            if (! $void['ok']) {
+                $locked->zoho_void_error = $void['error'];
+                $locked->reviewed_by = $actor->id;
+                $locked->reviewed_at = now();
+                $locked->save();
+
+                $this->audit->log('payment.reversal_manual_review', $locked, null, [
+                    'error' => $void['error'],
+                    'zoho_payment_id' => $void['zoho_payment_id'],
+                ], $locked->branch_id);
+
+                throw new InvalidArgumentException(
+                    'Zoho payment could not be reversed automatically. Marked for manual review: '.($void['error'] ?? 'unknown')
+                );
             }
 
             // Never delete confirmed payments — mark reversed and reverse allocations/wallet.
@@ -95,6 +116,7 @@ class PaymentReversalService
             }
 
             $locked->status = PaymentReversal::STATUS_APPROVED;
+            $locked->zoho_void_error = null;
             $locked->reviewed_by = $actor->id;
             $locked->reviewed_at = now();
             $locked->approved_at = now();
