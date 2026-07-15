@@ -18,7 +18,7 @@ docker compose down
 docker compose exec backend php artisan migrate --force
 
 # Tests (inside backend image with dev deps; prefer CI/local)
-# NEVER run php artisan test against the production DB.
+# NEVER run phpunit / php artisan test against the production Postgres DB.
 # Local/CI only:
 cd backend && php artisan test
 # On the VPS, use a one-off image with sqlite and do not mount production .env, or run tests locally.
@@ -97,5 +97,31 @@ Downloads only via authenticated `GET /api/v1/files/{id}/download` (not public U
 | `COLLECTION_PROMISE_MAX_ACTIVE` | `1` | Configured max open promises per customer |
 
 After changing these env values: `docker compose up -d --force-recreate backend queue-worker scheduler`.
+
+## Stage 4 — payments / receipts / wallets
+
+**Stage 4 smoke** (labeled `STAGE4-TEST` records; requires `--password-file`):
+
+```bash
+# Prefer dry-run Zoho so smoke never posts real customerpayments:
+docker compose exec -T backend php artisan app:stage4-smoke \
+  --password-file=/tmp/smoke-pass --dry-run-zoho
+# Optional: --keep to commit STAGE4-TEST rows (default rolls back)
+```
+
+`--dry-run-zoho` forces `config('zoho.payments.dry_run')=true` for that run. Without the flag, behavior follows `ZOHO_PAYMENT_DRY_RUN` / stored `zoho_payment_dry_run` setting. Operational default: always pass `--dry-run-zoho` on shared/prod-like databases.
+
+**Dry-run Zoho payments** — with `ZOHO_PAYMENT_DRY_RUN=true` (or smoke `--dry-run-zoho`), `ZohoPaymentSyncService` skips the live Books POST and stores a `DRYRUN-…` id with `zoho_sync_status=dry_run`. Keep dry-run on until live push is intentionally enabled.
+
+**Receipt files** — private `local` disk:
+
+`storage/app/private/receipts/{uuid}.html`  
+`storage/app/private/receipts/{uuid}.pdf`
+
+Authenticated download: `GET /api/v1/receipts/{uuid}/pdf`. Public verify: `GET /api/v1/verify-receipt/{token}` (and web `/verify-receipt/{token}`).
+
+**Daily reconciliation** — scheduled as `RunPaymentReconciliationJob` (`payment-reconciliation-daily` in `routes/console.php`). Requires Compose `scheduler` + `queue-worker`.
+
+**Never** run PHPUnit against production Postgres. Prefer `app:stage4-smoke` for VPS checks.
 
 Health: `GET /api/v1/health` and `GET /up`

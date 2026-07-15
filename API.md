@@ -9,6 +9,7 @@ Base path: `/api/v1`
 | GET | `/health` | DB + Redis |
 | POST | `/auth/login` | `{ login, password }` throttled |
 | GET | `/zoho/oauth/callback` | OAuth browser redirect (state validated) |
+| GET | `/verify-receipt/{token}` | Public receipt verification (throttled 30/min); also mirrored at web `/verify-receipt/{token}` |
 
 ## Authenticated (Bearer token)
 
@@ -143,7 +144,56 @@ Base path: `/api/v1`
 | GET | `/reports/gps-mismatch` | reports.visits |
 | GET | `/reports/overdue-promises` | reports.promises |
 
-**Not in Stage 3:** payment, receipt, wallet, or cash-handover endpoints (Stage 4+).
+### Stage 4 — Payments
+
+| Method | Path | Permission |
+|--------|------|------------|
+| GET | `/payment-methods` | payments.view |
+| GET | `/payments` | payments.view |
+| GET | `/payments/{uuid}` | payments.view |
+| GET | `/payments/{uuid}/sync-status` | payments.view |
+| POST | `/payments/preview` | payments.create \| payments.manage |
+| POST | `/payments/draft` | payments.create \| payments.manage (`idempotency_key` required) |
+| POST | `/payments/{uuid}/confirm` | payments.confirm \| payments.create \| payments.manage |
+| POST | `/payments/{uuid}/retry-sync` | payments.retry_sync |
+| GET | `/reports/payments-summary` | payments.view |
+| GET | `/reports/payments-sync-failures` | payments.view |
+
+### Stage 4 — Reversals
+
+| Method | Path | Permission |
+|--------|------|------------|
+| POST | `/payments/{uuid}/reversal-request` | reversals.request (`reason` required) |
+| POST | `/reversals/{id}/approve` | reversals.approve |
+| POST | `/reversals/{id}/reject` | reversals.approve (`reason` required) |
+
+### Stage 4 — Receipts
+
+| Method | Path | Permission |
+|--------|------|------------|
+| GET | `/receipts/{uuid}` | receipts.view |
+| GET | `/receipts/{uuid}/pdf` | receipts.view |
+| POST | `/receipts/{uuid}/print-log` | receipts.print \| receipts.manage |
+
+Public verify: `GET /verify-receipt/{token}` (see Public table above).
+
+### Stage 4 — Wallets
+
+| Method | Path | Permission |
+|--------|------|------------|
+| GET | `/collector/wallet` | wallets.view (`collector_id` / `branch_id` query; collectors forced to self) |
+| GET | `/collector/wallet/transactions` | wallets.view |
+
+### Stage 4 — Payment settings
+
+| Method | Path | Permission |
+|--------|------|------------|
+| GET | `/payment-settings` | payment_settings.manage \| payments.view |
+| PUT | `/payment-settings` | payment_settings.manage |
+
+**Not in Stage 4:** cash-handover endpoints (Stage 5). No `DELETE /payments/{uuid}` — confirmed payments are reversed, not deleted.
+
+Details: [STAGE4_PAYMENTS.md](STAGE4_PAYMENTS.md), [PAYMENT_WORKFLOW.md](PAYMENT_WORKFLOW.md).
 
 Response envelope:
 

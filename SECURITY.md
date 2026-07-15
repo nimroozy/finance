@@ -24,5 +24,12 @@
 - **GPS privacy** — Location is captured **once per visit** (browser `getCurrentPosition`), not continuous tracking. If permission is `denied`, coordinates are cleared server-side. GPS is optional; visits still save with `gps_permission_state`.
 - **Branch isolation** — Non-global roles remain constrained by `BelongsToBranchScope` for Stage 3 entities. Branch managers only see their branches; Super Admin / Central Finance retain cross-branch visibility where permitted.
 
+### Stage 4 additions
+
+- **Idempotency** — `POST /payments/draft` requires `idempotency_key` (per user, TTL from `PAYMENT_IDEMPOTENCY_TTL_HOURS`, default 48h). Same key + same payload returns the original draft; key reuse with a different payload is rejected. Confirm may send an optional idempotency key (`confirm:{uuid}:{key}`).
+- **Receipt verification tokens** — Each receipt gets a random 48-char `verification_token`. Public `GET /api/v1/verify-receipt/{token}` (throttled) returns limited fields (number, amount, customer name, branch) — not full payment internals. PDFs/HTML stay on the private disk; authenticated users need `receipts.view`.
+- **Wallet ledger immutability** — `CollectorWalletTransaction` rows are append-only (no updates/deletes after insert). Credits/debits adjust balances via new ledger rows only.
+- **No payment delete** — There is no payment delete API. Confirmed payments are reversed (`status=reversed`) with allocation unwind, optional wallet debit, and receipt void. Soft-deletes on the model are not used as the operational cancel path.
+
 Rotate secrets by regenerating `APP_KEY` / DB / Redis / Zoho credentials carefully and restarting containers after updates.
 

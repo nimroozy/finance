@@ -23,12 +23,23 @@ cd /opt/collection-system
 # or:
 docker compose build && docker compose up -d
 docker compose exec backend php artisan migrate --force
-# Stage 3 added many Spatie permissions (assignments.*, visits.*, routes.*, etc.).
+# Stage 3–4 add Spatie permissions (assignments.*, payments.*, receipts.*, wallets.*, reversals.*, etc.).
 # Always refresh the seeder after migrate so roles pick up new permissions:
 docker compose exec backend php artisan db:seed --class=RolePermissionSeeder --force
 ```
 
-Stage 3 also stores visit evidence under the Laravel `local` disk (`storage/app/private/visit-evidence/…`). Ensure the backend volume persists `storage/` across deploys.
+Stage 3 stores visit evidence and Stage 4 stores receipts under the Laravel `local` disk (`storage/app/private/…`). Ensure the backend volume persists `storage/` across deploys.
+
+### Stage 4 env notes
+
+| Env | Default | Purpose |
+|-----|---------|---------|
+| `ZOHO_PAYMENT_DRY_RUN` | `false` | When `true`, confirmed payments do **not** POST to Zoho Books; sync records a fake `DRYRUN-…` id (`zoho_sync_status=dry_run`). Prefer `true` until live payment push is validated. |
+| `PAYMENT_DRAFT_EXPIRY_HOURS` | `24` | Draft TTL |
+| `PAYMENT_WALLET_ENABLED` | `true` | Cash wallet credits on confirm |
+| `PAYMENT_RECONCILIATION_DAILY` | `true` | Config flag for daily reconciliation |
+
+After changing `.env`: `docker compose up -d --force-recreate backend queue-worker scheduler`.
 
 ## Security rules
 
