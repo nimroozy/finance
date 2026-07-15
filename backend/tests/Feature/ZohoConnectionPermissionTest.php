@@ -80,7 +80,8 @@ class ZohoConnectionPermissionTest extends TestCase
         Sanctum::actingAs($user);
 
         $this->getJson('/api/v1/zoho/status')->assertStatus(403);
-        $this->getJson('/api/v1/customers')->assertStatus(403);
+        // Stage 3 grants customers.view; isolation scopes return empty without assignments.
+        $this->getJson('/api/v1/customers')->assertOk()->assertJsonPath('meta.total', 0);
         $this->getJson('/api/v1/debtors')->assertStatus(403);
     }
 }
