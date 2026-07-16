@@ -32,6 +32,8 @@ class Invoice extends Model
         'zoho_modified_at',
         'last_synced_at',
         'sync_status',
+        'balance_sync_status',
+        'balance_sync_warning',
     ];
 
     protected function casts(): array

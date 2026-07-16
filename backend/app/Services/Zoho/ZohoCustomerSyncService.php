@@ -7,6 +7,7 @@ use App\Models\CustomerCustomField;
 use App\Models\ZohoEntityMapping;
 use App\Models\ZohoSyncCursor;
 use App\Models\ZohoSyncJob;
+use App\Services\Mapping\CustomerBranchResolutionService;
 use Illuminate\Support\Carbon;
 use Throwable;
 
@@ -16,6 +17,7 @@ class ZohoCustomerSyncService
         protected ZohoApiClient $api,
         protected ZohoBranchMappingService $branchMapping,
         protected ZohoConfig $config,
+        protected CustomerBranchResolutionService $branchResolution,
     ) {}
 
     /**
@@ -153,7 +155,11 @@ class ZohoCustomerSyncService
             'branch_id' => $branchId,
             'zoho_location_id' => $locationId,
             'zoho_contact_id' => $zohoId,
-            'customer_number' => $contact['contact_number'] ?? $contact['customer_number'] ?? null,
+            'customer_number' => $contact['contact_number']
+                ?? $contact['customer_number']
+                ?? app(\App\Services\Mapping\CustomerNumberPrefixMatcher::class)
+                    ->effectiveCustomerNumber(null, (string) ($contact['contact_name'] ?? $contact['customer_name'] ?? ''))
+                ?? null,
             'contact_name' => (string) ($contact['contact_name'] ?? $contact['customer_name'] ?? 'Unknown'),
             'company_name' => $contact['company_name'] ?? null,
             'phone' => $contact['phone'] ?? null,
@@ -217,6 +223,17 @@ class ZohoCustomerSyncService
         );
 
         $this->syncCustomFields($customer, $contact['custom_fields'] ?? []);
+
+        // Prefix / location resolution with conflict handling (never overwrites admin override).
+        try {
+            if (! $customer->administrator_branch_override) {
+                $resolution = $this->branchResolution->resolve($customer->fresh(), $contact);
+                $this->branchResolution->apply($customer->fresh(), $resolution, null, dryRun: false, runId: 'zoho-customer-sync');
+                $customer = $customer->fresh();
+            }
+        } catch (Throwable) {
+            // Mapping must not break warehouse sync.
+        }
 
         return $result;
     }

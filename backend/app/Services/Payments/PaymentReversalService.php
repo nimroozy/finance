@@ -83,7 +83,24 @@ class PaymentReversalService
             }
 
             if ($this->custody->requiresCustodyReview($payment)) {
-                throw new InvalidArgumentException('Payment has been handed over; resolve the custody conflict before reversing.');
+                $conflict = \App\Models\CustodyConflict::withoutGlobalScopes()
+                    ->where('payment_id', $payment->id)
+                    ->whereIn('status', [
+                        \App\Services\Cash\CustodyAwareReversalService::STATUS_PENDING,
+                        \App\Services\Cash\CustodyAwareReversalService::STATUS_CRITICAL_RECOVERY,
+                        \App\Services\Cash\CustodyAwareReversalService::STATUS_MANUAL_REVIEW,
+                    ])
+                    ->first();
+
+                if (! $conflict) {
+                    throw new InvalidArgumentException(
+                        'Payment has been handed over; a custody reversal request is required before approval.'
+                    );
+                }
+
+                $approved = $this->custody->approve($conflict, $actor, $forceLiveZoho);
+
+                return PaymentReversal::query()->findOrFail($locked->id)->fresh(['payment']);
             }
 
             // Attempt Zoho void first for live synced payments (never fake success).

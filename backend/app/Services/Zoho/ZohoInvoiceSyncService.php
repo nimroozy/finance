@@ -241,11 +241,30 @@ class ZohoInvoiceSyncService
             // no-op — customer sync owns outstanding
         }
 
+        $freshCustomer = Customer::withoutGlobalScopes()->find($customer->id) ?? $customer;
         try {
-            $freshCustomer = Customer::withoutGlobalScopes()->find($customer->id) ?? $customer;
             $this->workQueues->routeInvoice($freshCustomer, $model);
         } catch (Throwable) {
             // Routing must not break invoice warehouse sync.
+        }
+
+        // Compare invoice location branch with customer prefix branch.
+        try {
+            if (! $freshCustomer->administrator_branch_override) {
+                $resolution = app(\App\Services\Mapping\CustomerBranchResolutionService::class)
+                    ->resolve($freshCustomer, $invoice);
+                if (($resolution['conflict_type'] ?? null) !== null) {
+                    app(\App\Services\Mapping\CustomerBranchResolutionService::class)
+                        ->apply($freshCustomer, $resolution, null, dryRun: false, runId: 'zoho-invoice-sync');
+                } elseif (($resolution['resolution_source'] ?? '') === \App\Services\Mapping\CustomerBranchResolutionService::SOURCE_CUSTOMER_PREFIX
+                    && ($resolution['confidence'] ?? '') === 'high') {
+                    $freshCustomer->forceFill([
+                        'branch_mapping_confirmed_at' => now(),
+                        'branch_mapping_confidence' => 'high',
+                    ])->save();
+                }
+            }
+        } catch (Throwable) {
         }
 
         return $result;
@@ -277,6 +296,68 @@ class ZohoInvoiceSyncService
                 ]
             );
         }
+    }
+
+    /**
+     * Targeted refresh of one or more Zoho invoices by Zoho invoice ID.
+     *
+     * @param  list<string>  $zohoInvoiceIds
+     * @return array{refreshed:int,failed:list<string>}
+     */
+    public function refreshByZohoIds(array $zohoInvoiceIds): array
+    {
+        $refreshed = 0;
+        $failed = [];
+
+        foreach (array_values(array_unique(array_filter(array_map('strval', $zohoInvoiceIds)))) as $zohoId) {
+            try {
+                $response = $this->api->get('invoices/'.$zohoId, [], 'invoice');
+                $payload = $response['invoice'] ?? $response;
+                if (! is_array($payload) || empty($payload['invoice_id'])) {
+                    throw new \RuntimeException('Zoho invoice refresh returned empty payload for '.$zohoId);
+                }
+                $this->upsertInvoice($payload);
+                Invoice::withoutGlobalScopes()
+                    ->where('zoho_invoice_id', $zohoId)
+                    ->update([
+                        'balance_sync_status' => 'synced',
+                        'balance_sync_warning' => null,
+                        'last_synced_at' => now(),
+                    ]);
+                $refreshed++;
+            } catch (Throwable $e) {
+                $failed[] = $zohoId;
+                $this->markRefreshFailed([$zohoId], $e->getMessage());
+            }
+        }
+
+        return ['refreshed' => $refreshed, 'failed' => $failed];
+    }
+
+    /**
+     * @param  list<string>  $zohoInvoiceIds
+     */
+    public function markRefreshFailed(array $zohoInvoiceIds, string $warning): void
+    {
+        Invoice::withoutGlobalScopes()
+            ->whereIn('zoho_invoice_id', array_values(array_unique(array_filter(array_map('strval', $zohoInvoiceIds)))))
+            ->update([
+                'balance_sync_status' => 'refresh_failed',
+                'balance_sync_warning' => mb_substr($warning, 0, 1000),
+            ]);
+    }
+
+    /**
+     * @param  list<string>  $zohoInvoiceIds
+     */
+    public function markAwaitingRefresh(array $zohoInvoiceIds): void
+    {
+        Invoice::withoutGlobalScopes()
+            ->whereIn('zoho_invoice_id', array_values(array_unique(array_filter(array_map('strval', $zohoInvoiceIds)))))
+            ->update([
+                'balance_sync_status' => 'awaiting_refresh',
+                'balance_sync_warning' => null,
+            ]);
     }
 
     protected function decimal(mixed $value): string

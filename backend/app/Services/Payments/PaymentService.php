@@ -47,12 +47,20 @@ class PaymentService
 
         $lines = [];
         foreach ($validatedAllocations as $row) {
+            $balance = app(\App\Services\Invoices\InvoiceBalanceService::class)->describe($row['invoice']);
             $lines[] = [
                 'invoice_id' => $row['invoice']->id,
                 'invoice_number' => $row['invoice']->invoice_number,
                 'amount' => $row['amount'],
                 'effective_available' => $row['available'],
-                'zoho_balance' => Money::normalize($row['invoice']->balance),
+                'effective_balance' => $balance['effective_balance'],
+                'zoho_balance' => $balance['zoho_synced_balance'],
+                'zoho_synced_balance' => $balance['zoho_synced_balance'],
+                'local_pending_allocation' => $balance['local_pending_allocation'],
+                'balance_last_synced_at' => $balance['balance_last_synced_at'],
+                'awaiting_zoho_refresh' => $balance['awaiting_zoho_refresh'],
+                'balance_sync_status' => $balance['balance_sync_status'],
+                'balance_sync_warning' => $balance['balance_sync_warning'],
             ];
         }
 

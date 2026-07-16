@@ -50,6 +50,7 @@ const NAV_GROUPS: NavGroup[] = [
   { labelKey: "cashManagement", items: [
     { href: "/wallets", labelKey: "wallets", permissions: ["wallets.view"] },
     { href: "/handovers", labelKey: "cashHandovers", permissions: ["handovers.view", "handovers.review"] },
+    { href: "/custody-reversals", labelKey: "custodyReversals", permissions: ["custody_reversals.review", "reversals.approve"] },
     { href: "/cashboxes", labelKey: "cashboxes", permissions: ["cashboxes.view"] },
     { href: "/transfers", labelKey: "transfers", permissions: ["cashbox_transfers.view"] },
     { href: "/bank-deposits", labelKey: "bankDeposits", permissions: ["bank_deposits.view"] },
@@ -64,6 +65,7 @@ const NAV_GROUPS: NavGroup[] = [
     { href: "/roles", labelKey: "roles", permissions: ["roles.view"] },
     { href: "/settings", labelKey: "settings", permissions: ["settings.manage"] },
     { href: "/settings/branch-payment-mappings", labelKey: "branchPaymentMappings", permissions: ["branch_payment_mapping.view"] },
+    { href: "/settings/customer-prefix-mappings", labelKey: "customerPrefixMappings", permissions: ["customer_prefix_mapping.view"] },
     { href: "/reports/branch-receivables", labelKey: "branchReceivables", permissions: ["receivables_dashboard.view"] },
     { href: "/audit-logs", labelKey: "auditLogs", permissions: ["audit.view"] },
   ] },

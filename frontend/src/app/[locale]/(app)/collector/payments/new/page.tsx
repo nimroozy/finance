@@ -112,13 +112,13 @@ export default function CollectorNewPaymentPage() {
         status: "unpaid",
       });
       // Fallback: if unpaid filter empty/unsupported, load all with balance
-      let rows = res.data.filter((inv) => Number(inv.balance) > 0);
+      let rows = res.data.filter((inv) => Number(inv.effective_balance ?? inv.balance) > 0);
       if (rows.length === 0) {
         const all = await listInvoices({
           customer_id: customerId,
           per_page: 50,
         });
-        rows = all.data.filter((inv) => Number(inv.balance) > 0);
+        rows = all.data.filter((inv) => Number(inv.effective_balance ?? inv.balance) > 0);
       }
       setInvoices(rows);
       const next: Record<number, string> = {};
@@ -290,11 +290,23 @@ export default function CollectorNewPaymentPage() {
                   <span className="font-medium">
                     {inv.invoice_number || `#${inv.id}`}
                   </span>
-                  <span>
-                    {t("balance")}:{" "}
-                    {formatMoney(inv.balance, inv.currency, locale)}
+                  <span className="text-end">
+                    {t("effectiveBalance")}:{" "}
+                    {formatMoney(
+                      inv.effective_balance ?? inv.balance,
+                      inv.currency,
+                      locale,
+                    )}
                   </span>
                 </div>
+                {inv.awaiting_zoho_refresh ? (
+                  <p className="text-xs text-amber-700 dark:text-amber-400">
+                    {t("awaitingZohoRefresh")}
+                  </p>
+                ) : null}
+                {inv.balance_sync_warning ? (
+                  <p className="text-xs text-danger">{inv.balance_sync_warning}</p>
+                ) : null}
                 <Input
                   type="number"
                   step="0.01"

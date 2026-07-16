@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { createBranch, listBranches, updateBranch } from "@/lib/auth";
-import { ApiError } from "@/lib/api";
+import { ApiError, apiFetch } from "@/lib/api";
 import type { Branch, BranchPayload } from "@/lib/types";
 import { useAuthStore } from "@/store/auth-store";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,14 @@ import {
   PageHeader,
   Panel,
 } from "@/components/ui/layout";
+
+type PrefixMetrics = {
+  prefixes: Array<{ normalized_prefix: string; active: boolean }>;
+  matched_by_prefix: number;
+  open_conflicts: number;
+  unmapped_customers: number;
+  last_prefix_mapping_run?: string | null;
+};
 
 const emptyForm: BranchPayload = {
   code: "",
@@ -35,8 +43,12 @@ export default function BranchesPage() {
   const tCommon = useTranslations("common");
   const locale = useLocale();
   const canManage = useAuthStore((s) => s.hasPermission("branches.manage"));
+  const canViewPrefixes = useAuthStore((s) =>
+    s.hasPermission("customer_prefix_mapping.view"),
+  );
 
   const [branches, setBranches] = useState<Branch[]>([]);
+  const [metrics, setMetrics] = useState<Record<number, PrefixMetrics>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -54,12 +66,31 @@ export default function BranchesPage() {
     try {
       const res = await listBranches(1);
       setBranches(res.data);
+      if (canViewPrefixes) {
+        const entries = await Promise.all(
+          res.data.map(async (branch) => {
+            try {
+              const m = await apiFetch<PrefixMetrics>(
+                `/branches/${branch.id}/prefix-metrics`,
+              );
+              return [branch.id, m.data] as const;
+            } catch {
+              return [branch.id, null] as const;
+            }
+          }),
+        );
+        const next: Record<number, PrefixMetrics> = {};
+        for (const [id, m] of entries) {
+          if (m) next[id] = m;
+        }
+        setMetrics(next);
+      }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : tCommon("error"));
     } finally {
       setLoading(false);
     }
-  }, [tCommon]);
+  }, [tCommon, canViewPrefixes]);
 
   useEffect(() => {
     void load();
@@ -135,7 +166,11 @@ export default function BranchesPage() {
         }
       />
 
-      {error ? <div className="mb-4"><Alert>{error}</Alert></div> : null}
+      {error ? (
+        <div className="mb-4">
+          <Alert>{error}</Alert>
+        </div>
+      ) : null}
       {success ? (
         <div className="mb-4">
           <Alert tone="success">{success}</Alert>
@@ -160,6 +195,11 @@ export default function BranchesPage() {
                     {locale === "fa" ? t("provinceFa") : t("provinceEn")}
                   </th>
                   <th className="px-4 py-3 font-medium">{t("receiptPrefix")}</th>
+                  {canViewPrefixes ? (
+                    <th className="px-4 py-3 font-medium">
+                      {locale === "fa" ? "پیشوند مشتری" : "Customer prefixes"}
+                    </th>
+                  ) : null}
                   <th className="px-4 py-3 font-medium">{t("isActive")}</th>
                   {canManage ? (
                     <th className="px-4 py-3 font-medium">{tCommon("actions")}</th>
@@ -167,41 +207,63 @@ export default function BranchesPage() {
                 </tr>
               </thead>
               <tbody>
-                {branches.map((branch) => (
-                  <tr
-                    key={branch.id}
-                    className="border-b border-border last:border-0"
-                  >
-                    <td className="px-4 py-3 font-medium">{branch.code}</td>
-                    <td className="px-4 py-3">
-                      {locale === "fa" ? branch.name_fa : branch.name_en}
-                    </td>
-                    <td className="px-4 py-3">
-                      {locale === "fa"
-                        ? branch.province_fa
-                        : branch.province_en}
-                    </td>
-                    <td className="px-4 py-3">{branch.receipt_prefix}</td>
-                    <td className="px-4 py-3">
-                      <Badge tone={branch.is_active ? "success" : "danger"}>
-                        {branch.is_active
-                          ? tCommon("active")
-                          : tCommon("inactive")}
-                      </Badge>
-                    </td>
-                    {canManage ? (
+                {branches.map((branch) => {
+                  const m = metrics[branch.id];
+                  const prefixes = (m?.prefixes || [])
+                    .filter((p) => p.active)
+                    .map((p) => p.normalized_prefix)
+                    .join(", ");
+                  return (
+                    <tr
+                      key={branch.id}
+                      className="border-b border-border last:border-0"
+                    >
+                      <td className="px-4 py-3 font-medium">{branch.code}</td>
                       <td className="px-4 py-3">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => openEdit(branch)}
-                        >
-                          {tCommon("edit")}
-                        </Button>
+                        {locale === "fa" ? branch.name_fa : branch.name_en}
                       </td>
-                    ) : null}
-                  </tr>
-                ))}
+                      <td className="px-4 py-3">
+                        {locale === "fa"
+                          ? branch.province_fa
+                          : branch.province_en}
+                      </td>
+                      <td className="px-4 py-3">{branch.receipt_prefix}</td>
+                      {canViewPrefixes ? (
+                        <td className="px-4 py-3 text-xs text-muted">
+                          <div>{prefixes || "—"}</div>
+                          {m ? (
+                            <div>
+                              {locale === "fa" ? "تطبیق" : "Matched"}{" "}
+                              {m.matched_by_prefix} ·{" "}
+                              {locale === "fa" ? "تعارض" : "Conflicts"}{" "}
+                              {m.open_conflicts} ·{" "}
+                              {locale === "fa" ? "بدون نگاشت" : "Unmapped"}{" "}
+                              {m.unmapped_customers}
+                            </div>
+                          ) : null}
+                        </td>
+                      ) : null}
+                      <td className="px-4 py-3">
+                        <Badge tone={branch.is_active ? "success" : "danger"}>
+                          {branch.is_active
+                            ? tCommon("active")
+                            : tCommon("inactive")}
+                        </Badge>
+                      </td>
+                      {canManage ? (
+                        <td className="px-4 py-3">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openEdit(branch)}
+                          >
+                            {tCommon("edit")}
+                          </Button>
+                        </td>
+                      ) : null}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
