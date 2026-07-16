@@ -34,7 +34,7 @@ Configurable `zoho.sync.mapping_priority` (default):
 4. Verified local mapping
 5. Unmapped
 
-Invoices inherit customer branch when invoice location is absent.
+**Org-specific note:** Contact *list* payloads for Mobin Net often omit `location_id`. Invoice payloads include `location_id` / `location_name`. Customers inherit branch from related invoice locations during sync/reprocess when contact location is absent.
 
 ## UI
 
