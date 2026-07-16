@@ -215,3 +215,12 @@ Response envelope:
 ```json
 { "success": false, "message": "...", "errors": {} }
 ```
+
+## Ownership APIs (Stage 5.2)
+
+- `/api/v1/customer-ownership*`
+- `/api/v1/temporary-assignments*`
+- `/api/v1/branch-payment-mappings*`
+- `/api/v1/reports/branch-receivables`
+- `/api/v1/collector/permanent-customers`
+- `/api/v1/collector/debtors`

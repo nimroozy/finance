@@ -60,7 +60,14 @@
     "reconciliation": "Reconciliation",
     "zohoStructure": "Zoho structure",
     "locationMapping": "Location mapping",
-    "branchMappings": "Branch mapping"
+    "branchMappings": "Branch mapping",
+    "customerOwnership": "Customer ownership",
+    "temporaryAssignments": "Temporary assignments",
+    "ownershipConflicts": "Ownership conflicts",
+    "branchPaymentMappings": "Branch payment mappings",
+    "branchReceivables": "Branch receivables",
+    "permanentCustomers": "Permanent customers",
+    "myDebtors": "Current debtors"
   },
   "common": {
     "loading": "Loading…",

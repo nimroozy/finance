@@ -63,3 +63,7 @@ Eligible cash payment selection; handover draft/submit/approve/reject; collector
 ## Remaining stages
 
 6 WhatsApp Cloud API · 7 Offline PWA · 8 Reports/Hardening
+
+## Stage 5.2
+
+Permanent customer ownership, temporary assignments, recurring invoice routing, and branch Zoho payment account mapping. See `STAGE_5_2_CUSTOMER_OWNERSHIP.md`.

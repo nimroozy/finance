@@ -35,3 +35,7 @@
 
 Rotate secrets by regenerating `APP_KEY` / DB / Redis / Zoho credentials carefully and restarting containers after updates.
 
+
+## Branch payment mapping
+
+Live Zoho customer payments require a validated branch account mapping (`ready`). Collectors cannot alter mappings. Handover never creates Zoho customer payments.

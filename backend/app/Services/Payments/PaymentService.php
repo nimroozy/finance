@@ -11,6 +11,7 @@ use App\Models\PaymentStatusHistory;
 use App\Models\PromiseToPay;
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\Ownership\OwnershipResolutionService;
 use App\Services\Receipts\ReceiptService;
 use App\Services\Wallets\CollectorWalletService;
 use App\Support\Money;
@@ -28,6 +29,7 @@ class PaymentService
         protected CollectorWalletService $wallets,
         protected ReceiptService $receipts,
         protected AuditLogger $audit,
+        protected OwnershipResolutionService $ownership,
     ) {}
 
     /**
@@ -263,11 +265,12 @@ class PaymentService
                 ->where('is_active', true)
                 ->first();
 
-        if (! $assignment || ! $assignment->is_active) {
-            throw new InvalidArgumentException('Collector must own an active assignment for this customer.');
+        $ownsViaOwnership = $this->ownership->collectorCanOperate((int) $payment->collector_id, $customer);
+        if ((! $assignment || ! $assignment->is_active) && ! $ownsViaOwnership) {
+            throw new InvalidArgumentException('Collector must own this customer via permanent ownership, temporary assignment, or active assignment.');
         }
 
-        if ((int) $assignment->collector_id !== (int) $payment->collector_id) {
+        if ($assignment && (int) $assignment->collector_id !== (int) $payment->collector_id) {
             throw new InvalidArgumentException('Assignment collector mismatch.');
         }
 
@@ -332,8 +335,8 @@ class PaymentService
             ->where('is_active', true)
             ->first();
 
-        if (! $assignment) {
-            throw new InvalidArgumentException('Collector must own an active assignment for this customer.');
+        if (! $assignment && ! $this->ownership->collectorCanOperate($collectorId, $customer)) {
+            throw new InvalidArgumentException('Collector must own this customer via permanent ownership, temporary assignment, or active assignment.');
         }
 
         if ($method->requires_reference && blank($data['external_reference'] ?? null)) {

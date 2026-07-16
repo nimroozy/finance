@@ -28,6 +28,11 @@ use App\Http\Controllers\Api\V1\SettingController;
 use App\Http\Controllers\Api\V1\UserController;
 use App\Http\Controllers\Api\V1\VisitController;
 use App\Http\Controllers\Api\V1\WalletController;
+use App\Http\Controllers\Api\V1\Ownership\BranchPaymentMappingController;
+use App\Http\Controllers\Api\V1\Ownership\BranchReceivablesController;
+use App\Http\Controllers\Api\V1\Ownership\CollectorOwnershipController;
+use App\Http\Controllers\Api\V1\Ownership\CustomerOwnershipController;
+use App\Http\Controllers\Api\V1\Ownership\TemporaryAssignmentController;
 use App\Http\Controllers\Api\V1\Zoho\FailedJobController;
 use App\Http\Controllers\Api\V1\Zoho\ZohoController;
 use App\Http\Controllers\Api\V1\Zoho\ZohoMappingController;
@@ -204,6 +209,37 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
 
         Route::post('/assignments/{id}/accept', [AssignmentController::class, 'accept'])->whereNumber('id')->name('assignments.accept');
         Route::post('/assignments/{id}/viewed', [AssignmentController::class, 'viewed'])->whereNumber('id')->name('assignments.viewed');
+
+        // --- Stage 5.2: Permanent ownership / temporary assignments / branch payment mapping ---
+        Route::middleware('permission:customer_ownership.view')->group(function () {
+            Route::get('/customer-ownership', [CustomerOwnershipController::class, 'index']);
+            Route::get('/customer-ownership/unassigned', [CustomerOwnershipController::class, 'unassigned']);
+            Route::get('/customer-ownership/by-collector/{collectorId}', [CustomerOwnershipController::class, 'byCollector'])->whereNumber('collectorId');
+            Route::get('/customer-ownership/history/{customerId}', [CustomerOwnershipController::class, 'history'])->whereNumber('customerId');
+            Route::get('/customer-ownership/resolve/{customerId}', [CustomerOwnershipController::class, 'resolve'])->whereNumber('customerId');
+            Route::get('/collector/permanent-customers', [CollectorOwnershipController::class, 'permanentCustomers']);
+            Route::get('/collector/debtors', [CollectorOwnershipController::class, 'debtors']);
+        });
+        Route::middleware('permission:customer_ownership.create')->group(function () {
+            Route::post('/customer-ownership', [CustomerOwnershipController::class, 'store']);
+            Route::post('/customer-ownership/bulk', [CustomerOwnershipController::class, 'bulk']);
+        });
+        Route::middleware('permission:customer_ownership.transfer')->post('/customer-ownership/transfer', [CustomerOwnershipController::class, 'transfer']);
+        Route::middleware('permission:customer_ownership.end')->post('/customer-ownership/{id}/end', [CustomerOwnershipController::class, 'end'])->whereNumber('id');
+        Route::middleware('permission:ownership_conflicts.view')->get('/ownership-conflicts', [CustomerOwnershipController::class, 'conflicts']);
+        Route::middleware('permission:ownership_conflicts.resolve')->post('/ownership-conflicts/{id}/resolve', [CustomerOwnershipController::class, 'resolveConflict'])->whereNumber('id');
+        Route::middleware('permission:temporary_assignments.view')->get('/temporary-assignments', [TemporaryAssignmentController::class, 'index']);
+        Route::middleware('permission:temporary_assignments.create')->post('/temporary-assignments', [TemporaryAssignmentController::class, 'store']);
+        Route::middleware('permission:temporary_assignments.cancel')->post('/temporary-assignments/{id}/cancel', [TemporaryAssignmentController::class, 'cancel'])->whereNumber('id');
+        Route::middleware('permission:branch_payment_mapping.view')->group(function () {
+            Route::get('/branch-payment-mappings', [BranchPaymentMappingController::class, 'index']);
+            Route::get('/branch-payment-mappings/accounts', [BranchPaymentMappingController::class, 'accounts']);
+            Route::get('/branch-payment-mappings/payment-modes', [BranchPaymentMappingController::class, 'paymentModes']);
+            Route::get('/branch-payment-mappings/{branchId}/readiness', [BranchPaymentMappingController::class, 'readiness'])->whereNumber('branchId');
+        });
+        Route::middleware('permission:branch_payment_mapping.manage')->post('/branch-payment-mappings', [BranchPaymentMappingController::class, 'upsert']);
+        Route::middleware('permission:branch_payment_mapping.validate')->post('/branch-payment-mappings/{branchId}/validate', [BranchPaymentMappingController::class, 'validateMapping'])->whereNumber('branchId');
+        Route::middleware('permission:receivables_dashboard.view')->get('/reports/branch-receivables', [BranchReceivablesController::class, 'index']);
 
         // --- Visits ---
         Route::middleware('permission:visits.view')->group(function () {

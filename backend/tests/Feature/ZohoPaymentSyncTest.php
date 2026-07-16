@@ -4,7 +4,12 @@ namespace Tests\Feature;
 
 use App\Models\Payment;
 use App\Models\PaymentSyncAttempt;
+use App\Models\User;
+use App\Models\ZohoAccount;
 use App\Models\ZohoConnection;
+use App\Models\ZohoLocation;
+use App\Models\ZohoPaymentMode;
+use App\Services\Ownership\BranchPaymentMappingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\Concerns\CreatesPaymentFixtures;
@@ -13,6 +18,36 @@ use Tests\TestCase;
 class ZohoPaymentSyncTest extends TestCase
 {
     use CreatesPaymentFixtures, RefreshDatabase;
+
+    private function mapBranchAccount($branch): void
+    {
+        $this->seed(\Database\Seeders\RolePermissionSeeder::class);
+        $admin = User::factory()->create();
+        $admin->assignRole(User::ROLE_SUPER_ADMIN);
+        $locationId = $branch->zoho_location_id ?: 'LOC-TEST-'.$branch->id;
+        $branch->update(['zoho_location_id' => $locationId]);
+        ZohoLocation::query()->updateOrCreate(
+            ['zoho_location_id' => $locationId],
+            ['organization_id' => 'org-test-1', 'name' => 'Test Loc', 'is_active' => true, 'sync_status' => 'synced']
+        );
+        ZohoAccount::query()->updateOrCreate(
+            ['zoho_account_id' => 'ACC-TEST-'.$branch->id],
+            ['organization_id' => 'org-test-1', 'name' => 'Test Cash', 'account_type' => 'cash', 'is_active' => true]
+        );
+        ZohoPaymentMode::query()->updateOrCreate(
+            ['zoho_payment_mode_id' => 'PM-TEST'],
+            ['organization_id' => 'org-test-1', 'name' => 'Cash', 'is_active' => true]
+        );
+        app(BranchPaymentMappingService::class)->upsert(
+            $branch->fresh(),
+            $admin,
+            'ACC-TEST-'.$branch->id,
+            'PM-TEST',
+            'AFN',
+            'TST',
+            $locationId
+        );
+    }
 
     public function test_dry_run_marks_payment_without_http(): void
     {
@@ -73,6 +108,7 @@ class ZohoPaymentSyncTest extends TestCase
         ]);
 
         $branch = $this->makeBranch();
+        $this->mapBranchAccount($branch);
         $manager = $this->makeManager($branch);
         [$collectorUser, $collector] = $this->makeCollectorUser($branch);
         $customer = $this->makeCustomer($branch, ['zoho_contact_id' => 'contact-77']);
