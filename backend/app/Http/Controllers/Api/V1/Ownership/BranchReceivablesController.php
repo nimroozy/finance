@@ -37,8 +37,13 @@ class BranchReceivablesController extends Controller
             $debtors = (int) Invoice::withoutGlobalScopes()->where('branch_id', $branchId)->where('balance', '>', 0)->selectRaw('count(distinct customer_id) as c')->value('c');
             $owned = CustomerCollectorOwnership::query()->active()->where('branch_id', $branchId)->count();
             $temp = TemporaryCollectionAssignment::query()->currentlyActive()->where('branch_id', $branchId)->count();
-            $unassigned = CustomerWorkQueue::query()->where('branch_id', $branchId)->where('ownership_source', 'unassigned')->count();
-            $assignedQueue = CustomerWorkQueue::query()->where('branch_id', $branchId)->whereNotNull('effective_collector_id')->count();
+            $ownedIds = CustomerCollectorOwnership::query()->active()->where('branch_id', $branchId)->pluck('customer_id');
+            $unassigned = Customer::withoutGlobalScopes()
+                ->where('branch_id', $branchId)
+                ->where('is_unmapped', false)
+                ->whereNotIn('id', $ownedIds)
+                ->count();
+            $assignedQueue = $ownedIds->count();
             $collectedToday = Payment::withoutGlobalScopes()->where('branch_id', $branchId)->whereDate('confirmed_at', today())->sum('amount');
             $collectedMonth = Payment::withoutGlobalScopes()->where('branch_id', $branchId)->whereBetween('confirmed_at', [now()->startOfMonth(), now()->endOfMonth()])->sum('amount');
             $cashHeld = CollectorWallet::withoutGlobalScopes()->where('branch_id', $branchId)->sum('balance');
