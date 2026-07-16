@@ -37,4 +37,17 @@ Customers with payments/assignments → operational_history_conflict; skip autom
 4. Leave Headquarter + test deferred
 5. Report before/after counts
 
+## After controlled apply (production 2026-07-16)
+
+| Metric | Before P1 apply | After |
+|--------|-----------------|-------|
+| Mapped customers | 625 | **1888** |
+| Unmapped customers | ~6282–5024 band | **5024** |
+| Mapped invoices | 658 | **1990** |
+| Unmapped invoices | 1331 | **5** |
+| Branches linked | Nimruz only | + KABUL, KANDAHAR, GHAZNI, BULDAK, HELMAND |
+| Headquarter / test | — | deferred / ignored |
+
+One Kabul customer conflict skipped during reprocess (`conflicts=1`). Multi-location conflict queue remains available in UI.
+
 STAGE3-TEST branches `S3A`/`S3B` remain test-only; not linked to Zoho locations.
