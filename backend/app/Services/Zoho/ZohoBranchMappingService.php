@@ -5,6 +5,7 @@ namespace App\Services\Zoho;
 use App\Models\Branch;
 use App\Models\Customer;
 use App\Models\CustomerAssignment;
+use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\ZohoBranchMapping;
 use App\Models\ZohoReportingTagMapping;
@@ -111,6 +112,32 @@ class ZohoBranchMappingService
             ?? null;
 
         return filled($value) ? (string) $value : null;
+    }
+
+    /**
+     * Prefer an explicit customer location; otherwise derive from related invoices.
+     */
+    public function resolveCustomerBranchId(Customer $customer): ?int
+    {
+        if (filled($customer->zoho_location_id)) {
+            return $this->resolveBranchId(['location_id' => $customer->zoho_location_id, 'reporting_tags' => $customer->reporting_tags ?? []]);
+        }
+
+        $locationId = Invoice::withoutGlobalScopes()
+            ->where('customer_id', $customer->id)
+            ->whereNotNull('zoho_location_id')
+            ->where('zoho_location_id', '!=', '')
+            ->select('zoho_location_id')
+            ->selectRaw('count(*) as aggregate')
+            ->groupBy('zoho_location_id')
+            ->orderByDesc('aggregate')
+            ->value('zoho_location_id');
+
+        if ($locationId) {
+            return $this->resolveBranchId(['location_id' => $locationId]);
+        }
+
+        return $this->resolveBranchId(['reporting_tags' => $customer->reporting_tags ?? []]);
     }
 
     public function customerHasBranchConflict(Customer $customer, ?int $newBranchId): bool

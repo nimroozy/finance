@@ -28,6 +28,7 @@ class Customer extends Model
 
     protected $fillable = [
         'branch_id',
+        'zoho_location_id',
         'zoho_contact_id',
         'customer_number',
         'contact_name',

@@ -168,6 +168,7 @@ class ZohoInvoiceSyncService
         }
 
         $branchId = $this->branchMapping->resolveBranchId($invoice) ?? $customer->branch_id;
+        $locationId = $this->branchMapping->extractLocationId($invoice);
 
         $existing = Invoice::withoutGlobalScopes()
             ->where('zoho_invoice_id', $zohoId)
@@ -175,6 +176,7 @@ class ZohoInvoiceSyncService
 
         $attributes = [
             'branch_id' => $branchId,
+            'zoho_location_id' => $locationId,
             'customer_id' => $customer->id,
             'zoho_invoice_id' => $zohoId,
             'invoice_number' => (string) ($invoice['invoice_number'] ?? $zohoId),
@@ -218,6 +220,19 @@ class ZohoInvoiceSyncService
         );
 
         $this->syncCustomFields($model, $invoice['custom_fields'] ?? []);
+
+        if ($locationId && $branchId && ($customer->is_unmapped || $customer->branch_id === null)) {
+            if (! $this->branchMapping->customerHasBranchConflict($customer, $branchId)) {
+                $customer->update([
+                    'branch_id' => $branchId,
+                    'zoho_location_id' => $customer->zoho_location_id ?: $locationId,
+                    'is_unmapped' => false,
+                    'status' => $customer->status === Customer::STATUS_UNMAPPED
+                        ? Customer::STATUS_ACTIVE
+                        : $customer->status,
+                ]);
+            }
+        }
 
         // Keep customer outstanding roughly in sync when invoice balances change
         if ($customer->outstanding_receivable === null || $customer->sync_status === 'placeholder') {

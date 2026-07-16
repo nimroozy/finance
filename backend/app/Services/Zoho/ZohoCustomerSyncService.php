@@ -143,6 +143,7 @@ class ZohoCustomerSyncService
 
         $branchId = $this->branchMapping->resolveBranchId($contact);
         $isUnmapped = $branchId === null;
+        $locationId = $this->branchMapping->extractLocationId($contact);
 
         $existing = Customer::withoutGlobalScopes()
             ->where('zoho_contact_id', $zohoId)
@@ -150,6 +151,7 @@ class ZohoCustomerSyncService
 
         $attributes = [
             'branch_id' => $branchId,
+            'zoho_location_id' => $locationId,
             'zoho_contact_id' => $zohoId,
             'customer_number' => $contact['contact_number'] ?? $contact['customer_number'] ?? null,
             'contact_name' => (string) ($contact['contact_name'] ?? $contact['customer_name'] ?? 'Unknown'),
