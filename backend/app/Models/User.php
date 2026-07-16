@@ -6,6 +6,8 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -72,6 +74,16 @@ class User extends Authenticatable
         return $this->belongsToMany(Branch::class)->withTimestamps();
     }
 
+    public function collector(): HasOne
+    {
+        return $this->hasOne(Collector::class);
+    }
+
+    public function inAppNotifications(): HasMany
+    {
+        return $this->hasMany(AppNotification::class, 'user_id');
+    }
+
     public function isSuperAdmin(): bool
     {
         return $this->hasRole(self::ROLE_SUPER_ADMIN);
@@ -80,6 +92,28 @@ class User extends Authenticatable
     public function isCentralFinanceAdmin(): bool
     {
         return $this->hasRole(self::ROLE_CENTRAL_FINANCE);
+    }
+
+    public function isBranchManager(): bool
+    {
+        return $this->hasRole(self::ROLE_BRANCH_MANAGER);
+    }
+
+    public function isCollector(): bool
+    {
+        return $this->hasRole(self::ROLE_COLLECTOR);
+    }
+
+    /**
+     * True when the user is a collector without elevated finance/admin roles.
+     */
+    public function isCollectorOnly(): bool
+    {
+        return $this->isCollector()
+            && ! $this->isSuperAdmin()
+            && ! $this->isCentralFinanceAdmin()
+            && ! $this->isBranchManager()
+            && ! $this->hasRole(self::ROLE_AUDITOR);
     }
 
     /**

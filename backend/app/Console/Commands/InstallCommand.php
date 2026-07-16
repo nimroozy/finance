@@ -15,16 +15,28 @@ class InstallCommand extends Command
                             {--name= : Super admin full name}
                             {--email= : Super admin email}
                             {--username= : Super admin username}
-                            {--password= : Super admin password}
+                            {--password= : Super admin password (only applied for new users, or with --reset-password)}
                             {--company= : Company name}
-                            {--force : Re-run even if setup_completed is true}';
+                            {--force : Re-run even if setup_completed is true}
+                            {--reset-password : Explicitly overwrite an existing admin password (requires --password)}';
 
     protected $description = 'Install the application: seed roles and create the Super Administrator';
 
     public function handle(): int
     {
-        if (SystemSetting::getValue('setup_completed') === 'true' && ! $this->option('force')) {
-            $this->error('Setup already completed. Use --force to re-run.');
+        $superAdminExists = User::query()
+            ->whereHas('roles', fn ($q) => $q->where('name', User::ROLE_SUPER_ADMIN))
+            ->exists();
+
+        if ($superAdminExists && ! $this->option('force') && ! $this->option('reset-password')) {
+            $this->warn('Super Administrator already exists. Skipping install (password unchanged).');
+            SystemSetting::setValue('setup_completed', 'true');
+
+            return self::SUCCESS;
+        }
+
+        if (SystemSetting::getValue('setup_completed') === 'true' && ! $this->option('force') && ! $this->option('reset-password')) {
+            $this->error('Setup already completed. Use --force to re-run (will not reset password unless --reset-password).');
 
             return self::FAILURE;
         }
@@ -59,16 +71,28 @@ class InstallCommand extends Command
 
         $this->call('db:seed', ['--class' => RolePermissionSeeder::class, '--force' => true]);
 
+        $existing = User::query()->where('email', $email)->first();
+        $attributes = [
+            'name' => $name,
+            'username' => $username,
+            'status' => User::STATUS_ACTIVE,
+            'locale' => 'en',
+        ];
+
+        // Never overwrite an existing password unless explicitly requested.
+        if (! $existing || $this->option('reset-password')) {
+            if ($this->option('reset-password') && $existing) {
+                $this->warn('Explicit --reset-password: overwriting existing admin password and forcing password change.');
+            }
+            $attributes['password'] = $password;
+            $attributes['force_password_change'] = true;
+        } else {
+            $this->warn('Existing admin user found — password left unchanged (use --reset-password to override).');
+        }
+
         $user = User::query()->updateOrCreate(
             ['email' => $email],
-            [
-                'name' => $name,
-                'username' => $username,
-                'password' => $password,
-                'status' => User::STATUS_ACTIVE,
-                'force_password_change' => true,
-                'locale' => 'en',
-            ]
+            $attributes
         );
 
         $user->syncRoles([User::ROLE_SUPER_ADMIN]);
@@ -80,7 +104,9 @@ class InstallCommand extends Command
 
         $this->info('Installation complete.');
         $this->line("Super admin: {$email} ({$username})");
-        $this->warn('force_password_change is enabled for the admin account.');
+        if (! empty($attributes['force_password_change'])) {
+            $this->warn('force_password_change is enabled for the admin account.');
+        }
 
         return self::SUCCESS;
     }

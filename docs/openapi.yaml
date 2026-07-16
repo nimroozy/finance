@@ -1,0 +1,3666 @@
+openapi: 3.0.3
+info:
+  title: Collection Management System API
+  version: 1.5.0
+  license:
+    name: Proprietary
+    url: https://finance.mns.af
+  description: |
+    Stage 1–5 APIs for the Finance Collection Management System (auth, RBAC,
+    Zoho sync, customers/invoices/debtors, assignments, visits, routes,
+    promises, notes, evidence, notifications, collectors, reports, payments,
+    receipts, collector wallets, reversals, Zoho payment sync, cash handovers,
+    and branch cashboxes).
+
+    **Response envelope:** all JSON responses use
+    `{ success, data, meta?, message?, errors? }`.
+
+    **Branch isolation:** branch IDs supplied by the client are not trusted for
+    authorization. Accessible branches are resolved from the authenticated
+    user's permissions and branch assignments. Query filters such as
+    `branch_id` may narrow results within allowed branches only.
+
+    **Collector isolation:** collectors may only access assignment-owned
+    resources (assignments, visits, routes, promises, notes, evidence, payments)
+    that belong to their collector profile, unless they hold broader manage/view
+    permissions.
+
+    **Payments (Stage 4):** local confirm-before-Zoho; confirmed payments are
+    never deleted (use reversals); cash credits collector wallets; receipt
+    numbers are issued only on confirm. Public receipt verification is
+    available at `GET /verify-receipt/{token}` (rate limited).
+
+    **Cash custody (Stage 5):** collectors submit cash handovers; approval
+    debits the collector wallet and credits the branch cashbox. Rejected
+    handovers never move money. Already-handed-over payments require custody
+    review before reversal.
+servers:
+  - url: https://finance.mns.af/api/v1
+    description: Production
+  - url: /api/v1
+    description: Relative (same origin)
+tags:
+  - name: Health
+  - name: Auth
+  - name: Users
+  - name: Branches
+  - name: Roles
+  - name: Audit
+  - name: Settings
+  - name: Zoho
+  - name: Customers
+  - name: Invoices
+  - name: Debtors
+  - name: Assignments
+  - name: Visits
+  - name: Routes
+  - name: Promises
+  - name: Notes
+  - name: Evidence
+  - name: Notifications
+  - name: Collectors
+  - name: Reports
+  - name: Payments
+  - name: Receipts
+  - name: Wallets
+  - name: Reversals
+security:
+  - bearerAuth: []
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check
+      security: []
+      operationId: getHealth
+      responses:
+        '200':
+          description: Service healthy
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/HealthData'
+        '503':
+          description: Service degraded
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/HealthData'
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login
+      security: []
+      operationId: authLogin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Authenticated
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/LoginResponseData'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '423':
+          description: Account temporarily locked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Logout (revoke current token)
+      operationId: authLogout
+      responses:
+        '200':
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Current authenticated user
+      operationId: authMe
+      responses:
+        '200':
+          description: Current user
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/change-password:
+    post:
+      tags: [Auth]
+      summary: Change password
+      description: Invalidates all existing tokens after a successful change.
+      operationId: authChangePassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+      responses:
+        '200':
+          description: Password changed
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          message:
+                            type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /users:
+    get:
+      tags: [Users]
+      summary: List users
+      operationId: listUsers
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          $ref: '#/components/responses/PaginatedGeneric'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      tags: [Users]
+      summary: Create user
+      operationId: createUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StoreUserRequest'
+      responses:
+        '201':
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /users/{user}:
+    parameters:
+      - $ref: '#/components/parameters/UserId'
+    get:
+      tags: [Users]
+      summary: Get user
+      operationId: getUser
+      responses:
+        '200':
+          description: User detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Users]
+      summary: Update user
+      operationId: updateUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: User updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /users/{user}/disable:
+    parameters:
+      - $ref: '#/components/parameters/UserId'
+    post:
+      tags: [Users]
+      summary: Disable user
+      operationId: disableUser
+      responses:
+        '200':
+          description: User disabled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /branches:
+    get:
+      tags: [Branches]
+      summary: List branches
+      operationId: listBranches
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          $ref: '#/components/responses/PaginatedGeneric'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      tags: [Branches]
+      summary: Create branch
+      operationId: createBranch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code, name_en]
+              properties:
+                code: { type: string }
+                name_en: { type: string }
+                name_fa: { type: string }
+                is_active: { type: boolean }
+      responses:
+        '201':
+          description: Branch created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /branches/{branch}:
+    parameters:
+      - name: branch
+        in: path
+        required: true
+        schema: { type: integer }
+    get:
+      tags: [Branches]
+      summary: Get branch
+      operationId: getBranch
+      responses:
+        '200':
+          description: Branch detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Branches]
+      summary: Update branch
+      operationId: updateBranch
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code: { type: string }
+                name_en: { type: string }
+                name_fa: { type: string }
+                is_active: { type: boolean }
+      responses:
+        '200':
+          description: Branch updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /roles:
+    get:
+      tags: [Roles]
+      summary: List roles
+      operationId: listRoles
+      responses:
+        '200':
+          description: Roles list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /audit-logs:
+    get:
+      tags: [Audit]
+      summary: List audit logs
+      operationId: listAuditLogs
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          $ref: '#/components/responses/PaginatedGeneric'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /settings:
+    get:
+      tags: [Settings]
+      summary: Get company settings
+      operationId: getSettings
+      responses:
+        '200':
+          description: Settings
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/CompanySettings'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    put:
+      tags: [Settings]
+      summary: Update company settings
+      operationId: updateSettings
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompanySettings'
+      responses:
+        '200':
+          description: Settings updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /zoho/status:
+    get:
+      tags: [Zoho]
+      summary: Zoho connection status
+      operationId: zohoStatus
+      responses:
+        '200':
+          description: Connection status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /zoho/organizations:
+    get:
+      tags: [Zoho]
+      summary: List Zoho organizations
+      operationId: zohoOrganizations
+      responses:
+        '200':
+          description: Organizations
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /zoho/test:
+    post:
+      tags: [Zoho]
+      summary: Test Zoho API connectivity
+      operationId: zohoTest
+      responses:
+        '200':
+          description: Test result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /zoho/sync-jobs:
+    get:
+      tags: [Zoho]
+      summary: List Zoho sync jobs
+      operationId: zohoSyncJobs
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          $ref: '#/components/responses/PaginatedGeneric'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /zoho/sync-jobs/{id}:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    get:
+      tags: [Zoho]
+      summary: Get Zoho sync job
+      operationId: zohoSyncJob
+      responses:
+        '200':
+          description: Sync job detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /zoho/sync-jobs/{id}/retry:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    post:
+      tags: [Zoho]
+      summary: Retry failed Zoho sync job
+      operationId: zohoRetrySyncJob
+      responses:
+        '200':
+          description: Retry queued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /zoho/api-logs:
+    get:
+      tags: [Zoho]
+      summary: List Zoho API logs
+      operationId: zohoApiLogs
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          $ref: '#/components/responses/PaginatedGeneric'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /zoho/data-centers:
+    get:
+      tags: [Zoho]
+      summary: List Zoho data centers
+      operationId: zohoDataCenters
+      responses:
+        '200':
+          description: Data centers
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /zoho/settings:
+    put:
+      tags: [Zoho]
+      summary: Update Zoho settings
+      operationId: zohoUpdateSettings
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                data_center: { type: string }
+                organization_id: { type: string, nullable: true }
+      responses:
+        '200':
+          description: Settings updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /zoho/oauth/redirect:
+    get:
+      tags: [Zoho]
+      summary: Start Zoho OAuth (returns authorize URL)
+      operationId: zohoOauthRedirect
+      parameters:
+        - name: data_center
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Authorize URL payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /zoho/oauth/callback:
+    get:
+      tags: [Zoho]
+      summary: Zoho OAuth callback (browser redirect, no Bearer token)
+      security: []
+      operationId: zohoOauthCallback
+      parameters:
+        - name: code
+          in: query
+          schema: { type: string }
+        - name: state
+          in: query
+          schema: { type: string }
+        - name: error
+          in: query
+          schema: { type: string }
+      responses:
+        '302':
+          description: Redirects to frontend after OAuth handling
+        '400':
+          description: OAuth error
+
+  /zoho/disconnect:
+    post:
+      tags: [Zoho]
+      summary: Disconnect Zoho
+      operationId: zohoDisconnect
+      responses:
+        '200':
+          description: Disconnected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /zoho/organizations/select:
+    post:
+      tags: [Zoho]
+      summary: Select Zoho organization
+      operationId: zohoSelectOrganization
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [organization_id]
+              properties:
+                organization_id: { type: string }
+      responses:
+        '200':
+          description: Organization selected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /zoho/branch-mappings:
+    get:
+      tags: [Zoho]
+      summary: List Zoho branch mappings
+      operationId: zohoBranchMappings
+      responses:
+        '200':
+          description: Branch mappings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      tags: [Zoho]
+      summary: Create Zoho branch mapping
+      operationId: zohoStoreBranchMapping
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                branch_id: { type: integer }
+                zoho_location_id: { type: string }
+                zoho_location_name: { type: string }
+      responses:
+        '201':
+          description: Mapping created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /zoho/branch-mappings/{id}:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    put:
+      tags: [Zoho]
+      summary: Update Zoho branch mapping
+      operationId: zohoUpdateBranchMapping
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: Mapping updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+    delete:
+      tags: [Zoho]
+      summary: Delete Zoho branch mapping
+      operationId: zohoDestroyBranchMapping
+      responses:
+        '200':
+          description: Mapping deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /zoho/reporting-tag-mappings:
+    get:
+      tags: [Zoho]
+      summary: List reporting tag mappings
+      operationId: zohoReportingTagMappings
+      responses:
+        '200':
+          description: Tag mappings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    put:
+      tags: [Zoho]
+      summary: Upsert reporting tag mappings
+      operationId: zohoUpsertReportingTagMappings
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: Mappings upserted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /zoho/sync/{type}:
+    post:
+      tags: [Zoho]
+      summary: Trigger Zoho sync
+      operationId: zohoSync
+      parameters:
+        - name: type
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [customers, invoices, full]
+      responses:
+        '200':
+          description: Sync queued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /customers:
+    get:
+      tags: [Customers]
+      summary: List customers
+      description: |
+        Results are branch-scoped from the authenticated user. Client-supplied
+        `branch_id` filters are applied only within allowed branches.
+      operationId: listCustomers
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+        - $ref: '#/components/parameters/Search'
+        - $ref: '#/components/parameters/BranchId'
+        - name: status
+          in: query
+          schema: { type: string }
+        - name: exclude_unmapped
+          in: query
+          schema: { type: boolean, default: true }
+      responses:
+        '200':
+          $ref: '#/components/responses/PaginatedGeneric'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /customers/unmapped:
+    get:
+      tags: [Customers]
+      summary: List unmapped customers
+      operationId: listUnmappedCustomers
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          $ref: '#/components/responses/PaginatedGeneric'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /customers/{id}:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    get:
+      tags: [Customers]
+      summary: Get customer
+      operationId: getCustomer
+      responses:
+        '200':
+          description: Customer detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /customers/{id}/map-branch:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    post:
+      tags: [Customers]
+      summary: Map customer to branch
+      operationId: mapCustomerBranch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [branch_id]
+              properties:
+                branch_id: { type: integer }
+      responses:
+        '200':
+          description: Customer mapped
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /invoices:
+    get:
+      tags: [Invoices]
+      summary: List invoices
+      operationId: listInvoices
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+        - $ref: '#/components/parameters/BranchId'
+        - name: customer_id
+          in: query
+          schema: { type: integer }
+        - $ref: '#/components/parameters/Search'
+      responses:
+        '200':
+          $ref: '#/components/responses/PaginatedGeneric'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /invoices/{id}:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    get:
+      tags: [Invoices]
+      summary: Get invoice
+      operationId: getInvoice
+      responses:
+        '200':
+          description: Invoice detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /debtors:
+    get:
+      tags: [Debtors]
+      summary: List debtors (outstanding > 0)
+      operationId: listDebtors
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+        - $ref: '#/components/parameters/Search'
+        - $ref: '#/components/parameters/BranchId'
+      responses:
+        '200':
+          $ref: '#/components/responses/PaginatedGeneric'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /debtors/export:
+    get:
+      tags: [Debtors]
+      summary: Export debtors CSV
+      operationId: exportDebtors
+      parameters:
+        - $ref: '#/components/parameters/BranchId'
+      responses:
+        '200':
+          description: CSV download
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /assignments:
+    get:
+      tags: [Assignments]
+      summary: List assignments
+      description: |
+        Collectors only see their own assignments. Managers see branch-scoped
+        assignments from authenticated permissions (client branch_id is not
+        trusted as an access grant).
+      operationId: listAssignments
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+        - $ref: '#/components/parameters/BranchId'
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/AssignmentStatus'
+        - name: collector_id
+          in: query
+          schema: { type: integer }
+        - name: customer_id
+          in: query
+          schema: { type: integer }
+        - name: is_active
+          in: query
+          schema: { type: boolean }
+      responses:
+        '200':
+          description: Paginated assignments
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Assignment'
+                      meta:
+                        $ref: '#/components/schemas/PaginationMeta'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      tags: [Assignments]
+      summary: Create assignment
+      operationId: createAssignment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAssignmentRequest'
+      responses:
+        '201':
+          description: Assignment created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          assignment:
+                            $ref: '#/components/schemas/Assignment'
+                          warnings:
+                            type: array
+                            items: { type: string }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /assignments/bulk:
+    post:
+      tags: [Assignments]
+      summary: Bulk create assignments
+      operationId: bulkAssignments
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BulkAssignmentRequest'
+      responses:
+        '201':
+          description: Bulk result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /assignments/auto-preview:
+    post:
+      tags: [Assignments]
+      summary: Preview auto-assignment
+      operationId: autoPreviewAssignments
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AutoPreviewAssignmentRequest'
+      responses:
+        '201':
+          description: Preview operation created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /assignments/auto-confirm:
+    post:
+      tags: [Assignments]
+      summary: Confirm auto-assignment preview
+      operationId: autoConfirmAssignments
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [operation_id]
+              properties:
+                operation_id:
+                  type: integer
+      responses:
+        '200':
+          description: Auto-assignment confirmed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /assignments/unassigned-debtors:
+    get:
+      tags: [Assignments]
+      summary: List unassigned debtors
+      operationId: unassignedDebtors
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+        - $ref: '#/components/parameters/BranchId'
+      responses:
+        '200':
+          $ref: '#/components/responses/PaginatedGeneric'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /assignments/export:
+    get:
+      tags: [Assignments]
+      summary: Export assignments CSV
+      operationId: exportAssignments
+      parameters:
+        - $ref: '#/components/parameters/BranchId'
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/AssignmentStatus'
+      responses:
+        '200':
+          description: CSV download
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /assignments/{id}:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    get:
+      tags: [Assignments]
+      summary: Get assignment
+      operationId: getAssignment
+      responses:
+        '200':
+          description: Assignment detail
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Assignment'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /assignments/{id}/history:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    get:
+      tags: [Assignments]
+      summary: Assignment history
+      operationId: assignmentHistory
+      responses:
+        '200':
+          description: History entries
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/AssignmentHistory'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /assignments/{id}/reassign:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    post:
+      tags: [Assignments]
+      summary: Reassign to another collector
+      operationId: reassignAssignment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReassignAssignmentRequest'
+      responses:
+        '200':
+          description: New assignment created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Assignment'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /assignments/{id}/cancel:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    post:
+      tags: [Assignments]
+      summary: Cancel assignment
+      operationId: cancelAssignment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+                  maxLength: 2000
+      responses:
+        '200':
+          description: Assignment cancelled
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Assignment'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /assignments/{id}/accept:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    post:
+      tags: [Assignments]
+      summary: Accept assignment (collector)
+      operationId: acceptAssignment
+      responses:
+        '200':
+          description: Assignment accepted
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Assignment'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /assignments/{id}/viewed:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    post:
+      tags: [Assignments]
+      summary: Mark assignment viewed (collector)
+      operationId: viewedAssignment
+      responses:
+        '200':
+          description: Assignment marked viewed
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Assignment'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /collectors/workload:
+    get:
+      tags: [Assignments]
+      summary: Collector workload summary
+      operationId: collectorsWorkload
+      parameters:
+        - $ref: '#/components/parameters/BranchId'
+      responses:
+        '200':
+          description: Workload rows
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /visits:
+    get:
+      tags: [Visits]
+      summary: List visits
+      description: Collector isolation applies to assignment-owned visits.
+      operationId: listVisits
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+        - $ref: '#/components/parameters/BranchId'
+        - name: customer_id
+          in: query
+          schema: { type: integer }
+        - name: collector_id
+          in: query
+          schema: { type: integer }
+        - name: outcome
+          in: query
+          schema:
+            $ref: '#/components/schemas/VisitOutcomeCode'
+      responses:
+        '200':
+          description: Paginated visits
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Visit'
+                      meta:
+                        $ref: '#/components/schemas/PaginationMeta'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      tags: [Visits]
+      summary: Create visit
+      operationId: createVisit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateVisitRequest'
+      responses:
+        '201':
+          description: Visit created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Visit'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /visits/outcomes:
+    get:
+      tags: [Visits]
+      summary: List visit outcome codes
+      operationId: visitOutcomes
+      responses:
+        '200':
+          description: Outcome catalog
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/VisitOutcome'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /visits/{id}:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    get:
+      tags: [Visits]
+      summary: Get visit
+      operationId: getVisit
+      responses:
+        '200':
+          description: Visit detail
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Visit'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /visits/{id}/correction-note:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    post:
+      tags: [Visits]
+      summary: Add visit correction note
+      operationId: visitCorrectionNote
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [correction_note]
+              properties:
+                correction_note:
+                  type: string
+                  maxLength: 5000
+      responses:
+        '200':
+          description: Correction added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /visits/{id}/files:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    post:
+      tags: [Evidence]
+      summary: Upload visit evidence file
+      operationId: uploadVisitFile
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: jpg, jpeg, png, pdf, webp; max 10MB
+      responses:
+        '201':
+          description: File uploaded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /routes:
+    get:
+      tags: [Routes]
+      summary: List collection routes
+      description: Collector isolation applies to assignment-owned routes.
+      operationId: listRoutes
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+        - $ref: '#/components/parameters/BranchId'
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/RouteStatus'
+        - name: collector_id
+          in: query
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Paginated routes
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/CollectionRoute'
+                      meta:
+                        $ref: '#/components/schemas/PaginationMeta'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      tags: [Routes]
+      summary: Create route
+      operationId: createRoute
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRouteRequest'
+      responses:
+        '201':
+          description: Route created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/CollectionRoute'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /routes/{id}:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    get:
+      tags: [Routes]
+      summary: Get route
+      operationId: getRoute
+      responses:
+        '200':
+          description: Route detail
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/CollectionRoute'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Routes]
+      summary: Update route
+      operationId: updateRoute
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRouteRequest'
+      responses:
+        '200':
+          description: Route updated
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/CollectionRoute'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+    delete:
+      tags: [Routes]
+      summary: Delete draft route
+      operationId: deleteRoute
+      responses:
+        '200':
+          description: Route deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /routes/{id}/publish:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    post:
+      tags: [Routes]
+      summary: Publish route
+      operationId: publishRoute
+      responses:
+        '200':
+          description: Route published
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/CollectionRoute'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /routes/{id}/start:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    post:
+      tags: [Routes]
+      summary: Start route
+      operationId: startRoute
+      responses:
+        '200':
+          description: Route started
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/CollectionRoute'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /routes/{id}/complete:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    post:
+      tags: [Routes]
+      summary: Complete route
+      operationId: completeRoute
+      responses:
+        '200':
+          description: Route completed
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/CollectionRoute'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /routes/{id}/cancel:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    post:
+      tags: [Routes]
+      summary: Cancel route
+      operationId: cancelRoute
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason: { type: string }
+      responses:
+        '200':
+          description: Route cancelled
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/CollectionRoute'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /routes/{id}/stops:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    put:
+      tags: [Routes]
+      summary: Reorder route stops
+      operationId: reorderRouteStops
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [stops]
+              properties:
+                stops:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: object
+                    required: [id, sequence]
+                    properties:
+                      id: { type: integer }
+                      sequence: { type: integer, minimum: 1 }
+      responses:
+        '200':
+          description: Stops reordered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /promises:
+    get:
+      tags: [Promises]
+      summary: List promises to pay
+      description: Collector isolation applies to assignment-owned promises.
+      operationId: listPromises
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+        - $ref: '#/components/parameters/BranchId'
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/PromiseStatus'
+        - name: customer_id
+          in: query
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Paginated promises
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/PromiseToPay'
+                      meta:
+                        $ref: '#/components/schemas/PaginationMeta'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      tags: [Promises]
+      summary: Create promise to pay
+      operationId: createPromise
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePromiseRequest'
+      responses:
+        '201':
+          description: Promise created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PromiseToPay'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /promises/{id}/cancel:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    post:
+      tags: [Promises]
+      summary: Cancel promise
+      operationId: cancelPromise
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason: { type: string }
+      responses:
+        '200':
+          description: Promise cancelled
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PromiseToPay'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /promises/{id}/fulfill:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    post:
+      tags: [Promises]
+      summary: Mark promise fulfilled
+      operationId: fulfillPromise
+      responses:
+        '200':
+          description: Promise fulfilled
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PromiseToPay'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /promises/{id}/supersede:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    post:
+      tags: [Promises]
+      summary: Supersede promise with a new one
+      operationId: supersedePromise
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SupersedePromiseRequest'
+      responses:
+        '201':
+          description: New promise created; old superseded
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PromiseToPay'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /notes:
+    get:
+      tags: [Notes]
+      summary: List customer notes
+      operationId: listNotes
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+        - name: customer_id
+          in: query
+          schema: { type: integer }
+      responses:
+        '200':
+          $ref: '#/components/responses/PaginatedGeneric'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      tags: [Notes]
+      summary: Create customer note
+      operationId: createNote
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [customer_id, body]
+              properties:
+                customer_id: { type: integer }
+                assignment_id: { type: integer, nullable: true }
+                body: { type: string, maxLength: 10000 }
+      responses:
+        '201':
+          description: Note created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /notes/{id}:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    patch:
+      tags: [Notes]
+      summary: Update customer note
+      operationId: updateNote
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [body]
+              properties:
+                body: { type: string, maxLength: 10000 }
+      responses:
+        '200':
+          description: Note updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /files/{id}/download:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    get:
+      tags: [Evidence]
+      summary: Download evidence file
+      description: Collector isolation applies via the related visit/assignment.
+      operationId: downloadFile
+      responses:
+        '200':
+          description: File stream
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /notifications:
+    get:
+      tags: [Notifications]
+      summary: List notifications for current user
+      operationId: listNotifications
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - name: per_page
+          in: query
+          schema: { type: integer, default: 20, minimum: 1, maximum: 100 }
+        - name: unread_only
+          in: query
+          schema: { type: boolean }
+      responses:
+        '200':
+          $ref: '#/components/responses/PaginatedGeneric'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /notifications/read-all:
+    post:
+      tags: [Notifications]
+      summary: Mark all notifications read
+      operationId: readAllNotifications
+      responses:
+        '200':
+          description: Marked count
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          marked: { type: integer }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /notifications/{id}/read:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    post:
+      tags: [Notifications]
+      summary: Mark notification read
+      operationId: readNotification
+      responses:
+        '200':
+          description: Notification marked read
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /collectors:
+    get:
+      tags: [Collectors]
+      summary: List collectors
+      operationId: listCollectors
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+        - name: is_active
+          in: query
+          schema: { type: boolean }
+      responses:
+        '200':
+          $ref: '#/components/responses/PaginatedGeneric'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      tags: [Collectors]
+      summary: Create collector profile
+      operationId: createCollector
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id]
+              properties:
+                user_id: { type: integer }
+                employee_code: { type: string, maxLength: 50 }
+                max_active_assignments: { type: integer, minimum: 1 }
+                notes: { type: string }
+      responses:
+        '201':
+          description: Collector created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /collectors/{id}:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    put:
+      tags: [Collectors]
+      summary: Update collector profile
+      operationId: updateCollector
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                employee_code: { type: string, maxLength: 50 }
+                max_active_assignments: { type: integer, minimum: 1 }
+                is_active: { type: boolean }
+                notes: { type: string }
+      responses:
+        '200':
+          description: Collector updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /collector/dashboard:
+    get:
+      tags: [Collectors]
+      summary: Current collector dashboard
+      operationId: collectorDashboard
+      responses:
+        '200':
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/CollectorDashboard'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Collector profile not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+
+  /reports/assignments-by-collector:
+    get:
+      tags: [Reports]
+      summary: Assignments by collector report
+      operationId: reportAssignmentsByCollector
+      parameters:
+        - $ref: '#/components/parameters/BranchId'
+        - $ref: '#/components/parameters/ExportCsv'
+      responses:
+        '200':
+          description: Report rows or CSV
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+            text/csv:
+              schema:
+                type: string
+                format: binary
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /reports/unassigned-debtors:
+    get:
+      tags: [Reports]
+      summary: Unassigned debtors report
+      operationId: reportUnassignedDebtors
+      parameters:
+        - $ref: '#/components/parameters/BranchId'
+        - $ref: '#/components/parameters/ExportCsv'
+      responses:
+        '200':
+          description: Report rows or CSV
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+            text/csv:
+              schema:
+                type: string
+                format: binary
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /reports/visits-by-outcome:
+    get:
+      tags: [Reports]
+      summary: Visits by outcome report
+      operationId: reportVisitsByOutcome
+      parameters:
+        - $ref: '#/components/parameters/BranchId'
+        - $ref: '#/components/parameters/ExportCsv'
+      responses:
+        '200':
+          description: Report rows or CSV
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+            text/csv:
+              schema:
+                type: string
+                format: binary
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /reports/gps-mismatch:
+    get:
+      tags: [Reports]
+      summary: GPS mismatch report
+      operationId: reportGpsMismatch
+      parameters:
+        - $ref: '#/components/parameters/BranchId'
+        - $ref: '#/components/parameters/ExportCsv'
+      responses:
+        '200':
+          description: Report rows or CSV
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+            text/csv:
+              schema:
+                type: string
+                format: binary
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /reports/overdue-promises:
+    get:
+      tags: [Reports]
+      summary: Overdue promises report
+      operationId: reportOverduePromises
+      parameters:
+        - $ref: '#/components/parameters/BranchId'
+        - $ref: '#/components/parameters/ExportCsv'
+      responses:
+        '200':
+          description: Report rows or CSV
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+            text/csv:
+              schema:
+                type: string
+                format: binary
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /payment-methods:
+    get:
+      tags: [Payments]
+      summary: List active payment methods
+      operationId: listPaymentMethods
+      responses:
+        '200':
+          description: Payment methods
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /payments/preview:
+    post:
+      tags: [Payments]
+      summary: Preview payment allocations
+      operationId: previewPayment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentDraftRequest'
+      responses:
+        '200':
+          description: Preview result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /payments/draft:
+    post:
+      tags: [Payments]
+      summary: Create payment draft (requires idempotency_key)
+      operationId: createPaymentDraft
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentDraftRequest'
+      responses:
+        '201':
+          description: Draft created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /payments:
+    get:
+      tags: [Payments]
+      summary: List payments
+      operationId: listPayments
+      parameters:
+        - $ref: '#/components/parameters/BranchId'
+        - name: status
+          in: query
+          schema: { type: string }
+        - name: customer_id
+          in: query
+          schema: { type: integer }
+        - name: collector_id
+          in: query
+          schema: { type: integer }
+        - name: zoho_sync_status
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Paginated payments
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+
+  /payments/{uuid}:
+    get:
+      tags: [Payments]
+      summary: Get payment by UUID
+      operationId: getPayment
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Payment detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /payments/{uuid}/confirm:
+    post:
+      tags: [Payments]
+      summary: Confirm local payment (issues receipt, credits wallet if cash, queues Zoho sync)
+      operationId: confirmPayment
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                idempotency_key: { type: string }
+      responses:
+        '200':
+          description: Confirmed payment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+
+  /payments/{uuid}/sync-status:
+    get:
+      tags: [Payments]
+      summary: Payment Zoho sync status
+      operationId: paymentSyncStatus
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Sync status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+
+  /payments/{uuid}/retry-sync:
+    post:
+      tags: [Payments]
+      summary: Retry Zoho payment sync
+      operationId: retryPaymentSync
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Sync result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+
+  /payments/{uuid}/reversal-request:
+    post:
+      tags: [Reversals]
+      summary: Request payment reversal
+      operationId: requestPaymentReversal
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string }
+      responses:
+        '201':
+          description: Reversal requested
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+
+  /reversals/{id}/approve:
+    post:
+      tags: [Reversals]
+      summary: Approve payment reversal
+      operationId: approvePaymentReversal
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Reversal approved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+
+  /reversals/{id}/reject:
+    post:
+      tags: [Reversals]
+      summary: Reject payment reversal
+      operationId: rejectPaymentReversal
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string }
+      responses:
+        '200':
+          description: Reversal rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+
+  /receipts/{uuid}:
+    get:
+      tags: [Receipts]
+      summary: Get receipt
+      operationId: getReceipt
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Receipt
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+
+  /receipts/{uuid}/pdf:
+    get:
+      tags: [Receipts]
+      summary: Download receipt PDF
+      operationId: getReceiptPdf
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: PDF binary
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+
+  /receipts/{uuid}/print-log:
+    post:
+      tags: [Receipts]
+      summary: Log receipt print / reprint
+      operationId: logReceiptPrint
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '201':
+          description: Print logged
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+
+  /verify-receipt/{token}:
+    get:
+      tags: [Receipts]
+      summary: Public receipt verification
+      operationId: verifyReceipt
+      security: []
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Verification summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /collector/wallet:
+    get:
+      tags: [Wallets]
+      summary: Get collector cash wallet
+      operationId: getCollectorWallet
+      parameters:
+        - $ref: '#/components/parameters/BranchId'
+        - name: collector_id
+          in: query
+          schema: { type: integer }
+        - name: currency
+          in: query
+          schema: { type: string, minLength: 3, maxLength: 3 }
+      responses:
+        '200':
+          description: Wallet
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+
+  /collector/wallet/transactions:
+    get:
+      tags: [Wallets]
+      summary: Collector wallet ledger
+      operationId: listCollectorWalletTransactions
+      parameters:
+        - $ref: '#/components/parameters/BranchId'
+        - name: collector_id
+          in: query
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Transactions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+
+  /payment-settings:
+    get:
+      tags: [Payments]
+      summary: Payment settings subset
+      operationId: getPaymentSettings
+      responses:
+        '200':
+          description: Settings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+    put:
+      tags: [Payments]
+      summary: Update payment settings
+      operationId: updatePaymentSettings
+      responses:
+        '200':
+          description: Updated settings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+
+  /reports/payments-summary:
+    get:
+      tags: [Reports]
+      summary: Payments summary report
+      operationId: reportPaymentsSummary
+      parameters:
+        - $ref: '#/components/parameters/BranchId'
+        - name: from
+          in: query
+          schema: { type: string, format: date }
+        - name: to
+          in: query
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: Summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+
+  /reports/payments-sync-failures:
+    get:
+      tags: [Reports]
+      summary: Payments with failed Zoho sync
+      operationId: reportPaymentsSyncFailures
+      parameters:
+        - $ref: '#/components/parameters/BranchId'
+      responses:
+        '200':
+          description: Failed payments
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: Sanctum token
+      description: "Laravel Sanctum personal access token (`Authorization: Bearer {token}`)."
+
+  parameters:
+    IdPath:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer }
+    UserId:
+      name: user
+      in: path
+      required: true
+      schema: { type: integer }
+    Page:
+      name: page
+      in: query
+      schema: { type: integer, minimum: 1, default: 1 }
+    PerPage:
+      name: per_page
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100, default: 15 }
+    BranchId:
+      name: branch_id
+      in: query
+      description: |
+        Optional filter only. Not trusted as an authorization grant; accessible
+        branches are resolved from the authenticated user.
+      schema: { type: integer }
+    Search:
+      name: search
+      in: query
+      schema: { type: string }
+    ExportCsv:
+      name: export
+      in: query
+      description: Set to `csv` to download CSV instead of JSON.
+      schema:
+        type: string
+        enum: [csv]
+
+  responses:
+    Unauthorized:
+      description: Unauthenticated
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/UnauthorizedError'
+    Forbidden:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ForbiddenError'
+    ValidationError:
+      description: Validation failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ValidationError'
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    PaginatedGeneric:
+      description: Paginated list
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/SuccessEnvelope'
+              - type: object
+                properties:
+                  data:
+                    type: array
+                    items: {}
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+
+  schemas:
+    SuccessEnvelope:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          example: true
+        data: {}
+        meta:
+          type: object
+          additionalProperties: true
+        message:
+          type: string
+        errors:
+          type: object
+          additionalProperties: true
+
+    ErrorEnvelope:
+      type: object
+      required: [success, message]
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+          description: Empty object `{}` when no field errors
+        data:
+          type: object
+          nullable: true
+          additionalProperties: true
+
+    UnauthorizedError:
+      allOf:
+        - $ref: '#/components/schemas/ErrorEnvelope'
+      description: HTTP 401 — missing/invalid token or bad credentials
+      example:
+        success: false
+        message: Invalid credentials.
+        errors: {}
+
+    ForbiddenError:
+      allOf:
+        - $ref: '#/components/schemas/ErrorEnvelope'
+      description: HTTP 403 — authenticated but lacking permission or out of branch/collector scope
+      example:
+        success: false
+        message: This action is unauthorized.
+        errors: {}
+
+    ValidationError:
+      allOf:
+        - $ref: '#/components/schemas/ErrorEnvelope'
+      description: HTTP 422 — request validation failed
+      example:
+        success: false
+        message: The given data was invalid.
+        errors:
+          login:
+            - The login field is required.
+
+    PaginationMeta:
+      type: object
+      properties:
+        current_page: { type: integer }
+        last_page: { type: integer }
+        per_page: { type: integer }
+        total: { type: integer }
+
+    HealthData:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded]
+        checks:
+          type: object
+          properties:
+            database:
+              type: string
+              enum: [ok, error]
+            redis:
+              type: string
+              enum: [ok, error]
+
+    LoginRequest:
+      type: object
+      required: [login, password]
+      properties:
+        login:
+          type: string
+          description: Email or username
+        password:
+          type: string
+          format: password
+        device_name:
+          type: string
+          maxLength: 255
+          default: api-token
+
+    ChangePasswordRequest:
+      type: object
+      required: [current_password, password, password_confirmation]
+      properties:
+        current_password:
+          type: string
+          format: password
+        password:
+          type: string
+          format: password
+          description: Min 12 chars; mixed case, numbers, and symbols required
+        password_confirmation:
+          type: string
+          format: password
+
+    LoginResponseData:
+      type: object
+      properties:
+        token: { type: string }
+        token_type:
+          type: string
+          example: Bearer
+        user:
+          $ref: '#/components/schemas/User'
+        force_password_change: { type: boolean }
+
+    User:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        email: { type: string, format: email }
+        username: { type: string, nullable: true }
+        phone: { type: string, nullable: true }
+        locale:
+          type: string
+          enum: [en, fa]
+        status: { type: string }
+        force_password_change: { type: boolean }
+        last_login_at:
+          type: string
+          format: date-time
+          nullable: true
+        roles:
+          type: array
+          items: { type: string }
+        permissions:
+          type: array
+          items: { type: string }
+        branches:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserBranch'
+
+    UserBranch:
+      type: object
+      properties:
+        id: { type: integer }
+        code: { type: string }
+        name_en: { type: string }
+        name_fa: { type: string, nullable: true }
+
+    StoreUserRequest:
+      type: object
+      required: [name, email, password]
+      properties:
+        name: { type: string }
+        email: { type: string, format: email }
+        username: { type: string, nullable: true }
+        phone: { type: string, nullable: true }
+        locale:
+          type: string
+          enum: [en, fa]
+        password: { type: string, format: password }
+        force_password_change: { type: boolean }
+        roles:
+          type: array
+          items: { type: string }
+        branch_ids:
+          type: array
+          items: { type: integer }
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        name: { type: string }
+        email: { type: string, format: email }
+        username: { type: string, nullable: true }
+        phone: { type: string, nullable: true }
+        locale:
+          type: string
+          enum: [en, fa]
+        password: { type: string, format: password }
+        force_password_change: { type: boolean }
+        roles:
+          type: array
+          items: { type: string }
+        branch_ids:
+          type: array
+          items: { type: integer }
+
+    CompanySettings:
+      type: object
+      properties:
+        company_name: { type: string, nullable: true }
+        currency: { type: string, nullable: true }
+        timezone: { type: string, nullable: true }
+        setup_completed: { type: string, nullable: true }
+
+    AssignmentStatus:
+      type: string
+      enum:
+        - assigned
+        - accepted
+        - in_progress
+        - closed
+        - cancelled
+        - reassigned
+        - fully_resolved
+
+    AssignmentPriority:
+      type: string
+      enum: [low, normal, high, urgent]
+
+    Assignment:
+      type: object
+      properties:
+        id: { type: integer }
+        customer_id: { type: integer }
+        collector_id: { type: integer }
+        branch_id: { type: integer }
+        status:
+          $ref: '#/components/schemas/AssignmentStatus'
+        priority:
+          $ref: '#/components/schemas/AssignmentPriority'
+        is_active: { type: boolean }
+        due_date:
+          type: string
+          format: date
+          nullable: true
+        planned_visit_date:
+          type: string
+          format: date
+          nullable: true
+        notes: { type: string, nullable: true }
+        manager_notes: { type: string, nullable: true }
+        collector_instructions: { type: string, nullable: true }
+        assignment_reason: { type: string, nullable: true }
+        accepted_at:
+          type: string
+          format: date-time
+          nullable: true
+        viewed_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        customer:
+          type: object
+          additionalProperties: true
+        collector:
+          type: object
+          additionalProperties: true
+        branch:
+          type: object
+          additionalProperties: true
+
+    AssignmentHistory:
+      type: object
+      properties:
+        id: { type: integer }
+        customer_assignment_id: { type: integer }
+        event: { type: string }
+        from_status: { type: string, nullable: true }
+        to_status: { type: string, nullable: true }
+        changed_by: { type: integer, nullable: true }
+        meta:
+          type: object
+          additionalProperties: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    CreateAssignmentRequest:
+      type: object
+      required: [customer_id, collector_id]
+      properties:
+        customer_id: { type: integer }
+        collector_id: { type: integer }
+        priority:
+          $ref: '#/components/schemas/AssignmentPriority'
+        due_date:
+          type: string
+          format: date
+        planned_visit_date:
+          type: string
+          format: date
+        notes: { type: string }
+        manager_notes: { type: string }
+        collector_instructions: { type: string }
+        assignment_reason: { type: string, maxLength: 500 }
+
+    BulkAssignmentRequest:
+      type: object
+      required: [customer_ids, collector_id]
+      properties:
+        customer_ids:
+          type: array
+          minItems: 1
+          items: { type: integer }
+        collector_id: { type: integer }
+        branch_id:
+          type: integer
+          description: Optional filter/hint only; access still from auth context
+        priority:
+          $ref: '#/components/schemas/AssignmentPriority'
+        due_date:
+          type: string
+          format: date
+        notes: { type: string }
+
+    AutoPreviewAssignmentRequest:
+      type: object
+      required: [branch_id]
+      properties:
+        branch_id:
+          type: integer
+          description: Must be within authenticated user's allowed branches
+        strategy:
+          type: string
+          enum: [round_robin, least_loaded]
+        customer_ids:
+          type: array
+          items: { type: integer }
+        collector_ids:
+          type: array
+          items: { type: integer }
+
+    ReassignAssignmentRequest:
+      type: object
+      required: [collector_id]
+      properties:
+        collector_id: { type: integer }
+        priority:
+          $ref: '#/components/schemas/AssignmentPriority'
+        due_date:
+          type: string
+          format: date
+        notes: { type: string }
+
+    VisitOutcomeCode:
+      type: string
+      enum:
+        - customer_met
+        - not_available
+        - not_home
+        - no_answer
+        - phone_unreachable
+        - wrong_address
+        - customer_moved
+        - refused
+        - disputed_balance
+        - promise_to_pay
+        - requested_manager
+        - requested_cancellation
+        - requested_review
+        - business_closed
+        - follow_up
+        - other
+
+    VisitOutcome:
+      type: object
+      properties:
+        code:
+          $ref: '#/components/schemas/VisitOutcomeCode'
+        label_en: { type: string }
+        label_fa: { type: string }
+
+    Visit:
+      type: object
+      properties:
+        id: { type: integer }
+        customer_id: { type: integer }
+        assignment_id: { type: integer, nullable: true }
+        collector_id: { type: integer }
+        branch_id: { type: integer }
+        route_stop_id: { type: integer, nullable: true }
+        visited_at:
+          type: string
+          format: date-time
+        outcome:
+          $ref: '#/components/schemas/VisitOutcomeCode'
+        notes: { type: string, nullable: true }
+        contact_status: { type: string, nullable: true }
+        person_met: { type: string, nullable: true }
+        follow_up_required: { type: boolean }
+        follow_up_date:
+          type: string
+          format: date
+          nullable: true
+        escalation_flag: { type: boolean }
+        origin:
+          type: string
+          enum: [online, offline]
+        latitude: { type: number, nullable: true }
+        longitude: { type: number, nullable: true }
+        gps_accuracy: { type: number, nullable: true }
+        gps_permission_state:
+          type: string
+          enum: [granted, denied, unavailable, prompt]
+          nullable: true
+        gps_source: { type: string, nullable: true }
+        gps_captured_at:
+          type: string
+          format: date-time
+          nullable: true
+        gps_risk_level:
+          type: string
+          enum: [ok, warning, high_risk]
+          nullable: true
+        distance_meters: { type: number, nullable: true }
+        correction_note: { type: string, nullable: true }
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreateVisitRequest:
+      type: object
+      required: [outcome]
+      properties:
+        customer_id:
+          type: integer
+          description: Required when assignment_id is omitted
+        assignment_id: { type: integer, nullable: true }
+        collector_id: { type: integer, nullable: true }
+        route_stop_id: { type: integer, nullable: true }
+        visited_at:
+          type: string
+          format: date-time
+        outcome:
+          $ref: '#/components/schemas/VisitOutcomeCode'
+        notes: { type: string }
+        contact_status: { type: string, maxLength: 100 }
+        person_met: { type: string, maxLength: 255 }
+        follow_up_required: { type: boolean }
+        follow_up_date:
+          type: string
+          format: date
+        escalation_flag: { type: boolean }
+        origin:
+          type: string
+          enum: [online, offline]
+        latitude: { type: number }
+        longitude: { type: number }
+        gps_accuracy: { type: number }
+        gps_permission_state:
+          type: string
+          enum: [granted, denied, unavailable, prompt]
+        gps_source: { type: string, maxLength: 50 }
+        gps_captured_at:
+          type: string
+          format: date-time
+        device_info: { type: string, maxLength: 500 }
+        promise:
+          type: object
+          properties:
+            amount:
+              type: number
+              minimum: 0
+              exclusiveMinimum: true
+            promised_date:
+              type: string
+              format: date
+            currency:
+              type: string
+              minLength: 3
+              maxLength: 3
+            notes: { type: string }
+            allow_past_date: { type: boolean }
+
+    RouteStatus:
+      type: string
+      enum: [draft, published, in_progress, completed, cancelled]
+
+    RouteStop:
+      type: object
+      properties:
+        id: { type: integer }
+        collection_route_id: { type: integer }
+        customer_id: { type: integer }
+        assignment_id: { type: integer, nullable: true }
+        sequence: { type: integer }
+        notes: { type: string, nullable: true }
+        status: { type: string, nullable: true }
+
+    CollectionRoute:
+      type: object
+      properties:
+        id: { type: integer }
+        branch_id: { type: integer }
+        collector_id: { type: integer }
+        name: { type: string }
+        route_date:
+          type: string
+          format: date
+        status:
+          $ref: '#/components/schemas/RouteStatus'
+        notes: { type: string, nullable: true }
+        started_at:
+          type: string
+          format: date-time
+          nullable: true
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+        stops:
+          type: array
+          items:
+            $ref: '#/components/schemas/RouteStop'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreateRouteRequest:
+      type: object
+      required: [branch_id, collector_id, name, route_date]
+      properties:
+        branch_id:
+          type: integer
+          description: Must be within authenticated user's allowed branches
+        collector_id: { type: integer }
+        name: { type: string, maxLength: 255 }
+        route_date:
+          type: string
+          format: date
+        notes: { type: string }
+        stops:
+          type: array
+          items:
+            type: object
+            required: [customer_id]
+            properties:
+              customer_id: { type: integer }
+              assignment_id: { type: integer, nullable: true }
+              sequence: { type: integer, minimum: 1 }
+              notes: { type: string }
+
+    UpdateRouteRequest:
+      type: object
+      properties:
+        name: { type: string, maxLength: 255 }
+        route_date:
+          type: string
+          format: date
+        notes: { type: string, nullable: true }
+        collector_id: { type: integer }
+        stops:
+          type: array
+          items:
+            type: object
+            required: [customer_id]
+            properties:
+              customer_id: { type: integer }
+              assignment_id: { type: integer, nullable: true }
+              sequence: { type: integer, minimum: 1 }
+              notes: { type: string }
+
+    PromiseStatus:
+      type: string
+      enum:
+        - active
+        - due_soon
+        - due_today
+        - overdue
+        - fulfilled
+        - partially_fulfilled
+        - cancelled
+        - superseded
+
+    PromiseToPay:
+      type: object
+      properties:
+        id: { type: integer }
+        customer_id: { type: integer }
+        assignment_id: { type: integer, nullable: true }
+        visit_id: { type: integer, nullable: true }
+        collector_id: { type: integer, nullable: true }
+        branch_id: { type: integer }
+        amount:
+          type: number
+          format: float
+        currency: { type: string }
+        promised_date:
+          type: string
+          format: date
+        status:
+          $ref: '#/components/schemas/PromiseStatus'
+        notes: { type: string, nullable: true }
+        fulfilled_at:
+          type: string
+          format: date-time
+          nullable: true
+        cancelled_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreatePromiseRequest:
+      type: object
+      required: [customer_id, amount, promised_date]
+      properties:
+        customer_id: { type: integer }
+        assignment_id: { type: integer, nullable: true }
+        visit_id: { type: integer, nullable: true }
+        collector_id: { type: integer, nullable: true }
+        amount:
+          type: number
+          minimum: 0
+          exclusiveMinimum: true
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+        promised_date:
+          type: string
+          format: date
+        notes: { type: string }
+        allow_past_date: { type: boolean }
+
+    SupersedePromiseRequest:
+      type: object
+      required: [amount, promised_date]
+      properties:
+        amount:
+          type: number
+          minimum: 0
+          exclusiveMinimum: true
+        promised_date:
+          type: string
+          format: date
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+        notes: { type: string }
+        allow_past_date: { type: boolean }
+
+    CollectorDashboard:
+      type: object
+      properties:
+        collector_id: { type: integer }
+        active_assignments: { type: integer }
+        visits_today: { type: integer }
+        open_promises: { type: integer }
+        routes_today:
+          type: array
+          items:
+            $ref: '#/components/schemas/CollectionRoute'
+
+    PaymentDraftRequest:
+      type: object
+      required: [customer_id, payment_method_id, amount, allocations, idempotency_key]
+      properties:
+        customer_id: { type: integer }
+        collector_id: { type: integer, nullable: true }
+        payment_method_id: { type: integer }
+        amount:
+          type: number
+          exclusiveMinimum: true
+          minimum: 0
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+        allocations:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required: [invoice_id, amount]
+            properties:
+              invoice_id: { type: integer }
+              amount:
+                type: number
+                exclusiveMinimum: true
+                minimum: 0
+        external_reference: { type: string, nullable: true }
+        notes: { type: string, nullable: true }
+        visit_id: { type: integer, nullable: true }
+        promise_id: { type: integer, nullable: true }
+        idempotency_key: { type: string }
+        latitude: { type: number, nullable: true }
+        longitude: { type: number, nullable: true }

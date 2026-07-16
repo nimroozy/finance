@@ -43,6 +43,14 @@ class ZohoApiClient
     }
 
     /**
+     * @param  array<string, mixed>  $query
+     */
+    public function delete(string $endpoint, array $query = [], ?string $entityType = null): array
+    {
+        return $this->request('DELETE', $endpoint, ['query' => $query], $entityType);
+    }
+
+    /**
      * @param  array{query?:array<string,mixed>,json?:array<string,mixed>}  $options
      * @return array<string, mixed>
      */
@@ -87,12 +95,14 @@ class ZohoApiClient
                     ->acceptJson()
                     ->timeout((int) config('zoho.http.timeout', 30));
 
+                $urlWithQuery = $query === [] ? $url : $url.'?'.http_build_query($query);
+
                 /** @var Response $response */
                 $response = match (strtoupper($method)) {
                     'GET' => $pending->get($url, $query),
-                    'POST' => $pending->asJson()->post($url.'?'.http_build_query($query), $options['json'] ?? []),
-                    'PUT' => $pending->asJson()->put($url.'?'.http_build_query($query), $options['json'] ?? []),
-                    'DELETE' => $pending->delete($url, $query),
+                    'POST' => $pending->asJson()->post($urlWithQuery, $options['json'] ?? []),
+                    'PUT' => $pending->asJson()->put($urlWithQuery, $options['json'] ?? []),
+                    'DELETE' => $pending->delete($urlWithQuery),
                     default => throw new RuntimeException("Unsupported HTTP method [{$method}]."),
                 };
 

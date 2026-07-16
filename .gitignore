@@ -45,5 +45,13 @@ tmp/
 temp/
 
 .admin-credentials.txt
+.secrets/
+.stage3-smoke-secret
 .env
 
+
+# Private uploads / receipts / evidence (never commit)
+backend/storage/app/private/**
+!backend/storage/app/private/.gitignore
+backend/storage/logs/**
+!backend/storage/logs/.gitignore
