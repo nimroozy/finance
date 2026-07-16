@@ -2,7 +2,7 @@
 
 **Date (UTC):** 2026-07-16  
 **Branch:** `cursor/stage-5-1-p1-ui`  
-**SHA:** `14d4160a13c4e7c179680bcb899e5f1a7435ded4`  
+**SHA:** `a861eaa` (includes feature commit `14d4160`)  
 **Draft PR:** https://github.com/nimroozy/finance/pull/7 → `cursor/stage-5-1-p0-repair`  
 **Base tip verified:** `487cdf59b899b29e08961f629c47b087a555cfbd`  
 **Do not merge:** PR #4, #5, #6 (or #7 until reviewed). **Stage 6 not started.**
@@ -15,7 +15,7 @@
 |-------|------|
 | Pre-P1 gate | `/opt/collection-backups/20260716T151456Z-stage51-p1-pregate/` |
 | Pre-deploy | `/opt/collection-backups/20260716T154135Z-stage51-p1-predeploy/` |
-| Post-deploy | `/opt/collection-backups/*-stage51-p1-postdeploy/` (created after smoke) |
+| Post-deploy | `/opt/collection-backups/20260716T154949Z-stage51-p1-postdeploy/` |
 
 Artifacts include `postgres.dump.gz`, counts snapshot, failed-jobs export (pregate/predeploy), source/config as available.
 
