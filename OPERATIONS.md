@@ -66,7 +66,7 @@ Root cause fixed (Stage 4→5 gate): older `scripts/deploy.sh` re-ran `app:insta
 
 Deploy now checks whether a Super Administrator **user** already exists and skips install entirely.
 
-## Admin password reset (secure)
+## Admin credential recovery
 
 If the Super Administrator password is unknown (for example `.env` `ADMIN_PASSWORD` no longer matches the database hash):
 

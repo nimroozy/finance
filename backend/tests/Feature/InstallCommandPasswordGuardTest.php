@@ -104,4 +104,42 @@ class InstallCommandPasswordGuardTest extends TestCase
         $this->assertSame($hash, $admin->password);
         $this->assertSame('true', SystemSetting::getValue('setup_completed'));
     }
+
+    public function test_reset_password_file_updates_and_unlocks_admin(): void
+    {
+        $this->seed(RolePermissionSeeder::class);
+        $admin = User::query()->create([
+            'name' => 'Super Administrator',
+            'email' => 'admin@example.test',
+            'username' => 'admin',
+            'password' => 'OriginalPass1!xyz',
+            'status' => User::STATUS_ACTIVE,
+        ]);
+        $admin->syncRoles([User::ROLE_SUPER_ADMIN]);
+        $admin->forceFill([
+            'failed_login_attempts' => 5,
+            'locked_until' => now()->addHour(),
+        ])->save();
+
+        $file = tempnam(sys_get_temp_dir(), 'admin-password-');
+        file_put_contents($file, "ReplacementPass2!xyz\n");
+        try {
+            $exit = Artisan::call('admin:reset-password', [
+                'login' => 'admin',
+                '--password-file' => $file,
+                '--unlock' => true,
+                '--force-change' => true,
+                '--no-interaction' => true,
+            ]);
+        } finally {
+            @unlink($file);
+        }
+
+        $this->assertSame(0, $exit);
+        $admin->refresh();
+        $this->assertTrue(Hash::check('ReplacementPass2!xyz', $admin->password));
+        $this->assertSame(0, $admin->failed_login_attempts);
+        $this->assertNull($admin->locked_until);
+        $this->assertTrue($admin->force_password_change);
+    }
 }

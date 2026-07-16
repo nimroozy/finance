@@ -9,6 +9,8 @@ import type {
   ZohoDataCenter,
   ZohoHealth,
   ZohoLocation,
+  ZohoLocationMappingReview,
+  ZohoMappingConflict,
   ZohoOrganization,
   ZohoPaymentMode,
   ZohoReportingTag,
@@ -168,6 +170,34 @@ export async function linkBranchLocation(
 export async function importZohoLocationAsBranch(zohoId: string) {
   return apiFetch<Branch>(`/zoho/locations/${zohoId}/import-as-branch`, {
     method: "POST",
+  });
+}
+
+export async function listZohoMappingConflicts(page = 1) {
+  return apiFetch<ZohoMappingConflict[]>(
+    `/zoho/mapping-conflicts${toQuery({ page, per_page: 20 })}`,
+  );
+}
+
+export async function listZohoLocationMappingReview() {
+  return apiFetch<ZohoLocationMappingReview[]>("/zoho/location-mapping-review");
+}
+
+export async function decideZohoLocationMapping(
+  zohoId: string,
+  payload: {
+    action: "import_branch" | "link_existing" | "ignore" | "defer" | "non_operational";
+    branch_id?: number;
+    notes?: string;
+  },
+) {
+  return apiFetch<{
+    zoho_location_id: string;
+    decision: string;
+    branch: { id: number; code: string; name_en: string } | null;
+  }>(`/zoho/locations/${encodeURIComponent(zohoId)}/mapping-decision`, {
+    method: "POST",
+    body: JSON.stringify({ ...payload, confirmed: true }),
   });
 }
 

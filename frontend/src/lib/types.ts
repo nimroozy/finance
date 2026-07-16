@@ -1126,3 +1126,105 @@ export interface PaymentsSummary {
   total_count: number;
   total_amount: string | number;
 }
+
+export interface DashboardSummary {
+  role?: string;
+  scope?: { branch_ids: number[] | null; collector_id: number | null };
+  customers?: { total: number; unmapped: number };
+  invoices?: { total: number; open: number; overdue: number; outstanding_amount: string | number };
+  assignments?: { total: number; active: number };
+  visits?: { today: number; total: number };
+  promises?: { open: number; overdue: number };
+  payments?: { total: number; confirmed: number; sync_failed: number };
+  cash_custody?: { pending_handovers: number };
+  generated_at?: string;
+}
+
+export type CashTransferType = "cashbox_transfer" | "bank_deposit";
+export type CashTransferStatus =
+  | "draft"
+  | "submitted"
+  | "approved"
+  | "sent"
+  | "received"
+  | "reversed";
+
+export interface CashboxTransfer {
+  id: number;
+  uuid: string;
+  transfer_number: string | null;
+  from_cashbox_id: number;
+  to_cashbox_id: number | null;
+  branch_id: number;
+  type: CashTransferType;
+  currency: string;
+  amount: string | number;
+  status: CashTransferStatus | string;
+  bank_name: string | null;
+  bank_reference: string | null;
+  deposited_on: string | null;
+  notes: string | null;
+  created_at?: string;
+  submitted_at?: string | null;
+  approved_at?: string | null;
+  sent_at?: string | null;
+  received_at?: string | null;
+  reversed_at?: string | null;
+}
+
+export interface CashboxTransferPayload {
+  from_cashbox_id: number;
+  to_cashbox_id?: number;
+  amount: string | number;
+  type?: CashTransferType;
+  bank_name?: string;
+  bank_reference?: string;
+  deposited_on?: string;
+  notes?: string;
+}
+
+export interface CashReconciliationRun {
+  id: number;
+  uuid: string;
+  branch_id: number;
+  cashbox_id: number;
+  reconciliation_date: string;
+  currency: string;
+  opening_balance: string | number;
+  credits: string | number;
+  debits: string | number;
+  expected_balance: string | number;
+  counted_balance: string | number | null;
+  variance_amount: string | number;
+  status: string;
+  created_at?: string;
+}
+
+export interface ZohoMappingConflict {
+  classification: string;
+  customer_id: number;
+  name: string | null;
+  locations: Array<{
+    zoho_location_id: string;
+    name: string | null;
+    branch: Pick<BranchSummary, "id" | "code" | "name_en"> | null;
+  }>;
+  payments_count: number;
+  assignments_count: number;
+}
+
+export interface ZohoLocationMappingReview {
+  zoho_location_id: string;
+  name: string;
+  is_active: boolean;
+  linked_branch: Pick<BranchSummary, "id" | "code" | "name_en"> | null;
+  invoice_count: number;
+  mapped_invoice_count: number;
+  customer_count: number;
+  payment_count: number;
+  assignment_count: number;
+  recommended_action: string;
+  candidate_branch: Pick<BranchSummary, "id" | "code" | "name_en"> | null;
+  confidence: string;
+  decision: string | null;
+}

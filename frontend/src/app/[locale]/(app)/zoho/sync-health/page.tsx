@@ -119,6 +119,17 @@ export default function ZohoSyncHealthPage() {
       {message ? <div className="mb-4"><Alert tone="success">{message}</Alert></div> : null}
       {loading || !health ? <LoadingState label={tCommon("loading")} /> : (
         <>
+          <div className="mb-4">
+            <Alert tone={!health.connection || health.failed_jobs > 0 || circuits.some((item) => item.state !== "closed") ? "warning" : "success"}>
+              {!health.connection
+                ? t("humanDisconnected")
+                : health.failed_jobs > 0
+                  ? t("humanFailedJobs", { count: health.failed_jobs })
+                  : circuits.some((item) => item.state !== "closed")
+                    ? t("humanPaused")
+                    : t("humanHealthy")}
+            </Alert>
+          </div>
           <Panel className="mb-6 p-4">
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <div><p className="text-xs text-muted">{t("connection")}</p><Badge tone={health.connection ? tone(String(health.connection.status ?? "connected")) : "neutral"}>{String(health.connection?.status ?? t("disconnected"))}</Badge></div>

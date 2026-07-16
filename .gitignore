@@ -55,3 +55,5 @@ backend/storage/app/private/**
 !backend/storage/app/private/.gitignore
 backend/storage/logs/**
 !backend/storage/logs/.gitignore
+frontend/test-results/
+frontend/playwright-report/
