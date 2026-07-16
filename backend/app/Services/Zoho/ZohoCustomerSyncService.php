@@ -7,6 +7,7 @@ use App\Models\CustomerCustomField;
 use App\Models\ZohoEntityMapping;
 use App\Models\ZohoSyncCursor;
 use App\Models\ZohoSyncJob;
+use App\Services\Mapping\CustomerBranchResolutionService;
 use Illuminate\Support\Carbon;
 use Throwable;
 
@@ -16,6 +17,7 @@ class ZohoCustomerSyncService
         protected ZohoApiClient $api,
         protected ZohoBranchMappingService $branchMapping,
         protected ZohoConfig $config,
+        protected CustomerBranchResolutionService $branchResolution,
     ) {}
 
     /**
@@ -217,6 +219,17 @@ class ZohoCustomerSyncService
         );
 
         $this->syncCustomFields($customer, $contact['custom_fields'] ?? []);
+
+        // Prefix / location resolution with conflict handling (never overwrites admin override).
+        try {
+            if (! $customer->administrator_branch_override) {
+                $resolution = $this->branchResolution->resolve($customer->fresh(), $contact);
+                $this->branchResolution->apply($customer->fresh(), $resolution, null, dryRun: false, runId: 'zoho-customer-sync');
+                $customer = $customer->fresh();
+            }
+        } catch (Throwable) {
+            // Mapping must not break warehouse sync.
+        }
 
         return $result;
     }

@@ -54,6 +54,13 @@ class Customer extends Model
         'last_synced_at',
         'sync_status',
         'is_unmapped',
+        'branch_mapping_source',
+        'branch_mapping_confidence',
+        'branch_mapping_prefix',
+        'administrator_branch_override',
+        'branch_override_by',
+        'branch_mapped_at',
+        'branch_mapping_confirmed_at',
     ];
 
     protected function casts(): array
@@ -68,6 +75,9 @@ class Customer extends Model
             'zoho_modified_at' => 'datetime',
             'last_synced_at' => 'datetime',
             'is_unmapped' => 'boolean',
+            'administrator_branch_override' => 'boolean',
+            'branch_mapped_at' => 'datetime',
+            'branch_mapping_confirmed_at' => 'datetime',
         ];
     }
 

@@ -136,6 +136,7 @@ export default function InvoicesPage() {
                   <th className="px-4 py-3 font-medium">{t("status")}</th>
                   <th className="px-4 py-3 font-medium">{t("total")}</th>
                   <th className="px-4 py-3 font-medium">{t("balance")}</th>
+                  <th className="px-4 py-3 font-medium">{t("effectiveBalance")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -176,7 +177,23 @@ export default function InvoicesPage() {
                       {formatMoney(invoice.total, invoice.currency, locale)}
                     </td>
                     <td className="px-4 py-3">
-                      {formatMoney(invoice.balance, invoice.currency, locale)}
+                      {formatMoney(
+                        invoice.zoho_synced_balance ?? invoice.balance,
+                        invoice.currency,
+                        locale,
+                      )}
+                      {invoice.awaiting_zoho_refresh ? (
+                        <span className="mt-1 block text-xs text-amber-700">
+                          {t("awaitingZohoRefresh")}
+                        </span>
+                      ) : null}
+                    </td>
+                    <td className="px-4 py-3 font-medium">
+                      {formatMoney(
+                        invoice.effective_balance ?? invoice.balance,
+                        invoice.currency,
+                        locale,
+                      )}
                     </td>
                   </tr>
                 ))}

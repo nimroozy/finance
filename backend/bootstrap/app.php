@@ -94,6 +94,20 @@ return Application::configure(basePath: dirname(__DIR__))
             ], 404);
         });
 
+        $exceptions->render(function (\App\Support\LocalizedInvalidArgumentException $e, Request $request) {
+            if (! $request->is('api/*') && ! $request->expectsJson()) {
+                return null;
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage() ?: 'Invalid request.',
+                'message_en' => $e->getMessage(),
+                'message_fa' => $e->messageFa,
+                'errors' => (object) $e->context,
+            ], 422);
+        });
+
         $exceptions->render(function (\InvalidArgumentException $e, Request $request) {
             if (! $request->is('api/*') && ! $request->expectsJson()) {
                 return null;

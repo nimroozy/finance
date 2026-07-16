@@ -9,7 +9,9 @@ use App\Http\Controllers\Api\V1\CashboxTransferController;
 use App\Http\Controllers\Api\V1\CashHandoverController;
 use App\Http\Controllers\Api\V1\CashReconciliationController;
 use App\Http\Controllers\Api\V1\CollectorController;
+use App\Http\Controllers\Api\V1\CustodyReversalController;
 use App\Http\Controllers\Api\V1\CustomerController;
+use App\Http\Controllers\Api\V1\CustomerPrefixMappingController;
 use App\Http\Controllers\Api\V1\CustomerNoteController;
 use App\Http\Controllers\Api\V1\DashboardController;
 use App\Http\Controllers\Api\V1\DebtorController;
@@ -239,6 +241,23 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         });
         Route::middleware('permission:branch_payment_mapping.manage')->post('/branch-payment-mappings', [BranchPaymentMappingController::class, 'upsert']);
         Route::middleware('permission:branch_payment_mapping.validate')->post('/branch-payment-mappings/{branchId}/validate', [BranchPaymentMappingController::class, 'validateMapping'])->whereNumber('branchId');
+
+        Route::middleware('permission:customer_prefix_mapping.view')->group(function () {
+            Route::get('/customer-prefix-mappings', [CustomerPrefixMappingController::class, 'index']);
+            Route::post('/customer-prefix-mappings/test', [CustomerPrefixMappingController::class, 'testNumber']);
+            Route::get('/customer-prefix-mappings/preview', [CustomerPrefixMappingController::class, 'preview']);
+            Route::get('/customer-prefix-mappings/conflicts', [CustomerPrefixMappingController::class, 'conflicts']);
+            Route::get('/customer-prefix-mappings/history', [CustomerPrefixMappingController::class, 'history']);
+            Route::get('/customer-prefix-mappings/report', [CustomerPrefixMappingController::class, 'reportSummary']);
+            Route::get('/branches/{branchId}/prefix-metrics', [CustomerPrefixMappingController::class, 'branchMetrics'])->whereNumber('branchId');
+        });
+        Route::middleware('permission:customer_prefix_mapping.manage')->group(function () {
+            Route::post('/customer-prefix-mappings', [CustomerPrefixMappingController::class, 'store']);
+            Route::put('/customer-prefix-mappings/{id}', [CustomerPrefixMappingController::class, 'update'])->whereNumber('id');
+            Route::post('/customer-prefix-mappings/{id}/disable', [CustomerPrefixMappingController::class, 'disable'])->whereNumber('id');
+            Route::post('/customer-prefix-mappings/dry-run', [CustomerPrefixMappingController::class, 'dryRun']);
+        });
+        Route::middleware('permission:customer_prefix_mapping.apply')->post('/customer-prefix-mappings/apply', [CustomerPrefixMappingController::class, 'apply']);
         Route::middleware('permission:receivables_dashboard.view')->get('/reports/branch-receivables', [BranchReceivablesController::class, 'index']);
 
         // --- Visits ---
@@ -411,6 +430,14 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         });
         Route::middleware('permission:cash_reconciliation.view')->get('/cash-reconciliations', [CashReconciliationController::class, 'index'])->name('cash-reconciliations.index');
         Route::middleware('permission:cash_reconciliation.run')->post('/cash-reconciliations/run', [CashReconciliationController::class, 'run'])->name('cash-reconciliations.run');
+
+        Route::middleware('permission:custody_reversals.review|reversals.approve')->group(function () {
+            Route::get('/custody-reversals', [CustodyReversalController::class, 'index'])->name('custody-reversals.index');
+            Route::get('/custody-reversals/{id}', [CustodyReversalController::class, 'show'])->whereNumber('id')->name('custody-reversals.show');
+            Route::post('/custody-reversals/{id}/approve', [CustodyReversalController::class, 'approve'])->whereNumber('id')->name('custody-reversals.approve');
+            Route::post('/custody-reversals/{id}/reject', [CustodyReversalController::class, 'reject'])->whereNumber('id')->name('custody-reversals.reject');
+            Route::post('/custody-reversals/{id}/retry-zoho', [CustodyReversalController::class, 'retryZoho'])->whereNumber('id')->name('custody-reversals.retry-zoho');
+        });
 
         // --- Collectors ---
         Route::middleware('permission:collectors.view')->group(function () {

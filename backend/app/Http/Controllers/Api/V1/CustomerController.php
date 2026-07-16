@@ -73,19 +73,14 @@ class CustomerController extends Controller
     {
         $data = $request->validate([
             'branch_id' => ['required', 'integer', 'exists:branches,id'],
+            'reason' => ['nullable', 'string', 'max:2000'],
         ]);
 
         $customer = Customer::withoutGlobalScopes()->findOrFail($id);
+        $updated = app(\App\Services\Mapping\CustomerBranchResolutionService::class)
+            ->setAdministratorOverride($customer, (int) $data['branch_id'], Auth::user(), $data['reason'] ?? null);
 
-        $customer->update([
-            'branch_id' => $data['branch_id'],
-            'is_unmapped' => false,
-            'status' => $customer->status === Customer::STATUS_UNMAPPED
-                ? Customer::STATUS_ACTIVE
-                : $customer->status,
-        ]);
-
-        return ApiResponse::success($customer->fresh()->load('branch'));
+        return ApiResponse::success($updated->load('branch'));
     }
 
     protected function isGlobalUser(): bool

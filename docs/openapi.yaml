@@ -69,6 +69,9 @@ tags:
   - name: Receipts
   - name: Wallets
   - name: Reversals
+  - name: Mapping
+  - name: Ownership
+  - name: Custody
 security:
   - bearerAuth: []
 paths:
@@ -2861,13 +2864,93 @@ paths:
               $ref: '#/components/schemas/PaymentDraftRequest'
       responses:
         '200':
-          description: Preview result
+          description: Preview result including effective_balance fields
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/SuccessEnvelope'
         '422':
           $ref: '#/components/responses/ValidationError'
+
+  /custody-reversals:
+    get:
+      tags: [CashCustody]
+      summary: List custody reversals
+      operationId: listCustodyReversals
+      parameters:
+        - in: query
+          name: status
+          schema: { type: string }
+        - in: query
+          name: branch_id
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Custody reversal list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /custody-reversals/{id}:
+    get:
+      tags: [CashCustody]
+      summary: Custody reversal detail
+      operationId: getCustodyReversal
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Detail payload with payment, receipt, handover, cashbox, Zoho state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+
+  /custody-reversals/{id}/approve:
+    post:
+      tags: [CashCustody]
+      summary: Approve custody-aware reversal
+      operationId: approveCustodyReversal
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Approved custody reversal detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /custody-reversals/{id}/reject:
+    post:
+      tags: [CashCustody]
+      summary: Reject custody-aware reversal
+      operationId: rejectCustodyReversal
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string }
+      responses:
+        '200':
+          description: Rejected custody reversal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
 
   /payments/draft:
     post:
@@ -3300,6 +3383,124 @@ paths:
     post:
       summary: Upsert branch Zoho account mapping
       tags: [Ownership]
+      responses:
+        '200':
+          description: OK
+        '401':
+          description: Unauthorized
+  /customer-prefix-mappings:
+    get:
+      summary: List customer number prefix → branch mappings
+      tags: [Mapping]
+      responses:
+        '200':
+          description: OK
+        '401':
+          description: Unauthorized
+    post:
+      summary: Create a customer number prefix mapping
+      tags: [Mapping]
+      responses:
+        '201':
+          description: Created
+        '401':
+          description: Unauthorized
+        '422':
+          description: Validation error
+  /customer-prefix-mappings/test:
+    post:
+      summary: Test customer number prefix detection
+      tags: [Mapping]
+      responses:
+        '200':
+          description: OK
+        '401':
+          description: Unauthorized
+  /customer-prefix-mappings/preview:
+    get:
+      summary: Preview prefix resolution for customers
+      tags: [Mapping]
+      responses:
+        '200':
+          description: OK
+        '401':
+          description: Unauthorized
+  /customer-prefix-mappings/dry-run:
+    post:
+      summary: Dry-run customer branch remapping by prefix
+      tags: [Mapping]
+      responses:
+        '200':
+          description: OK
+        '401':
+          description: Unauthorized
+  /customer-prefix-mappings/apply:
+    post:
+      summary: Apply unambiguous customer branch remapping by prefix
+      tags: [Mapping]
+      responses:
+        '200':
+          description: OK
+        '401':
+          description: Unauthorized
+  /customer-prefix-mappings/conflicts:
+    get:
+      summary: List customer branch mapping conflicts
+      tags: [Mapping]
+      responses:
+        '200':
+          description: OK
+        '401':
+          description: Unauthorized
+  /customer-prefix-mappings/history:
+    get:
+      summary: List customer branch mapping history
+      tags: [Mapping]
+      responses:
+        '200':
+          description: OK
+        '401':
+          description: Unauthorized
+  /customer-prefix-mappings/report:
+    get:
+      summary: Prefix mapping report summary by branch
+      tags: [Mapping]
+      responses:
+        '200':
+          description: OK
+        '401':
+          description: Unauthorized
+  /customer-prefix-mappings/{id}:
+    put:
+      summary: Update a customer number prefix mapping
+      tags: [Mapping]
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: OK
+        '401':
+          description: Unauthorized
+  /customer-prefix-mappings/{id}/disable:
+    post:
+      summary: Disable a customer number prefix mapping
+      tags: [Mapping]
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: OK
+        '401':
+          description: Unauthorized
+  /branches/{branchId}/prefix-metrics:
+    get:
+      summary: Prefix mapping metrics for a branch
+      tags: [Mapping]
+      parameters:
+        - name: branchId
+          in: path
+          required: true
+          schema: { type: integer }
       responses:
         '200':
           description: OK

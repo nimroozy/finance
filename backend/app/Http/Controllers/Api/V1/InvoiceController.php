@@ -4,12 +4,15 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Invoice;
+use App\Services\Invoices\InvoiceBalanceService;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class InvoiceController extends Controller
 {
+    public function __construct(private InvoiceBalanceService $balances) {}
+
     public function index(Request $request): JsonResponse
     {
         $invoices = Invoice::query()
@@ -30,7 +33,7 @@ class InvoiceController extends Controller
             ->orderByDesc('invoice_date')
             ->paginate($request->integer('per_page', 15));
 
-        return ApiResponse::success($invoices->items(), [
+        return ApiResponse::success($this->balances->decorateMany($invoices->items()), [
             'current_page' => $invoices->currentPage(),
             'last_page' => $invoices->lastPage(),
             'per_page' => $invoices->perPage(),
@@ -44,6 +47,6 @@ class InvoiceController extends Controller
             ->with(['customer', 'branch', 'customFields'])
             ->findOrFail($id);
 
-        return ApiResponse::success($invoice);
+        return ApiResponse::success($this->balances->decorateOne($invoice));
     }
 }

@@ -392,6 +392,13 @@ export interface Invoice {
   amount_paid: string | number | null;
   credits_applied: string | number | null;
   balance: string | number | null;
+  zoho_synced_balance?: string | number | null;
+  local_pending_allocation?: string | number | null;
+  effective_balance?: string | number | null;
+  balance_last_synced_at?: string | null;
+  awaiting_zoho_refresh?: boolean;
+  balance_sync_status?: string | null;
+  balance_sync_warning?: string | null;
   last_synced_at?: string | null;
   sync_status?: string | null;
   customer?: Pick<Customer, "id" | "contact_name" | "customer_number"> | null;
@@ -1028,7 +1035,14 @@ export interface PaymentPreview {
     invoice_number: string | null;
     amount: string;
     effective_available: string;
+    effective_balance?: string;
     zoho_balance: string;
+    zoho_synced_balance?: string;
+    local_pending_allocation?: string;
+    balance_last_synced_at?: string | null;
+    awaiting_zoho_refresh?: boolean;
+    balance_sync_status?: string;
+    balance_sync_warning?: string | null;
   }[];
   warnings?: string[];
 }

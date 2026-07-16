@@ -2,6 +2,8 @@
 
 namespace App\Services\Zoho;
 
+use App\Jobs\RefreshZohoInvoicesJob;
+use App\Models\Branch;
 use App\Models\BranchPaymentConfiguration;
 use App\Models\BranchZohoAccountMapping;
 use App\Models\Payment;
@@ -10,6 +12,7 @@ use App\Models\ZohoPaymentModeMapping;
 use App\Services\AuditLogger;
 use App\Services\Ownership\BranchPaymentMappingService;
 use App\Services\Payments\PaymentStatusTransitionService;
+use App\Support\LocalizedInvalidArgumentException;
 use App\Support\Money;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -102,6 +105,9 @@ class ZohoPaymentSyncService
             }
 
             $payload = $this->buildPayload($locked);
+            if (! $effectiveDryRun) {
+                $this->assertLocationAccountPreflight($locked, $payload);
+            }
             $started = microtime(true);
 
             try {
@@ -175,6 +181,7 @@ class ZohoPaymentSyncService
                 }
 
                 $this->audit->log('payment.zoho_synced', $locked, null, ['zoho_payment_id' => $zohoId], $locked->branch_id);
+                $this->queueInvoiceRefresh($locked);
 
                 return $locked->fresh();
             } catch (Throwable $e) {
@@ -235,15 +242,26 @@ class ZohoPaymentSyncService
 
             return ['ok' => true, 'manual_review' => false, 'error' => null, 'zoho_payment_id' => $zohoId];
         } catch (Throwable $e) {
+            $message = $e->getMessage();
+            // Idempotent void: already deleted / not found is success.
+            if (preg_match('/\b(404|1002|not found|does not exist|resource not found)\b/i', $message)) {
+                $this->audit->log('payment.zoho_voided', $payment, null, [
+                    'zoho_payment_id' => $zohoId,
+                    'idempotent' => true,
+                ], $payment->branch_id);
+
+                return ['ok' => true, 'manual_review' => false, 'error' => null, 'zoho_payment_id' => $zohoId];
+            }
+
             $this->audit->log('payment.zoho_void_failed', $payment, null, [
                 'zoho_payment_id' => $zohoId,
-                'error' => $e->getMessage(),
+                'error' => $message,
             ], $payment->branch_id);
 
             return [
                 'ok' => false,
                 'manual_review' => true,
-                'error' => $e->getMessage(),
+                'error' => $message,
                 'zoho_payment_id' => $zohoId,
             ];
         }
@@ -384,6 +402,8 @@ class ZohoPaymentSyncService
             'zoho_payment_id' => $zohoId,
         ], $locked->branch_id);
 
+        $this->queueInvoiceRefresh($locked);
+
         return $locked->fresh();
     }
 
@@ -422,7 +442,7 @@ class ZohoPaymentSyncService
             $payload['account_id'] = $accountId;
         }
         if ($payment->zoho_location_id_used) {
-            // Zoho Books customer payments typically do not take location_id; snapshot retained for audit.
+            $payload['location_id'] = $payment->zoho_location_id_used;
         }
 
         $this->audit->log('payment.zoho_account_selected', $payment, null, [
@@ -433,6 +453,106 @@ class ZohoPaymentSyncService
         ], $payment->branch_id);
 
         return $payload;
+    }
+
+    /**
+     * Block Zoho HTTP when invoice location / currency does not match branch mapping.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    public function assertLocationAccountPreflight(Payment $payment, array $payload = []): void
+    {
+        $payment->loadMissing(['allocations.invoice', 'customer']);
+        $mappingLocation = (string) ($payment->zoho_location_id_used ?? '');
+        $mappingAccount = (string) ($payment->zoho_account_id_snapshot ?? ($payload['account_id'] ?? ''));
+        $paymentCurrency = strtoupper((string) $payment->currency);
+
+        $branch = Branch::withoutGlobalScopes()->find($payment->branch_id);
+        $branchNameEn = $branch?->name_en ?: $branch?->code ?: 'this branch';
+        $branchNameFa = $branch?->name_fa ?: $branchNameEn;
+
+        foreach ($payment->allocations as $allocation) {
+            $invoice = $allocation->invoice;
+            if (! $invoice) {
+                continue;
+            }
+
+            $invoiceLocation = (string) ($invoice->zoho_location_id ?? '');
+            $invoiceCurrency = strtoupper((string) ($invoice->currency ?? ''));
+
+            if ($invoiceCurrency !== '' && $paymentCurrency !== '' && $invoiceCurrency !== $paymentCurrency) {
+                throw new LocalizedInvalidArgumentException(
+                    "Invoice {$invoice->invoice_number} currency ({$invoiceCurrency}) does not match payment currency ({$paymentCurrency}).",
+                    "ارز فاکتور {$invoice->invoice_number} ({$invoiceCurrency}) با ارز پرداخت ({$paymentCurrency}) همخوانی ندارد.",
+                    ['invoice_id' => $invoice->id, 'invoice_currency' => $invoiceCurrency, 'payment_currency' => $paymentCurrency]
+                );
+            }
+
+            if ($mappingLocation !== '' && $invoiceLocation !== '' && $invoiceLocation !== $mappingLocation) {
+                $invoiceBranch = Branch::withoutGlobalScopes()
+                    ->where('zoho_location_id', $invoiceLocation)
+                    ->first();
+                $invoiceBranchEn = $invoiceBranch?->name_en ?: $invoiceBranch?->code ?: 'another location';
+                $invoiceBranchFa = $invoiceBranch?->name_fa ?: $invoiceBranchEn;
+                $accountLabel = $payment->zoho_account_name_snapshot ?: 'cash account';
+
+                throw new LocalizedInvalidArgumentException(
+                    "The selected invoice belongs to {$invoiceBranchEn}, but this payment is configured for the {$branchNameEn} {$accountLabel}.",
+                    "فاکتور انتخاب‌شده متعلق به {$invoiceBranchFa} است، اما این پرداخت برای حساب نقدی {$branchNameFa} پیکربندی شده است.",
+                    [
+                        'invoice_id' => $invoice->id,
+                        'invoice_location_id' => $invoiceLocation,
+                        'mapping_location_id' => $mappingLocation,
+                        'account_id' => $mappingAccount,
+                    ]
+                );
+            }
+
+            // Customer number prefix vs invoice location
+            $customer = $payment->customer;
+            if ($customer?->customer_number && $invoiceLocation !== '') {
+                $prefixHit = app(\App\Services\Mapping\CustomerNumberPrefixMatcher::class)->detect($customer->customer_number);
+                if ($prefixHit && empty($prefixHit['ambiguous']) && ! empty($prefixHit['branch_id'])) {
+                    $prefixBranch = Branch::withoutGlobalScopes()->find($prefixHit['branch_id']);
+                    $invoiceBranch = Branch::withoutGlobalScopes()->where('zoho_location_id', $invoiceLocation)->first();
+                    if ($prefixBranch && $invoiceBranch && (int) $prefixBranch->id !== (int) $invoiceBranch->id) {
+                        $num = $customer->customer_number;
+                        throw new LocalizedInvalidArgumentException(
+                            "Customer number {$num} belongs to ".($prefixBranch->name_en ?: $prefixBranch->code).", but the selected invoice belongs to ".($invoiceBranch->name_en ?: $invoiceBranch->code).'.',
+                            "شماره مشتری {$num} متعلق به ".($prefixBranch->name_fa ?: $prefixBranch->code).' است، اما فاکتور انتخاب‌شده متعلق به '.($invoiceBranch->name_fa ?: $invoiceBranch->code).' است.',
+                            [
+                                'customer_id' => $customer->id,
+                                'customer_number' => $num,
+                                'prefix_branch_id' => $prefixBranch->id,
+                                'invoice_branch_id' => $invoiceBranch->id,
+                            ]
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    protected function queueInvoiceRefresh(Payment $payment): void
+    {
+        $payment->loadMissing('allocations.invoice');
+        $ids = $payment->allocations
+            ->map(fn ($a) => $a->invoice?->zoho_invoice_id)
+            ->filter()
+            ->map(fn ($id) => (string) $id)
+            ->values()
+            ->all();
+
+        if ($ids === []) {
+            return;
+        }
+
+        try {
+            app(\App\Services\Zoho\ZohoInvoiceSyncService::class)->markAwaitingRefresh($ids);
+        } catch (Throwable) {
+        }
+
+        RefreshZohoInvoicesJob::dispatch($ids, $payment->id);
     }
 
     protected function snapshotMapping(Payment $payment, BranchZohoAccountMapping $mapping): void

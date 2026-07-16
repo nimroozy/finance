@@ -29,6 +29,10 @@ const ALL_PERMISSIONS = [
   "cashbox_transfers.view",
   "bank_deposits.view",
   "cash_reconciliation.view",
+  "custody_reversals.review",
+  "customer_prefix_mapping.view",
+  "customer_prefix_mapping.manage",
+  "customer_prefix_mapping.apply",
   "branches.view",
   "branches.manage",
   "users.view",
@@ -132,6 +136,11 @@ test.describe("mocked authenticated shells", () => {
     "/en/bank-deposits",
     "/en/reconciliation",
     "/en/alerts",
+    "/en/custody-reversals",
+    "/en/invoices",
+    "/en/collector/payments/new",
+    "/en/settings/customer-prefix-mappings",
+    "/en/branches",
   ]) {
     test(`route ${path} renders without crash`, async ({ page }) => {
       await page.goto(path);
@@ -147,6 +156,168 @@ test("health endpoint is reachable via same host when configured", async ({
   test.skip(!base, "PLAYWRIGHT_API_BASE not set");
   const res = await request.get(`${base}/api/v1/health`);
   expect(res.ok()).toBeTruthy();
+});
+
+test.describe("customer prefix mapping shells", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript((user) => {
+      window.localStorage.setItem(
+        "auth-storage",
+        JSON.stringify({ state: { token: "e2e-mock-token", user }, version: 0 }),
+      );
+    }, {
+      ...MOCK_USER,
+      permissions: [
+        ...ALL_PERMISSIONS,
+        "customer_prefix_mapping.view",
+        "customer_prefix_mapping.manage",
+        "customer_prefix_mapping.apply",
+      ],
+    });
+    await page.route("**/api/v1/**", async (route) => {
+      const url = route.request().url();
+      if (url.includes("/customer-prefix-mappings/test")) {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            success: true,
+            data: {
+              normalized: "KBL-001254",
+              match: { prefix: "KBL", branch_id: 1, ambiguous: false },
+              branch: { id: 1, code: "KABUL", name_en: "Kabul" },
+              unknown_prefix: false,
+            },
+          }),
+        });
+        return;
+      }
+      if (url.includes("/customer-prefix-mappings/conflicts")) {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ success: true, data: [] }),
+        });
+        return;
+      }
+      if (url.includes("/customer-prefix-mappings/report")) {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            success: true,
+            data: {
+              by_branch: [],
+              unknown_prefixes: 0,
+              missing_customer_numbers: 0,
+              admin_overrides: 0,
+              protected_history_pending: 0,
+              open_conflicts: 0,
+            },
+          }),
+        });
+        return;
+      }
+      if (url.includes("/customer-prefix-mappings") && !url.includes("/test")) {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            success: true,
+            data: [
+              {
+                id: 1,
+                branch_id: 1,
+                prefix: "KBL",
+                normalized_prefix: "KBL",
+                active: true,
+                priority: 100,
+                branch: { id: 1, code: "KABUL", name_en: "Kabul" },
+                matched_customers_estimate: 3,
+                examples: ["KBL-001254"],
+              },
+            ],
+          }),
+        });
+        return;
+      }
+      if (url.includes("/branches/") && url.includes("/prefix-metrics")) {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            success: true,
+            data: {
+              prefixes: [{ normalized_prefix: "KBL", active: true }],
+              matched_by_prefix: 3,
+              open_conflicts: 0,
+              unmapped_customers: 1,
+              last_prefix_mapping_run: null,
+            },
+          }),
+        });
+        return;
+      }
+      if (url.includes("/branches")) {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            success: true,
+            data: [
+              {
+                id: 1,
+                code: "KABUL",
+                name_en: "Kabul",
+                name_fa: "کابل",
+                province_en: "Kabul",
+                province_fa: "کابل",
+                receipt_prefix: "KBL",
+                is_active: true,
+              },
+            ],
+          }),
+        });
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ success: true, data: [] }),
+      });
+    });
+  });
+
+  test("prefix mappings page en", async ({ page }) => {
+    await page.goto("/en/settings/customer-prefix-mappings");
+    await expect(page.getByRole("heading", { name: "Customer prefix mappings" })).toBeVisible();
+    await expect(page.getByText("KBL → Kabul")).toBeVisible();
+  });
+
+  test("prefix mappings page fa RTL", async ({ page }) => {
+    await page.goto("/fa/settings/customer-prefix-mappings");
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+    await expect(page.getByRole("heading", { name: "نگاشت پیشوند شماره مشتری" })).toBeVisible();
+  });
+
+  test("test customer number control", async ({ page }) => {
+    await page.goto("/en/settings/customer-prefix-mappings");
+    await page.getByPlaceholder("KBL-001254").fill("KBL-001254");
+    await page.getByRole("button", { name: /Test number/i }).click();
+    await expect(page.getByText(/KBL-001254 → KBL/)).toBeVisible();
+  });
+
+  test("branch page shows prefix metrics", async ({ page }) => {
+    await page.goto("/en/branches");
+    await expect(page.getByText("Customer prefixes")).toBeVisible();
+    await expect(page.getByText(/Matched 3/)).toBeVisible();
+  });
+
+  test("mobile admin viewport", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/en/settings/customer-prefix-mappings");
+    await expect(page.getByText("Add prefix")).toBeVisible();
+  });
 });
 
 test.describe("stage 5.2 ownership shells", () => {
