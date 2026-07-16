@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Collection Management System API
-  version: 1.5.1
+  version: 1.6.0
   license:
     name: Proprietary
     url: https://finance.mns.af
@@ -14,7 +14,8 @@ info:
 
     Stage 5.1 P0 adds Zoho sync health, organization structure (locations/tags/
     accounts/payment modes), circuit breakers, failed-job cleanup, and
-    location-based branch mapping helpers.
+    location-based branch mapping helpers. Stage 5.1 P1 adds mapping review,
+    conflict resolution, failed-job archival, and role-aware dashboards.
 
     **Response envelope:** all JSON responses use
     `{ success, data, meta?, message?, errors? }`.
@@ -531,6 +532,100 @@ paths:
         '403':
           $ref: '#/components/responses/Forbidden'
 
+  /zoho/location-mapping-review:
+    get:
+      tags: [Zoho]
+      summary: Review location mappings, usage counts, and candidates
+      operationId: zohoLocationMappingReview
+      responses:
+        '200':
+          description: Location mapping review
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /zoho/mapping-conflicts:
+    get:
+      tags: [Zoho]
+      summary: List customers invoiced across multiple Zoho locations
+      operationId: zohoMappingConflicts
+      responses:
+        '200':
+          description: Mapping conflicts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /zoho/locations/{zohoId}/mapping-decision:
+    post:
+      tags: [Zoho]
+      summary: Confirm a location mapping decision
+      operationId: zohoLocationMappingDecision
+      parameters:
+        - name: zohoId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action, confirmed]
+              properties:
+                action:
+                  type: string
+                  enum: [import_branch, link_existing, ignore, defer, non_operational]
+                branch_id: { type: integer, nullable: true }
+                confirmed: { type: boolean }
+                notes: { type: string, nullable: true }
+      responses:
+        '200':
+          description: Decision stored and mapping applied when applicable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /zoho/locations/{zohoId}/reprocess:
+    post:
+      tags: [Zoho]
+      summary: Reprocess invoices and customers for a mapped location
+      operationId: zohoLocationReprocess
+      parameters:
+        - name: zohoId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [confirmed]
+              properties:
+                confirmed: { type: boolean }
+                limit: { type: integer, minimum: 1, maximum: 5000 }
+      responses:
+        '200':
+          description: Before/after counts and reprocessing statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
   /zoho/reporting-tags:
     get:
       tags: [Zoho]
@@ -735,6 +830,48 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+
+  /zoho/failed-jobs:
+    get:
+      tags: [Zoho]
+      summary: List and classify remaining Laravel failed jobs
+      operationId: zohoFailedJobs
+      responses:
+        '200':
+          description: Paginated classified failed jobs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /zoho/failed-jobs/archive:
+    post:
+      tags: [Zoho]
+      summary: Archive and delete reviewed stale non-financial jobs
+      operationId: zohoFailedJobsArchive
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [confirmed]
+              properties:
+                confirmed: { type: boolean }
+                ids:
+                  type: array
+                  items: { type: integer }
+      responses:
+        '200':
+          description: Archive report path and archived IDs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '422':
+          $ref: '#/components/responses/ValidationError'
 
   /zoho/organizations:
     get:
@@ -3101,6 +3238,21 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SuccessEnvelope'
+
+  /dashboard/summary:
+    get:
+      tags: [Reports]
+      summary: Role-aware authenticated dashboard counts
+      operationId: dashboardSummary
+      responses:
+        '200':
+          description: Counts scoped for super admin, branch manager, or collector
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
 
 components:
   securitySchemes:

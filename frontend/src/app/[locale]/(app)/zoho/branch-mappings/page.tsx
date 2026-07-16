@@ -72,6 +72,7 @@ export default function ZohoBranchMappingsPage() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [applyOpen, setApplyOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<ZohoBranchMapping | null>(null);
+  const [wizardStep, setWizardStep] = useState(1);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -199,9 +200,12 @@ export default function ZohoBranchMappingsPage() {
       {success ? <div className="mb-4"><Alert tone="success">{success}</Alert></div> : null}
 
       {canConfigure ? <Panel className="mb-6 p-4">
+        <ol className="mb-4 grid gap-2 text-sm sm:grid-cols-4">
+          {[t("stepFetch"), t("stepReview"), t("stepPreview"), t("stepApply")].map((label, index) => <li key={label} className={`rounded-md border px-3 py-2 ${wizardStep >= index + 1 ? "border-primary bg-primary/5 text-primary" : "border-border text-muted"}`}>{index + 1}. {label}</li>)}
+        </ol>
         <div className="flex flex-wrap gap-2">
-          <Button variant="secondary" disabled={busy} onClick={() => void run(syncZohoStructure, t("structureQueued"))}>{t("fetchStructure")}</Button>
-          <Button variant="secondary" disabled={busy} onClick={() => void run(async () => { const result = await previewZohoAutoMatch(); setPreview(result.data); }, t("previewReady"), false)}>{t("previewAutoMatch")}</Button>
+          <Button variant="secondary" disabled={busy} onClick={() => void run(async () => { await syncZohoStructure(); setWizardStep(2); }, t("structureQueued"))}>{t("fetchStructure")}</Button>
+          <Button variant="secondary" disabled={busy || wizardStep < 2} onClick={() => void run(async () => { const result = await previewZohoAutoMatch(); setPreview(result.data); setWizardStep(3); }, t("previewReady"), false)}>{t("previewAutoMatch")}</Button>
           <Button disabled={busy || preview.length === 0} onClick={() => setApplyOpen(true)}>{t("applyAutoMatch")}</Button>
         </div>
       </Panel> : null}
@@ -253,7 +257,7 @@ export default function ZohoBranchMappingsPage() {
         </form>
       </Modal>
 
-      <ConfirmDialog open={applyOpen} title={t("applyAutoMatch")} description={t("applyConfirm")} confirmLabel={tCommon("apply")} loading={busy} onCancel={() => setApplyOpen(false)} onConfirm={() => { setApplyOpen(false); void run(applyZohoAutoMatch, t("applySuccess")); }} />
+      <ConfirmDialog open={applyOpen} title={t("applyAutoMatch")} description={t("applyConfirm")} confirmLabel={tCommon("apply")} loading={busy} onCancel={() => setApplyOpen(false)} onConfirm={() => { setApplyOpen(false); void run(async () => { await applyZohoAutoMatch(); setWizardStep(4); }, t("applySuccess")); }} />
       <ConfirmDialog open={Boolean(deleteTarget)} title={tCommon("delete")} description={t("deleteConfirm")} confirmLabel={tCommon("delete")} danger loading={busy} onCancel={() => setDeleteTarget(null)} onConfirm={() => { if (!deleteTarget) return; const id = deleteTarget.id; setDeleteTarget(null); void run(() => deleteZohoBranchMapping(id), t("deleteSuccess")); }} />
     </div>
   );

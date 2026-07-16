@@ -16,7 +16,7 @@ class ZohoBranchReprocessService
         protected AuditLogger $audit,
     ) {}
 
-    public function customers(bool $apply = false, ?int $branchId = null, ?int $customerId = null, int $limit = 500): array
+    public function customers(bool $apply = false, ?int $branchId = null, ?int $customerId = null, int $limit = 500, ?string $locationId = null): array
     {
         $stats = ['scanned' => 0, 'unchanged' => 0, 'would_change' => 0, 'changed' => 0, 'conflicts' => 0];
         $locationIdsForBranch = $branchId
@@ -25,6 +25,12 @@ class ZohoBranchReprocessService
 
         Customer::withoutGlobalScopes()
             ->when($customerId, fn (Builder $query) => $query->whereKey($customerId))
+            ->when($locationId, function (Builder $query) use ($locationId) {
+                $query->where(function (Builder $inner) use ($locationId) {
+                    $inner->where('zoho_location_id', $locationId)
+                        ->orWhereHas('invoices', fn (Builder $invoices) => $invoices->withoutGlobalScopes()->where('zoho_location_id', $locationId));
+                });
+            })
             ->when($branchId && $locationIdsForBranch === [], fn (Builder $query) => $query->where('branch_id', $branchId))
             ->when($branchId && $locationIdsForBranch !== [], function (Builder $query) use ($branchId, $locationIdsForBranch) {
                 $query->where(function (Builder $inner) use ($branchId, $locationIdsForBranch) {
@@ -102,7 +108,7 @@ class ZohoBranchReprocessService
         return $stats;
     }
 
-    public function invoices(bool $apply = false, ?int $branchId = null, ?int $customerId = null, int $limit = 500): array
+    public function invoices(bool $apply = false, ?int $branchId = null, ?int $customerId = null, int $limit = 500, ?string $locationId = null): array
     {
         $stats = ['scanned' => 0, 'unchanged' => 0, 'would_change' => 0, 'changed' => 0];
         $locationIdsForBranch = $branchId
@@ -111,6 +117,7 @@ class ZohoBranchReprocessService
 
         Invoice::withoutGlobalScopes()->with('customer')
             ->when($customerId, fn (Builder $query) => $query->where('customer_id', $customerId))
+            ->when($locationId, fn (Builder $query) => $query->where('zoho_location_id', $locationId))
             ->when($branchId && $locationIdsForBranch === [], fn (Builder $query) => $query->where('branch_id', $branchId))
             ->when($branchId && $locationIdsForBranch !== [], function (Builder $query) use ($branchId, $locationIdsForBranch) {
                 $query->where(function (Builder $inner) use ($branchId, $locationIdsForBranch) {

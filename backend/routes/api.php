@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\V1\CashReconciliationController;
 use App\Http\Controllers\Api\V1\CollectorController;
 use App\Http\Controllers\Api\V1\CustomerController;
 use App\Http\Controllers\Api\V1\CustomerNoteController;
+use App\Http\Controllers\Api\V1\DashboardController;
 use App\Http\Controllers\Api\V1\DebtorController;
 use App\Http\Controllers\Api\V1\EvidenceController;
 use App\Http\Controllers\Api\V1\HealthController;
@@ -27,7 +28,9 @@ use App\Http\Controllers\Api\V1\SettingController;
 use App\Http\Controllers\Api\V1\UserController;
 use App\Http\Controllers\Api\V1\VisitController;
 use App\Http\Controllers\Api\V1\WalletController;
+use App\Http\Controllers\Api\V1\Zoho\FailedJobController;
 use App\Http\Controllers\Api\V1\Zoho\ZohoController;
+use App\Http\Controllers\Api\V1\Zoho\ZohoMappingController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->name('api.v1.')->group(function () {
@@ -53,6 +56,8 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::get('/me', [AuthController::class, 'me'])->name('me');
             Route::post('/change-password', [AuthController::class, 'changePassword'])->name('change-password');
         });
+
+        Route::get('/dashboard/summary', [DashboardController::class, 'summary'])->name('dashboard.summary');
 
         Route::middleware('permission:users.manage|users.view')->group(function () {
             Route::get('/users', [UserController::class, 'index'])->name('users.index');
@@ -109,6 +114,10 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         });
 
         Route::middleware('permission:zoho.configure')->group(function () {
+            Route::get('/zoho/location-mapping-review', [ZohoMappingController::class, 'review'])->name('zoho.location-mapping-review');
+            Route::get('/zoho/mapping-conflicts', [ZohoMappingController::class, 'conflicts'])->name('zoho.mapping-conflicts');
+            Route::post('/zoho/locations/{zohoId}/mapping-decision', [ZohoMappingController::class, 'decide'])->name('zoho.locations.mapping-decision');
+            Route::post('/zoho/locations/{zohoId}/reprocess', [ZohoMappingController::class, 'reprocess'])->name('zoho.locations.reprocess');
             Route::get('/zoho/data-centers', [ZohoController::class, 'dataCenters'])->name('zoho.data-centers');
             Route::put('/zoho/settings', [ZohoController::class, 'updateSettings'])->name('zoho.settings');
             Route::get('/zoho/oauth/redirect', [ZohoController::class, 'oauthRedirect'])->name('zoho.oauth.redirect');
@@ -127,6 +136,8 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         });
 
         Route::middleware('permission:zoho.sync')->group(function () {
+            Route::get('/zoho/failed-jobs', [FailedJobController::class, 'index'])->name('zoho.failed-jobs.index');
+            Route::post('/zoho/failed-jobs/archive', [FailedJobController::class, 'archive'])->name('zoho.failed-jobs.archive');
             Route::post('/zoho/sync/{type}', [ZohoController::class, 'sync'])
                 ->where('type', 'customers|invoices|full')
                 ->name('zoho.sync');

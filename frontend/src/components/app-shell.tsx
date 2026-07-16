@@ -15,217 +15,67 @@ type NavItem = {
   href: string;
   labelKey: string;
   permissions: string[];
-  /** Prefer for Collector role when true; hide from managers when false. */
-  collectorOnly?: boolean;
-  managerPrefer?: boolean;
 };
 
-const NAV_ITEMS: NavItem[] = [
-  { href: "/dashboard", labelKey: "dashboard", permissions: ["dashboard.view"], managerPrefer: true },
-  {
-    href: "/collector",
-    labelKey: "collectorHome",
-    permissions: ["assignments.view", "visits.view", "visits.create"],
-    collectorOnly: true,
-  },
-  {
-    href: "/collector/assignments",
-    labelKey: "myAssignments",
-    permissions: ["assignments.view"],
-    collectorOnly: true,
-  },
-  {
-    href: "/collector/routes",
-    labelKey: "myRoutes",
-    permissions: ["routes.view"],
-    collectorOnly: true,
-  },
-  {
-    href: "/collector/visits",
-    labelKey: "myVisits",
-    permissions: ["visits.view"],
-    collectorOnly: true,
-  },
-  {
-    href: "/collector/payments",
-    labelKey: "myPayments",
-    permissions: ["payments.view"],
-    collectorOnly: true,
-  },
-  {
-    href: "/collector/payments/new",
-    labelKey: "newPayment",
-    permissions: ["payments.create"],
-    collectorOnly: true,
-  },
-  {
-    href: "/collector/wallet",
-    labelKey: "myWallet",
-    permissions: ["wallets.view"],
-    collectorOnly: true,
-  },
-  {
-    href: "/collector/handovers/new",
-    labelKey: "cashHandover",
-    permissions: ["handovers.create", "handovers.submit"],
-    collectorOnly: true,
-  },
-  {
-    href: "/collector/notifications",
-    labelKey: "notifications",
-    permissions: ["notifications.view"],
-    collectorOnly: true,
-  },
-  {
-    href: "/customers",
-    labelKey: "customers",
-    permissions: ["customers.view"],
-    managerPrefer: true,
-  },
-  {
-    href: "/debtors",
-    labelKey: "debtors",
-    permissions: ["debtors.view"],
-    managerPrefer: true,
-  },
-  {
-    href: "/invoices",
-    labelKey: "invoices",
-    permissions: ["invoices.view"],
-    managerPrefer: true,
-  },
-  {
-    href: "/assignments",
-    labelKey: "assignments",
-    permissions: ["assignments.view"],
-    managerPrefer: true,
-  },
-  {
-    href: "/assignments/unassigned",
-    labelKey: "unassigned",
-    permissions: ["assignments.view"],
-    managerPrefer: true,
-  },
-  {
-    href: "/assignments/workload",
-    labelKey: "workload",
-    permissions: ["assignments.view"],
-    managerPrefer: true,
-  },
-  {
-    href: "/collectors",
-    labelKey: "collectors",
-    permissions: ["collectors.view"],
-    managerPrefer: true,
-  },
-  {
-    href: "/routes",
-    labelKey: "routes",
-    permissions: ["routes.view"],
-    managerPrefer: true,
-  },
-  {
-    href: "/visits",
-    labelKey: "visits",
-    permissions: ["visits.view"],
-    managerPrefer: true,
-  },
-  {
-    href: "/promises",
-    labelKey: "promises",
-    permissions: ["promises.view"],
-    managerPrefer: true,
-  },
-  {
-    href: "/escalations",
-    labelKey: "escalations",
-    permissions: ["visits.view", "escalations.view"],
-    managerPrefer: true,
-  },
-  {
-    href: "/reports/collection",
-    labelKey: "collectionReports",
-    permissions: [
-      "reports.assignments",
-      "reports.visits",
-      "reports.promises",
-    ],
-    managerPrefer: true,
-  },
-  {
-    href: "/payments",
-    labelKey: "payments",
-    permissions: ["payments.view"],
-    managerPrefer: true,
-  },
-  {
-    href: "/payments/sync-failures",
-    labelKey: "paymentSyncFailures",
-    permissions: ["payments.view", "payments.retry_sync"],
-    managerPrefer: true,
-  },
-  {
-    href: "/payments/reversals",
-    labelKey: "paymentReversals",
-    permissions: ["reversals.request", "reversals.approve", "payments.manage"],
-    managerPrefer: true,
-  },
-  {
-    href: "/wallets",
-    labelKey: "wallets",
-    permissions: ["wallets.view"],
-    managerPrefer: true,
-  },
-  {
-    href: "/handovers",
-    labelKey: "cashHandovers",
-    permissions: ["handovers.view", "handovers.review"],
-    managerPrefer: true,
-  },
-  {
-    href: "/cashboxes",
-    labelKey: "cashboxes",
-    permissions: ["cashboxes.view"],
-    managerPrefer: true,
-  },
-  {
-    href: "/receipts",
-    labelKey: "receipts",
-    permissions: ["receipts.view"],
-    managerPrefer: true,
-  },
-  {
-    href: "/reports/payments",
-    labelKey: "paymentReports",
-    permissions: ["payments.view", "payments.export"],
-    managerPrefer: true,
-  },
-  {
-    href: "/zoho",
-    labelKey: "zoho",
-    permissions: ["zoho.view"],
-    managerPrefer: true,
-  },
-  {
-    href: "/users",
-    labelKey: "users",
-    permissions: ["users.view", "users.manage"],
-    managerPrefer: true,
-  },
-  { href: "/roles", labelKey: "roles", permissions: ["roles.view"], managerPrefer: true },
-  {
-    href: "/branches",
-    labelKey: "branches",
-    permissions: ["branches.view", "branches.manage"],
-    managerPrefer: true,
-  },
-  { href: "/audit-logs", labelKey: "auditLogs", permissions: ["audit.view"], managerPrefer: true },
-  {
-    href: "/settings",
-    labelKey: "settings",
-    permissions: ["settings.manage"],
-    managerPrefer: true,
-  },
+type NavGroup = { labelKey: string; items: NavItem[] };
+
+const NAV_GROUPS: NavGroup[] = [
+  { labelKey: "overview", items: [
+    { href: "/dashboard", labelKey: "dashboard", permissions: ["dashboard.view"] },
+    { href: "/zoho/sync-health", labelKey: "syncHealth", permissions: ["zoho.view"] },
+    { href: "/alerts", labelKey: "alerts", permissions: ["zoho.view", "dashboard.view"] },
+  ] },
+  { labelKey: "customersDebt", items: [
+    { href: "/customers", labelKey: "customers", permissions: ["customers.view"] },
+    { href: "/debtors", labelKey: "debtors", permissions: ["debtors.view"] },
+    { href: "/invoices", labelKey: "invoices", permissions: ["invoices.view"] },
+    { href: "/zoho/unmapped", labelKey: "unmapped", permissions: ["zoho.view"] },
+    { href: "/zoho/mapping-conflicts", labelKey: "mappingConflicts", permissions: ["zoho.configure"] },
+  ] },
+  { labelKey: "fieldCollection", items: [
+    { href: "/assignments", labelKey: "assignments", permissions: ["assignments.view"] },
+    { href: "/routes", labelKey: "routes", permissions: ["routes.view"] },
+    { href: "/visits", labelKey: "visits", permissions: ["visits.view"] },
+    { href: "/promises", labelKey: "promises", permissions: ["promises.view"] },
+  ] },
+  { labelKey: "paymentsGroup", items: [
+    { href: "/payments", labelKey: "payments", permissions: ["payments.view"] },
+    { href: "/receipts", labelKey: "receipts", permissions: ["receipts.view"] },
+    { href: "/payments/reversals", labelKey: "paymentReversals", permissions: ["reversals.request", "reversals.approve", "payments.manage"] },
+    { href: "/payments/sync-failures", labelKey: "paymentSyncFailures", permissions: ["payments.view", "payments.retry_sync"] },
+  ] },
+  { labelKey: "cashManagement", items: [
+    { href: "/wallets", labelKey: "wallets", permissions: ["wallets.view"] },
+    { href: "/handovers", labelKey: "cashHandovers", permissions: ["handovers.view", "handovers.review"] },
+    { href: "/cashboxes", labelKey: "cashboxes", permissions: ["cashboxes.view"] },
+    { href: "/transfers", labelKey: "transfers", permissions: ["cashbox_transfers.view"] },
+    { href: "/bank-deposits", labelKey: "bankDeposits", permissions: ["bank_deposits.view"] },
+    { href: "/reconciliation", labelKey: "reconciliation", permissions: ["cash_reconciliation.view"] },
+  ] },
+  { labelKey: "administration", items: [
+    { href: "/branches", labelKey: "branches", permissions: ["branches.view", "branches.manage"] },
+    { href: "/zoho", labelKey: "zohoStructure", permissions: ["zoho.view"] },
+    { href: "/zoho/location-mapping", labelKey: "locationMapping", permissions: ["zoho.configure"] },
+    { href: "/zoho/branch-mappings", labelKey: "branchMappings", permissions: ["zoho.view"] },
+    { href: "/users", labelKey: "users", permissions: ["users.view", "users.manage"] },
+    { href: "/roles", labelKey: "roles", permissions: ["roles.view"] },
+    { href: "/settings", labelKey: "settings", permissions: ["settings.manage"] },
+    { href: "/audit-logs", labelKey: "auditLogs", permissions: ["audit.view"] },
+  ] },
+];
+
+const COLLECTOR_NAV: NavGroup[] = [
+  { labelKey: "myWork", items: [
+    { href: "/collector", labelKey: "collectorHome", permissions: ["assignments.view", "visits.view"] },
+    { href: "/collector/assignments", labelKey: "myAssignments", permissions: ["assignments.view"] },
+    { href: "/collector/routes", labelKey: "myRoutes", permissions: ["routes.view"] },
+    { href: "/collector/visits", labelKey: "myVisits", permissions: ["visits.view"] },
+    { href: "/collector/payments", labelKey: "myPayments", permissions: ["payments.view"] },
+    { href: "/collector/payments/new", labelKey: "newPayment", permissions: ["payments.create"] },
+    { href: "/collector/wallet", labelKey: "myWallet", permissions: ["wallets.view"] },
+    { href: "/collector/handovers/new", labelKey: "cashHandover", permissions: ["handovers.create", "handovers.submit"] },
+    { href: "/collector/notifications", labelKey: "notifications", permissions: ["notifications.view"] },
+  ] },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -255,22 +105,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
   }, [hydrated, token, user, forcePassword, isChangePassword, router]);
 
-  const visibleNav = useMemo(() => {
+  const visibleGroups = useMemo(() => {
     if (forcePassword) return [];
-    return NAV_ITEMS.filter((item) => {
-      if (!hasAnyPermission(item.permissions)) return false;
-      if (isCollectorRole) {
-        if (item.managerPrefer && !item.collectorOnly) {
-          // Keep a light manager set off; show collector items + dashboard/settings essentials
-          const keep = ["dashboard", "settings", "changePassword"];
-          if (keep.includes(item.labelKey)) return true;
-          return false;
-        }
-        return true;
-      }
-      if (item.collectorOnly) return false;
-      return true;
-    });
+    return (isCollectorRole ? COLLECTOR_NAV : NAV_GROUPS)
+      .map((group) => ({ ...group, items: group.items.filter((item) => hasAnyPermission(item.permissions)) }))
+      .filter((group) => group.items.length > 0);
   }, [forcePassword, hasAnyPermission, isCollectorRole]);
 
   if (!hydrated || !token || !user) {
@@ -313,6 +152,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     );
   };
 
+  const navGroups = (onNavigate?: () => void) => visibleGroups.map((group) => {
+    const active = group.items.some((item) => pathname === item.href || pathname.startsWith(`${item.href}/`));
+    return (
+      <details key={group.labelKey} open={active || undefined} className="group">
+        <summary className="cursor-pointer list-none rounded-md px-3 py-2 text-xs font-semibold uppercase tracking-wider text-muted hover:bg-sand-soft">
+          <span className="flex items-center justify-between">{t(group.labelKey as "dashboard")}<span className="transition group-open:rotate-180">⌄</span></span>
+        </summary>
+        <div className="mt-1 space-y-1 ps-2">{group.items.map((item) => navLink(item, onNavigate))}</div>
+      </details>
+    );
+  });
+
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[240px_1fr]">
       <aside className="hidden border-e border-border bg-surface-elevated lg:flex lg:flex-col">
@@ -323,7 +174,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <p className="mt-1 text-xs text-muted">{tApp("tagline")}</p>
         </div>
         <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-3">
-          {visibleNav.map((item) => navLink(item))}
+          {navGroups()}
           <Link
             href="/change-password"
             className={cn(
@@ -377,9 +228,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             id="mobile-nav"
             className="max-h-[70vh] space-y-1 overflow-y-auto border-b border-border bg-surface-elevated p-3 lg:hidden"
           >
-            {visibleNav.map((item) =>
-              navLink(item, () => setMobileOpen(false)),
-            )}
+            {navGroups(() => setMobileOpen(false))}
             <Link
               href="/change-password"
               onClick={() => setMobileOpen(false)}
