@@ -16,6 +16,7 @@ class Invoice extends Model
 
     protected $fillable = [
         'branch_id',
+        'zoho_location_id',
         'customer_id',
         'zoho_invoice_id',
         'invoice_number',

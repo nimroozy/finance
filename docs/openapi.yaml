@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Collection Management System API
-  version: 1.5.0
+  version: 1.5.1
   license:
     name: Proprietary
     url: https://finance.mns.af
@@ -11,6 +11,10 @@ info:
     promises, notes, evidence, notifications, collectors, reports, payments,
     receipts, collector wallets, reversals, Zoho payment sync, cash handovers,
     and branch cashboxes).
+
+    Stage 5.1 P0 adds Zoho sync health, organization structure (locations/tags/
+    accounts/payment modes), circuit breakers, failed-job cleanup, and
+    location-based branch mapping helpers.
 
     **Response envelope:** all JSON responses use
     `{ success, data, meta?, message?, errors? }`.
@@ -484,6 +488,245 @@ paths:
       responses:
         '200':
           description: Connection status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /zoho/health:
+    get:
+      tags: [Zoho]
+      summary: Zoho sync health (heartbeats, cursors, circuit breakers)
+      operationId: zohoHealth
+      responses:
+        '200':
+          description: Health payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /zoho/locations:
+    get:
+      tags: [Zoho]
+      summary: List synced Zoho locations
+      operationId: zohoLocations
+      responses:
+        '200':
+          description: Locations
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /zoho/reporting-tags:
+    get:
+      tags: [Zoho]
+      summary: List synced reporting tags with options
+      operationId: zohoReportingTags
+      responses:
+        '200':
+          description: Reporting tags
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /zoho/payment-modes:
+    get:
+      tags: [Zoho]
+      summary: List synced Zoho payment modes
+      operationId: zohoPaymentModes
+      responses:
+        '200':
+          description: Payment modes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /zoho/structure/sync:
+    post:
+      tags: [Zoho]
+      summary: Queue organization structure sync
+      operationId: zohoStructureSync
+      responses:
+        '202':
+          description: Queued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /zoho/branch-mappings/preview-auto-match:
+    post:
+      tags: [Zoho]
+      summary: Preview location auto-match classifications
+      operationId: zohoPreviewAutoMatch
+      responses:
+        '200':
+          description: Match preview
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /zoho/branch-mappings/apply-auto-match:
+    post:
+      tags: [Zoho]
+      summary: Apply confirmed non-ambiguous auto-matches
+      operationId: zohoApplyAutoMatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [confirmed]
+              properties:
+                confirmed:
+                  type: boolean
+      responses:
+        '200':
+          description: Applied count
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /zoho/branches/{id}/link-location:
+    post:
+      tags: [Zoho]
+      summary: Link a local branch to a Zoho location
+      operationId: zohoLinkBranchLocation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [zoho_location_id]
+              properties:
+                zoho_location_id:
+                  type: string
+      responses:
+        '200':
+          description: Updated branch
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /zoho/locations/{zohoId}/import-as-branch:
+    post:
+      tags: [Zoho]
+      summary: Import a Zoho location as a new local branch
+      operationId: zohoImportLocationAsBranch
+      parameters:
+        - name: zohoId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: Created branch
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /zoho/circuit-breakers/{type}/resume:
+    post:
+      tags: [Zoho]
+      summary: Resume a paused Zoho sync circuit breaker
+      operationId: zohoResumeCircuit
+      parameters:
+        - name: type
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Circuit resumed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /zoho/failed-jobs/cleanup:
+    post:
+      tags: [Zoho]
+      summary: Dry-run or apply redundant Zoho failed-job cleanup
+      operationId: zohoFailedJobsCleanup
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                apply:
+                  type: boolean
+                only_timestamp:
+                  type: boolean
+      responses:
+        '200':
+          description: Cleanup report
           content:
             application/json:
               schema:

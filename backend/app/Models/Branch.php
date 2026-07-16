@@ -27,12 +27,21 @@ class Branch extends Model
         'address',
         'receipt_prefix',
         'is_active',
+        'zoho_location_id',
+        'zoho_reporting_tag_id',
+        'zoho_reporting_tag_option_id',
+        'mapping_type',
+        'zoho_sync_status',
+        'last_structure_sync_at',
+        'local_override',
     ];
 
     protected function casts(): array
     {
         return [
             'is_active' => 'boolean',
+            'last_structure_sync_at' => 'datetime',
+            'local_override' => 'boolean',
         ];
     }
 

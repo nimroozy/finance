@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\ZohoConnection;
 use App\Models\ZohoSyncJob;
+use App\Services\Zoho\ZohoSyncHeartbeatService;
 use App\Services\Zoho\ZohoTokenService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -15,21 +16,24 @@ class RefreshZohoTokenJob implements ShouldQueue
 
     public function __construct(public ?int $syncJobId = null) {}
 
-    public function handle(ZohoTokenService $tokens): void
+    public function handle(ZohoTokenService $tokens, ZohoSyncHeartbeatService $heartbeat): void
     {
         $syncJob = $this->resolveSyncJob();
         $syncJob?->markRunning();
+        $heartbeat->recordStart('token_refresh');
 
         $connection = ZohoConnection::current();
 
         if (! $connection || ! $connection->refresh_token) {
             $syncJob?->markCompleted(['processed' => 0]);
+            $heartbeat->recordSuccess('token_refresh', ['skipped' => true]);
 
             return;
         }
 
         if (! $connection->tokenNeedsRefresh()) {
             $syncJob?->markCompleted(['processed' => 0]);
+            $heartbeat->recordSuccess('token_refresh', ['skipped' => true]);
 
             return;
         }
@@ -37,8 +41,10 @@ class RefreshZohoTokenJob implements ShouldQueue
         try {
             $tokens->refresh($connection);
             $syncJob?->markCompleted(['processed' => 1, 'updated' => 1]);
+            $heartbeat->recordSuccess('token_refresh');
         } catch (Throwable $e) {
             $syncJob?->markFailed($e->getMessage());
+            $heartbeat->recordFailure('token_refresh', $e);
             throw $e;
         }
     }

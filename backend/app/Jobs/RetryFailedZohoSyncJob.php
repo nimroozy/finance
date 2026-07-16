@@ -3,6 +3,9 @@
 namespace App\Jobs;
 
 use App\Models\ZohoSyncJob;
+use App\Services\Zoho\ZohoCircuitBreaker;
+use App\Services\Zoho\ZohoErrorClassifier;
+use App\Services\Zoho\ZohoSyncHeartbeatService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
@@ -12,10 +15,12 @@ class RetryFailedZohoSyncJob implements ShouldQueue
 
     public function __construct(public ?int $syncJobId = null) {}
 
-    public function handle(): void
+    public function handle(ZohoCircuitBreaker $circuit, ZohoSyncHeartbeatService $heartbeat): void
     {
+        $heartbeat->recordStart('retry');
         if ($this->syncJobId) {
-            $this->retryOne(ZohoSyncJob::query()->findOrFail($this->syncJobId));
+            $this->retryOne(ZohoSyncJob::query()->findOrFail($this->syncJobId), $circuit);
+            $heartbeat->recordSuccess('retry');
 
             return;
         }
@@ -37,16 +42,30 @@ class RetryFailedZohoSyncJob implements ShouldQueue
             ->get();
 
         foreach ($failed as $job) {
-            $this->retryOne($job);
+            $this->retryOne($job, $circuit);
         }
+        $heartbeat->recordSuccess('retry', ['examined' => $failed->count()]);
     }
 
-    protected function retryOne(ZohoSyncJob $job): void
+    protected function retryOne(ZohoSyncJob $job, ZohoCircuitBreaker $circuit): void
     {
+        $errorClass = $job->error_class ?: ZohoErrorClassifier::classify((string) $job->error_message);
+        if (in_array($errorClass, ZohoErrorClassifier::PERMANENT, true)) {
+            $job->update(['error_class' => $errorClass, 'next_retry_at' => null]);
+
+            return;
+        }
+        $circuitAllows = $circuit->allows($job->type);
+        if ($job->retry_count >= 3 || ! $circuitAllows) {
+            $job->update(['circuit_open' => ! $circuitAllows, 'next_retry_at' => null]);
+
+            return;
+        }
         $job->update([
             'status' => ZohoSyncJob::STATUS_RETRYING,
-            'error_message' => null,
             'finished_at' => null,
+            'retry_count' => $job->retry_count + 1,
+            'next_retry_at' => now(),
         ]);
 
         if ($job->type === ZohoSyncJob::TYPE_FULL) {
@@ -62,12 +81,18 @@ class RetryFailedZohoSyncJob implements ShouldQueue
             'parent_job_id' => $job->id,
         ]);
 
-        match ($job->type) {
+        $dispatched = match ($job->type) {
             ZohoSyncJob::TYPE_CUSTOMERS => SyncZohoCustomersJob::dispatch($child->id, true, $job->triggered_by, $job->id),
             ZohoSyncJob::TYPE_INVOICES => SyncZohoInvoicesJob::dispatch($child->id, true, $job->triggered_by, $job->id),
             ZohoSyncJob::TYPE_TOKEN_REFRESH => RefreshZohoTokenJob::dispatch($child->id),
-            default => $job->markFailed('Unsupported sync type for retry: '.$job->type),
+            default => null,
         };
+        if ($dispatched === null) {
+            $job->markFailed('Unsupported sync type for retry: '.$job->type);
+
+            return;
+        }
+        $job->markCompleted(['retry_dispatched' => true, 'retry_count' => $job->retry_count]);
     }
 
     protected function retryFull(ZohoSyncJob $job): void
@@ -87,5 +112,6 @@ class RetryFailedZohoSyncJob implements ShouldQueue
 
         SyncZohoCustomersJob::dispatch($customers->id, true, $job->triggered_by, $job->id);
         SyncZohoInvoicesJob::dispatch($invoices->id, true, $job->triggered_by, $job->id);
+        $job->markCompleted(['retry_dispatched' => true, 'children' => [$customers->id, $invoices->id]]);
     }
 }

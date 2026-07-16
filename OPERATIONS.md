@@ -30,9 +30,19 @@ docker compose exec backend php artisan optimize:clear
 # After editing .env (Zoho secrets, etc.), recreate affected containers:
 docker compose up -d --force-recreate backend queue-worker scheduler
 
-# Failed jobs
+# Failed jobs (prefer classified cleanup over blind retry-all)
 docker compose exec backend php artisan queue:failed
-docker compose exec backend php artisan queue:retry all
+docker compose exec backend php artisan zoho:failed-jobs-cleanup
+docker compose exec backend php artisan zoho:failed-jobs-cleanup --apply
+# docker compose exec backend php artisan queue:retry all   # only for non-permanent failures
+
+# Zoho auto-sync ops (Stage 5.1 P0)
+# See AUTO_SYNC_OPERATIONS.md, AUTO_SYNC_REPAIR.md, ZOHO_LOCATION_MAPPING.md, FAILED_JOB_CLEANUP.md
+docker compose exec backend php artisan zoho:scheduler-tick
+docker compose exec backend php artisan zoho:sync-organization-structure --apply
+docker compose exec backend php artisan zoho:reprocess-customer-branches
+docker compose exec backend php artisan zoho:reprocess-invoice-branches
+# UI: /en/zoho/sync-health  /en/zoho/branch-mappings
 
 # Backup / restore
 ./scripts/backup.sh

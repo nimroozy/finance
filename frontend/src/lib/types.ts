@@ -33,6 +33,10 @@ export interface Branch {
   address: string | null;
   receipt_prefix: string;
   is_active: boolean;
+  zoho_location_id?: string | null;
+  mapping_type?: string | null;
+  zoho_sync_status?: string | null;
+  last_structure_sync_at?: string | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -215,7 +219,9 @@ export interface ZohoBranchMapping {
   zoho_value: string;
   zoho_label: string | null;
   is_active: boolean;
-  branch?: BranchSummary | null;
+  mapped_customer_count?: number;
+  mapped_invoice_count?: number;
+  branch?: Branch | null;
 }
 
 export interface ZohoBranchMappingPayload {
@@ -234,6 +240,106 @@ export interface ZohoReportingTagMapping {
   option_name: string;
   branch_id: number | null;
   branch?: BranchSummary | null;
+}
+
+export interface ZohoLocation {
+  id: number;
+  zoho_location_id: string;
+  organization_id: string | null;
+  name: string;
+  code: string | null;
+  is_active: boolean;
+  is_primary: boolean;
+  sync_status?: string | null;
+  last_synced_at?: string | null;
+}
+
+export interface ZohoReportingTagOption {
+  id: number;
+  zoho_tag_option_id: string;
+  zoho_tag_id: string;
+  name: string;
+  is_active: boolean;
+  last_synced_at?: string | null;
+}
+
+export interface ZohoReportingTag {
+  id: number;
+  zoho_tag_id: string;
+  organization_id: string | null;
+  name: string;
+  associated_with: string | null;
+  is_active: boolean;
+  sync_status?: string | null;
+  last_synced_at?: string | null;
+  options: ZohoReportingTagOption[];
+}
+
+export interface ZohoPaymentMode {
+  id: number;
+  zoho_payment_mode_id: string;
+  organization_id: string | null;
+  name: string;
+  is_active: boolean;
+  last_synced_at?: string | null;
+}
+
+export interface ZohoSyncCursor {
+  id: number;
+  entity: string;
+  successful_cursor: string | null;
+  last_requested_from?: string | null;
+  last_requested_to?: string | null;
+  last_success_at: string | null;
+  last_error: string | null;
+}
+
+export interface ZohoSyncHeartbeat {
+  id: number;
+  component: string;
+  status: string;
+  last_heartbeat_at: string | null;
+  last_start_at: string | null;
+  last_completion_at: string | null;
+  last_duration_ms?: number | null;
+  next_expected_at?: string | null;
+  last_error: string | null;
+}
+
+export interface ZohoCircuitBreaker {
+  id: number;
+  sync_type: string;
+  state: string;
+  failure_count: number;
+  last_error_class: string | null;
+  last_error_message: string | null;
+  opened_at: string | null;
+  resume_after: string | null;
+}
+
+export interface ZohoHealth {
+  connection: (Partial<ZohoStatus> & {
+    id?: number;
+    organization_id?: string | null;
+    organization_name?: string | null;
+  }) | null;
+  cursors: Record<string, ZohoSyncCursor>;
+  circuit_breakers: Record<string, ZohoCircuitBreaker>;
+  heartbeats: Record<string, ZohoSyncHeartbeat>;
+  failed_jobs: number;
+  structure: {
+    locations: number;
+    reporting_tags: number;
+    payment_modes: number;
+  };
+  checked_at: string;
+}
+
+export interface ZohoAutoMatchResult {
+  branch_id: number;
+  zoho_location_id: string | null;
+  location_name: string | null;
+  matched: boolean;
 }
 
 export interface Customer {

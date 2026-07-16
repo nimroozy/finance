@@ -16,6 +16,8 @@ class ZohoSyncJob extends Model
 
     public const TYPE_TOKEN_REFRESH = 'token_refresh';
 
+    public const TYPE_STRUCTURE = 'structure';
+
     public const STATUS_PENDING = 'pending';
 
     public const STATUS_RUNNING = 'running';
@@ -40,6 +42,12 @@ class ZohoSyncJob extends Model
         'stats',
         'error_message',
         'parent_job_id',
+        'error_class',
+        'retry_count',
+        'next_retry_at',
+        'circuit_open',
+        'cursor_from',
+        'cursor_to',
     ];
 
     protected function casts(): array
@@ -49,6 +57,11 @@ class ZohoSyncJob extends Model
             'finished_at' => 'datetime',
             'progress' => 'array',
             'stats' => 'array',
+            'retry_count' => 'integer',
+            'next_retry_at' => 'datetime',
+            'circuit_open' => 'boolean',
+            'cursor_from' => 'datetime',
+            'cursor_to' => 'datetime',
         ];
     }
 
@@ -101,12 +114,14 @@ class ZohoSyncJob extends Model
         ]);
     }
 
-    public function markFailed(string $message): void
+    public function markFailed(string $message, ?string $errorClass = null, bool $circuitOpen = false): void
     {
         $this->update([
             'status' => self::STATUS_FAILED,
             'finished_at' => now(),
             'error_message' => $message,
+            'error_class' => $errorClass,
+            'circuit_open' => $circuitOpen,
         ]);
     }
 }

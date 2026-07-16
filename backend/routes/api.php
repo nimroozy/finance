@@ -95,6 +95,10 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         // --- Zoho Books ---
         Route::middleware('permission:zoho.view')->group(function () {
             Route::get('/zoho/status', [ZohoController::class, 'status'])->name('zoho.status');
+            Route::get('/zoho/health', [ZohoController::class, 'health'])->name('zoho.health');
+            Route::get('/zoho/locations', [ZohoController::class, 'locations'])->name('zoho.locations');
+            Route::get('/zoho/reporting-tags', [ZohoController::class, 'reportingTags'])->name('zoho.reporting-tags');
+            Route::get('/zoho/payment-modes', [ZohoController::class, 'paymentModes'])->name('zoho.payment-modes');
             Route::get('/zoho/organizations', [ZohoController::class, 'organizations'])->name('zoho.organizations');
             Route::post('/zoho/test', [ZohoController::class, 'test'])->name('zoho.test');
             Route::get('/zoho/sync-jobs', [ZohoController::class, 'syncJobs'])->name('zoho.sync-jobs.index');
@@ -116,6 +120,10 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::delete('/zoho/branch-mappings/{id}', [ZohoController::class, 'destroyBranchMapping'])->whereNumber('id')->name('zoho.branch-mappings.destroy');
             Route::get('/zoho/reporting-tag-mappings', [ZohoController::class, 'reportingTagMappings'])->name('zoho.reporting-tag-mappings.index');
             Route::put('/zoho/reporting-tag-mappings', [ZohoController::class, 'upsertReportingTagMappings'])->name('zoho.reporting-tag-mappings.upsert');
+            Route::post('/zoho/branch-mappings/preview-auto-match', [ZohoController::class, 'previewAutoMatch'])->name('zoho.branch-mappings.preview-auto-match');
+            Route::post('/zoho/branch-mappings/apply-auto-match', [ZohoController::class, 'applyAutoMatch'])->name('zoho.branch-mappings.apply-auto-match');
+            Route::post('/zoho/branches/{id}/link-location', [ZohoController::class, 'linkLocation'])->whereNumber('id')->name('zoho.branches.link-location');
+            Route::post('/zoho/locations/{zohoId}/import-as-branch', [ZohoController::class, 'importLocation'])->name('zoho.locations.import-as-branch');
         });
 
         Route::middleware('permission:zoho.sync')->group(function () {
@@ -125,6 +133,9 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::post('/zoho/sync-jobs/{id}/retry', [ZohoController::class, 'retrySyncJob'])
                 ->whereNumber('id')
                 ->name('zoho.sync-jobs.retry');
+            Route::post('/zoho/structure/sync', [ZohoController::class, 'syncStructure'])->name('zoho.structure.sync');
+            Route::post('/zoho/circuit-breakers/{type}/resume', [ZohoController::class, 'resumeCircuit'])->name('zoho.circuit-breakers.resume');
+            Route::post('/zoho/failed-jobs/cleanup', [ZohoController::class, 'cleanupFailedJobs'])->name('zoho.failed-jobs.cleanup');
         });
 
         Route::middleware('permission:zoho.configure|customers.manage')->group(function () {

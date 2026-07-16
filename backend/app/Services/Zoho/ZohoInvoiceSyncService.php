@@ -6,6 +6,7 @@ use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\InvoiceCustomField;
 use App\Models\ZohoEntityMapping;
+use App\Models\ZohoSyncCursor;
 use App\Models\ZohoSyncJob;
 use Illuminate\Support\Carbon;
 use Throwable;
@@ -31,11 +32,9 @@ class ZohoInvoiceSyncService
      */
     public function syncIncremental(?ZohoSyncJob $job = null): array
     {
-        $lastSynced = Invoice::withoutGlobalScopes()
-            ->whereNotNull('zoho_modified_at')
-            ->max('zoho_modified_at');
-
-        $since = $lastSynced ? Carbon::parse($lastSynced)->subMinute() : null;
+        $cursor = ZohoSyncCursor::query()->firstOrCreate(['entity' => 'invoices']);
+        $since = $cursor->successful_cursor?->copy()
+            ->subMinutes((int) config('zoho.sync.cursor_overlap_minutes', 2));
 
         return $this->sync($since, $job);
     }
@@ -46,53 +45,87 @@ class ZohoInvoiceSyncService
     public function sync(?Carbon $lastModifiedTime = null, ?ZohoSyncJob $job = null): array
     {
         $client = $this->api->forSyncJob($job);
-        $stats = ['processed' => 0, 'created' => 0, 'updated' => 0, 'failed' => 0];
+        $cursor = ZohoSyncCursor::query()->firstOrCreate(['entity' => 'invoices']);
+        $requestedTo = now()->utc();
+        $stats = [
+            'requested_from' => $lastModifiedTime ? ZohoDateTime::formatQueryTimestamp($lastModifiedTime) : null,
+            'requested_to' => ZohoDateTime::formatQueryTimestamp($requestedTo),
+            'successful_cursor' => $cursor->successful_cursor?->toIso8601String(),
+            'page_count' => 0, 'fetched' => 0, 'processed' => 0, 'created' => 0,
+            'updated' => 0, 'skipped' => 0, 'failed' => 0,
+        ];
         $page = 1;
         $perPage = (int) config('zoho.http.per_page', 200);
         $hasMore = true;
 
-        while ($hasMore) {
-            $query = [
-                'page' => $page,
-                'per_page' => $perPage,
-            ];
+        $cursor->update([
+            'last_requested_from' => $lastModifiedTime,
+            'last_requested_to' => $requestedTo,
+            'last_error' => null,
+        ]);
+        $job?->update(['cursor_from' => $lastModifiedTime, 'cursor_to' => $requestedTo]);
 
-            if ($lastModifiedTime) {
-                $query['last_modified_time'] = $lastModifiedTime->format('Y-m-d\TH:i:sP');
-            }
+        try {
+            while ($hasMore) {
+                $query = [
+                    'page' => $page,
+                    'per_page' => $perPage,
+                ];
 
-            if ($job) {
-                $job->update([
-                    'progress' => ['page' => $page, 'entity' => 'invoices'],
-                ]);
-            }
+                if ($lastModifiedTime) {
+                    $query['last_modified_time'] = ZohoDateTime::formatQueryTimestamp($lastModifiedTime);
+                }
 
-            $response = $client->get('invoices', $query, 'invoice');
-            $invoices = $response['invoices'] ?? [];
+                if ($job) {
+                    $job->update([
+                        'progress' => array_merge($stats, ['page' => $page, 'entity' => 'invoices']),
+                    ]);
+                }
 
-            if (! is_array($invoices)) {
-                $invoices = [];
-            }
+                $response = $client->get('invoices', $query, 'invoice');
+                $invoices = $response['invoices'] ?? [];
 
-            foreach ($invoices as $invoice) {
-                try {
-                    $result = $this->upsertInvoice($invoice);
-                    $stats['processed']++;
-                    $stats[$result]++;
-                } catch (Throwable $e) {
-                    $stats['processed']++;
-                    $stats['failed']++;
+                if (! is_array($invoices)) {
+                    $invoices = [];
+                }
+                $stats['page_count']++;
+                $stats['fetched'] += count($invoices);
+
+                foreach ($invoices as $invoice) {
+                    try {
+                        $result = $this->upsertInvoice($invoice);
+                        $stats['processed']++;
+                        $stats[$result]++;
+                    } catch (Throwable $e) {
+                        $stats['processed']++;
+                        $stats['failed']++;
+                    }
+                }
+
+                $pageContext = $response['page_context'] ?? [];
+                $hasMore = (bool) ($pageContext['has_more_page'] ?? false);
+                $page++;
+
+                if (count($invoices) === 0) {
+                    $hasMore = false;
                 }
             }
-
-            $pageContext = $response['page_context'] ?? [];
-            $hasMore = (bool) ($pageContext['has_more_page'] ?? false);
-            $page++;
-
-            if (count($invoices) === 0) {
-                $hasMore = false;
-            }
+        } catch (Throwable $e) {
+            $cursor->update(['last_error' => $e->getMessage(), 'meta' => $stats]);
+            $job?->update(['progress' => $stats, 'stats' => $stats]);
+            throw $e;
         }
+
+        if ($stats['failed'] === 0) {
+            $cursor->update([
+                'successful_cursor' => $requestedTo,
+                'last_success_at' => now(),
+                'last_error' => null,
+                'meta' => $stats,
+            ]);
+            $stats['successful_cursor'] = ZohoDateTime::formatQueryTimestamp($requestedTo);
+        }
+        $job?->update(['progress' => $stats, 'stats' => $stats]);
 
         return $stats;
     }
@@ -135,6 +168,7 @@ class ZohoInvoiceSyncService
         }
 
         $branchId = $this->branchMapping->resolveBranchId($invoice) ?? $customer->branch_id;
+        $locationId = $this->branchMapping->extractLocationId($invoice);
 
         $existing = Invoice::withoutGlobalScopes()
             ->where('zoho_invoice_id', $zohoId)
@@ -142,6 +176,7 @@ class ZohoInvoiceSyncService
 
         $attributes = [
             'branch_id' => $branchId,
+            'zoho_location_id' => $locationId,
             'customer_id' => $customer->id,
             'zoho_invoice_id' => $zohoId,
             'invoice_number' => (string) ($invoice['invoice_number'] ?? $zohoId),
@@ -154,7 +189,7 @@ class ZohoInvoiceSyncService
             'credits_applied' => $this->decimal($invoice['credits_applied'] ?? 0),
             'balance' => $this->decimal($invoice['balance'] ?? 0),
             'reporting_tags' => $invoice['reporting_tags'] ?? $invoice['tags'] ?? null,
-            'zoho_modified_at' => $this->parseDateTime($invoice['last_modified_time'] ?? null),
+            'zoho_modified_at' => ZohoDateTime::parse($invoice['last_modified_time'] ?? null),
             'last_synced_at' => now(),
             'sync_status' => 'synced',
         ];
@@ -185,6 +220,19 @@ class ZohoInvoiceSyncService
         );
 
         $this->syncCustomFields($model, $invoice['custom_fields'] ?? []);
+
+        if ($locationId && $branchId && ($customer->is_unmapped || $customer->branch_id === null)) {
+            if (! $this->branchMapping->customerHasBranchConflict($customer, $branchId)) {
+                $customer->update([
+                    'branch_id' => $branchId,
+                    'zoho_location_id' => $customer->zoho_location_id ?: $locationId,
+                    'is_unmapped' => false,
+                    'status' => $customer->status === Customer::STATUS_UNMAPPED
+                        ? Customer::STATUS_ACTIVE
+                        : $customer->status,
+                ]);
+            }
+        }
 
         // Keep customer outstanding roughly in sync when invoice balances change
         if ($customer->outstanding_receivable === null || $customer->sync_status === 'placeholder') {

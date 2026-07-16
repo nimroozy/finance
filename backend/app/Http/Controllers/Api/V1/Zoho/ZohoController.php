@@ -6,12 +6,24 @@ use App\Http\Controllers\Controller;
 use App\Jobs\RetryFailedZohoSyncJob;
 use App\Jobs\SyncZohoCustomersJob;
 use App\Jobs\SyncZohoInvoicesJob;
+use App\Jobs\SyncZohoOrganizationStructureJob;
+use App\Models\Branch;
+use App\Models\Customer;
+use App\Models\Invoice;
 use App\Models\ZohoApiLog;
+use App\Models\ZohoBranchAlias;
 use App\Models\ZohoBranchMapping;
+use App\Models\ZohoCircuitBreaker as ZohoCircuitBreakerModel;
 use App\Models\ZohoConnection;
+use App\Models\ZohoLocation;
 use App\Models\ZohoOrganization;
+use App\Models\ZohoPaymentMode;
+use App\Models\ZohoReportingTag;
 use App\Models\ZohoReportingTagMapping;
+use App\Models\ZohoSyncCursor;
+use App\Models\ZohoSyncHeartbeat;
 use App\Models\ZohoSyncJob;
+use App\Services\Zoho\ZohoCircuitBreaker;
 use App\Services\Zoho\ZohoConfig;
 use App\Services\Zoho\ZohoConnectionService;
 use App\Services\Zoho\ZohoOAuthService;
@@ -19,6 +31,7 @@ use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Throwable;
@@ -64,6 +77,57 @@ class ZohoController extends Controller
             'last_customer_sync_at' => $lastCustomerSync?->finished_at?->toIso8601String(),
             'last_invoice_sync_at' => $lastInvoiceSync?->finished_at?->toIso8601String(),
         ]);
+    }
+
+    public function health(): JsonResponse
+    {
+        return ApiResponse::success([
+            'connection' => ZohoConnection::current(),
+            'cursors' => ZohoSyncCursor::query()->get()->keyBy('entity'),
+            'circuit_breakers' => ZohoCircuitBreakerModel::query()->get()->keyBy('sync_type'),
+            'heartbeats' => ZohoSyncHeartbeat::query()->get()->keyBy('component'),
+            'failed_jobs' => ZohoSyncJob::query()->where('status', ZohoSyncJob::STATUS_FAILED)->count(),
+            'laravel_failed_jobs' => \Illuminate\Support\Facades\DB::table('failed_jobs')->count(),
+            'pending_jobs' => \Illuminate\Support\Facades\DB::table('jobs')->count(),
+            'unmapped' => [
+                'customers' => Customer::withoutGlobalScopes()->where('is_unmapped', true)->count(),
+                'invoices' => Invoice::withoutGlobalScopes()->whereNull('branch_id')->count(),
+            ],
+            'structure' => [
+                'locations' => ZohoLocation::query()->count(),
+                'reporting_tags' => ZohoReportingTag::query()->count(),
+                'reporting_tag_options' => \App\Models\ZohoReportingTagOption::query()->count(),
+                'payment_modes' => ZohoPaymentMode::query()->count(),
+            ],
+            'checked_at' => now()->toIso8601String(),
+        ]);
+    }
+
+    public function syncStructure(): JsonResponse
+    {
+        $job = ZohoSyncJob::query()->create([
+            'type' => ZohoSyncJob::TYPE_STRUCTURE,
+            'status' => ZohoSyncJob::STATUS_PENDING,
+            'triggered_by' => Auth::id(),
+        ]);
+        SyncZohoOrganizationStructureJob::dispatch($job->id);
+
+        return ApiResponse::success(['queued' => true, 'sync_job_id' => $job->id], null, 202);
+    }
+
+    public function locations(): JsonResponse
+    {
+        return ApiResponse::success(ZohoLocation::query()->orderBy('name')->get());
+    }
+
+    public function reportingTags(): JsonResponse
+    {
+        return ApiResponse::success(ZohoReportingTag::query()->with('options')->orderBy('name')->get());
+    }
+
+    public function paymentModes(): JsonResponse
+    {
+        return ApiResponse::success(ZohoPaymentMode::query()->orderBy('name')->get());
     }
 
     public function dataCenters(): JsonResponse
@@ -291,9 +355,194 @@ class ZohoController extends Controller
 
     public function branchMappings(): JsonResponse
     {
-        return ApiResponse::success(
-            ZohoBranchMapping::query()->with('branch')->orderBy('id')->get()
+        $mappings = ZohoBranchMapping::query()->with('branch')->orderBy('id')->get();
+        $mappings->each(function (ZohoBranchMapping $mapping) {
+            $mapping->setAttribute('mapped_customer_count', Customer::withoutGlobalScopes()->where('branch_id', $mapping->branch_id)->count());
+            $mapping->setAttribute('mapped_invoice_count', Invoice::withoutGlobalScopes()->where('branch_id', $mapping->branch_id)->count());
+        });
+
+        return ApiResponse::success($mappings);
+    }
+
+    public function previewAutoMatch(): JsonResponse
+    {
+        $locations = ZohoLocation::query()->get();
+        $aliases = ZohoBranchAlias::query()->get()->groupBy('branch_id');
+        $normalize = static function (string $value): string {
+            $value = mb_strtolower(trim($value));
+            $value = preg_replace('/[^\pL\pN]+/u', '', $value) ?? '';
+
+            return $value;
+        };
+
+        $matches = Branch::withoutGlobalScopes()->get()->map(function (Branch $branch) use ($locations, $aliases, $normalize) {
+            $branchNames = collect([
+                $branch->name_en,
+                $branch->name_fa,
+                $branch->code,
+            ])->filter()->map(fn ($v) => $normalize((string) $v));
+
+            foreach ($aliases->get($branch->id, collect()) as $alias) {
+                $branchNames->push($normalize((string) ($alias->normalized_alias ?: $alias->alias)));
+            }
+            $branchNames = $branchNames->filter()->unique()->values();
+
+            $hits = [];
+            foreach ($locations as $location) {
+                $locationKeys = collect([$location->name, $location->code])->filter()->map(fn ($v) => $normalize((string) $v));
+                $exact = $branchNames->intersect($locationKeys)->isNotEmpty();
+                if ($exact) {
+                    $hits[] = ['location' => $location, 'class' => 'exact'];
+
+                    continue;
+                }
+
+                foreach ($branchNames as $branchKey) {
+                    foreach ($locationKeys as $locationKey) {
+                        if ($branchKey !== '' && $locationKey !== '' && (
+                            str_contains($locationKey, $branchKey) || str_contains($branchKey, $locationKey)
+                        )) {
+                            $hits[] = ['location' => $location, 'class' => 'probable'];
+                            break 2;
+                        }
+                    }
+                }
+            }
+
+            if ($hits === []) {
+                return [
+                    'branch_id' => $branch->id,
+                    'branch_name' => $branch->name_en,
+                    'classification' => 'no_match',
+                    'zoho_location_id' => null,
+                    'location_name' => null,
+                    'matched' => false,
+                    'applicable' => false,
+                ];
+            }
+
+            $uniqueLocationIds = collect($hits)->pluck('location.zoho_location_id')->unique();
+            if ($uniqueLocationIds->count() > 1) {
+                return [
+                    'branch_id' => $branch->id,
+                    'branch_name' => $branch->name_en,
+                    'classification' => 'ambiguous',
+                    'zoho_location_id' => null,
+                    'location_name' => null,
+                    'candidates' => collect($hits)->map(fn ($hit) => [
+                        'zoho_location_id' => $hit['location']->zoho_location_id,
+                        'location_name' => $hit['location']->name,
+                        'class' => $hit['class'],
+                    ])->values(),
+                    'matched' => false,
+                    'applicable' => false,
+                ];
+            }
+
+            $best = collect($hits)->firstWhere('class', 'exact') ?? $hits[0];
+            $classification = $best['class'] === 'exact' ? 'exact' : 'probable';
+            $alreadyLinked = $branch->zoho_location_id === $best['location']->zoho_location_id;
+
+            return [
+                'branch_id' => $branch->id,
+                'branch_name' => $branch->name_en,
+                'classification' => $alreadyLinked ? 'exact' : $classification,
+                'zoho_location_id' => $best['location']->zoho_location_id,
+                'location_name' => $best['location']->name,
+                'matched' => true,
+                'applicable' => in_array($classification, ['exact', 'probable'], true) && ! $alreadyLinked,
+            ];
+        });
+
+        return ApiResponse::success($matches);
+    }
+
+    public function applyAutoMatch(Request $request): JsonResponse
+    {
+        $request->validate(['confirmed' => ['required', 'accepted']]);
+        $matches = $this->previewAutoMatch()->getData(true)['data'] ?? [];
+        $applied = 0;
+        foreach ($matches as $match) {
+            if (! ($match['applicable'] ?? false)) {
+                continue;
+            }
+            if (($match['classification'] ?? '') === 'ambiguous') {
+                continue;
+            }
+            $this->linkBranchToLocation((int) $match['branch_id'], (string) $match['zoho_location_id']);
+            $applied++;
+        }
+
+        return ApiResponse::success(['applied' => $applied]);
+    }
+
+    public function linkLocation(Request $request, int $id): JsonResponse
+    {
+        $data = $request->validate(['zoho_location_id' => ['required', 'string', 'exists:zoho_locations,zoho_location_id']]);
+        $branch = $this->linkBranchToLocation($id, $data['zoho_location_id']);
+
+        return ApiResponse::success($branch);
+    }
+
+    protected function linkBranchToLocation(int $branchId, string $zohoLocationId): Branch
+    {
+        $branch = Branch::withoutGlobalScopes()->findOrFail($branchId);
+        $branch->update([
+            'zoho_location_id' => $zohoLocationId,
+            'mapping_type' => 'zoho_location',
+            'zoho_sync_status' => 'linked',
+            'last_structure_sync_at' => now(),
+            'local_override' => false,
+        ]);
+
+        ZohoBranchMapping::query()->updateOrCreate(
+            ['branch_id' => $branch->id],
+            [
+                'mapping_method' => ZohoBranchMapping::METHOD_ZOHO_LOCATION,
+                'zoho_value' => $zohoLocationId,
+                'zoho_label' => ZohoLocation::query()->where('zoho_location_id', $zohoLocationId)->value('name'),
+                'is_active' => true,
+            ]
         );
+
+        return $branch->fresh();
+    }
+
+    public function importLocation(string $zohoId): JsonResponse
+    {
+        $location = ZohoLocation::query()->where('zoho_location_id', $zohoId)->firstOrFail();
+        $baseCode = strtoupper(substr(preg_replace('/[^A-Za-z0-9]/', '', $location->code ?: $location->name), 0, 12)) ?: 'ZOH';
+        $code = $baseCode;
+        $suffix = 1;
+        while (Branch::withoutGlobalScopes()->where('code', $code)->exists()) {
+            $code = $baseCode.'-'.$suffix++;
+        }
+        $branch = Branch::withoutGlobalScopes()->create([
+            'code' => $code, 'name_en' => $location->name, 'name_fa' => $location->name,
+            'province_en' => 'Zoho', 'province_fa' => 'Zoho', 'receipt_prefix' => substr($code, 0, 8),
+            'is_active' => $location->is_active, 'zoho_location_id' => $location->zoho_location_id,
+            'mapping_type' => 'zoho_location', 'zoho_sync_status' => 'imported',
+            'last_structure_sync_at' => now(), 'local_override' => false,
+        ]);
+
+        return ApiResponse::success($branch, null, 201);
+    }
+
+    public function resumeCircuit(string $type, ZohoCircuitBreaker $circuit): JsonResponse
+    {
+        return ApiResponse::success($circuit->resume($type));
+    }
+
+    public function cleanupFailedJobs(Request $request): JsonResponse
+    {
+        $validated = $request->validate(['apply' => ['sometimes', 'boolean'], 'only_timestamp' => ['sometimes', 'boolean']]);
+        $arguments = ['--only-timestamp' => ($validated['only_timestamp'] ?? true) ? '1' : '0'];
+        if ($validated['apply'] ?? false) {
+            $arguments['--apply'] = true;
+        }
+        Artisan::call('zoho:failed-jobs-cleanup', $arguments);
+
+        return ApiResponse::success(['output' => trim(Artisan::output()), 'applied' => (bool) ($validated['apply'] ?? false)]);
     }
 
     public function storeBranchMapping(Request $request): JsonResponse
