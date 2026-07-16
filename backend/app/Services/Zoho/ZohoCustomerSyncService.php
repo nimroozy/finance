@@ -155,7 +155,11 @@ class ZohoCustomerSyncService
             'branch_id' => $branchId,
             'zoho_location_id' => $locationId,
             'zoho_contact_id' => $zohoId,
-            'customer_number' => $contact['contact_number'] ?? $contact['customer_number'] ?? null,
+            'customer_number' => $contact['contact_number']
+                ?? $contact['customer_number']
+                ?? app(\App\Services\Mapping\CustomerNumberPrefixMatcher::class)
+                    ->effectiveCustomerNumber(null, (string) ($contact['contact_name'] ?? $contact['customer_name'] ?? ''))
+                ?? null,
             'contact_name' => (string) ($contact['contact_name'] ?? $contact['customer_name'] ?? 'Unknown'),
             'company_name' => $contact['company_name'] ?? null,
             'phone' => $contact['phone'] ?? null,

@@ -19,7 +19,7 @@ class MapCustomerBranchesByPrefixCommand extends Command
 
     protected $description = 'Map customers to branches using configured customer-number prefixes';
 
-    public function handle(CustomerBranchResolutionService $resolver): int
+    public function handle(CustomerBranchResolutionService $resolver, \App\Services\Mapping\CustomerNumberPrefixMatcher $matcher): int
     {
         $apply = (bool) $this->option('apply');
         $runId = 'prefix-map-'.now()->format('YmdHis').'-'.Str::lower(Str::random(6));
@@ -39,7 +39,12 @@ class MapCustomerBranchesByPrefixCommand extends Command
                     ->orWhere('customer_number', 'like', $prefix.'-%')
                     ->orWhere('customer_number', 'like', $prefix.'_%')
                     ->orWhere('customer_number', 'like', $prefix.'/%')
-                    ->orWhere('customer_number', 'like', $prefix.' %');
+                    ->orWhere('customer_number', 'like', $prefix.' %')
+                    ->orWhere('contact_name', 'like', $prefix.'%')
+                    ->orWhere('contact_name', 'like', $prefix.'-%')
+                    ->orWhere('contact_name', 'like', $prefix.'_%')
+                    ->orWhere('contact_name', 'like', $prefix.'/%')
+                    ->orWhere('contact_name', 'like', $prefix.' %');
             });
         }
 
@@ -59,10 +64,11 @@ class MapCustomerBranchesByPrefixCommand extends Command
 
         $this->info(($apply ? 'APPLY' : 'DRY-RUN')." run_id={$runId}");
 
-        $query->chunkById($chunk, function ($customers) use ($resolver, $apply, $runId, &$stats, &$rows) {
+        $query->chunkById($chunk, function ($customers) use ($resolver, $matcher, $apply, $runId, &$stats, &$rows) {
             foreach ($customers as $customer) {
                 $stats['scanned']++;
-                if (! filled($customer->customer_number)) {
+                $effectiveNumber = $matcher->effectiveCustomerNumber($customer->customer_number, $customer->contact_name);
+                if (! filled($effectiveNumber)) {
                     $stats['missing_number']++;
                 }
 
@@ -99,6 +105,7 @@ class MapCustomerBranchesByPrefixCommand extends Command
                 $rows[] = [
                     'customer_id' => $customer->id,
                     'customer_number' => $customer->customer_number,
+                    'effective_number' => $effectiveNumber,
                     'from_branch_id' => $before,
                     'to_branch_id' => $resolution['resolved_branch_id'],
                     'source' => $resolution['resolution_source'],

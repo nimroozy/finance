@@ -510,13 +510,15 @@ class ZohoPaymentSyncService
 
             // Customer number prefix vs invoice location
             $customer = $payment->customer;
-            if ($customer?->customer_number && $invoiceLocation !== '') {
-                $prefixHit = app(\App\Services\Mapping\CustomerNumberPrefixMatcher::class)->detect($customer->customer_number);
+            $effectiveNumber = app(\App\Services\Mapping\CustomerNumberPrefixMatcher::class)
+                ->effectiveCustomerNumber($customer?->customer_number, $customer?->contact_name);
+            if ($effectiveNumber && $invoiceLocation !== '') {
+                $prefixHit = app(\App\Services\Mapping\CustomerNumberPrefixMatcher::class)->detect($effectiveNumber);
                 if ($prefixHit && empty($prefixHit['ambiguous']) && ! empty($prefixHit['branch_id'])) {
                     $prefixBranch = Branch::withoutGlobalScopes()->find($prefixHit['branch_id']);
                     $invoiceBranch = Branch::withoutGlobalScopes()->where('zoho_location_id', $invoiceLocation)->first();
                     if ($prefixBranch && $invoiceBranch && (int) $prefixBranch->id !== (int) $invoiceBranch->id) {
-                        $num = $customer->customer_number;
+                        $num = $effectiveNumber;
                         throw new LocalizedInvalidArgumentException(
                             "Customer number {$num} belongs to ".($prefixBranch->name_en ?: $prefixBranch->code).", but the selected invoice belongs to ".($invoiceBranch->name_en ?: $invoiceBranch->code).'.',
                             "شماره مشتری {$num} متعلق به ".($prefixBranch->name_fa ?: $prefixBranch->code).' است، اما فاکتور انتخاب‌شده متعلق به '.($invoiceBranch->name_fa ?: $invoiceBranch->code).' است.',

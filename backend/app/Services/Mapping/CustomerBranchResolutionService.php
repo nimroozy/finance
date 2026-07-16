@@ -60,7 +60,10 @@ class CustomerBranchResolutionService
      */
     public function resolve(Customer $customer, ?array $zohoPayload = null): array
     {
-        $customerNumber = $customer->customer_number;
+        $customerNumber = $this->matcher->effectiveCustomerNumber(
+            $customer->customer_number,
+            $customer->contact_name
+        );
         $prefixHit = $this->matcher->detect($customerNumber);
         $prefixBranchId = null;
         $prefixDetected = null;
@@ -347,6 +350,9 @@ class CustomerBranchResolutionService
                     'branch_mapping_prefix' => $resolution['prefix_detected'] ?? null,
                     'branch_mapped_at' => now(),
                     'branch_mapping_confirmed_at' => ($resolution['confidence'] ?? '') === 'high' ? now() : null,
+                    'customer_number' => filled($customer->customer_number)
+                        ? $customer->customer_number
+                        : ($this->matcher->effectiveCustomerNumber(null, $customer->contact_name) ?: $customer->customer_number),
                 ])->save();
 
                 CustomerBranchMappingConflict::query()

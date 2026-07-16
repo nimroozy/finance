@@ -269,6 +269,24 @@ class CustomerPrefixMappingTest extends TestCase
         $this->assertContains($queue->ownership_source, ['unassigned', 'conflict']);
     }
 
+    public function test_contact_name_fallback_detects_prefix(): void
+    {
+        $branches = $this->seedPrefixes();
+        $customer = $this->makeCustomer($branches['kabul'], [
+            'customer_number' => null,
+            'contact_name' => 'NMZ-5877 Hekmat ullah afghan',
+            'is_unmapped' => true,
+            'branch_id' => null,
+            'status' => Customer::STATUS_UNMAPPED,
+        ]);
+        $resolution = app(CustomerBranchResolutionService::class)->resolve($customer);
+        $this->assertSame('NMZ', $resolution['prefix_detected']);
+        $this->assertSame($branches['nimruz']->id, $resolution['resolved_branch_id']);
+        app(CustomerBranchResolutionService::class)->apply($customer, $resolution, null, dryRun: false, runId: 'name');
+        $this->assertSame($branches['nimruz']->id, $customer->fresh()->branch_id);
+        $this->assertSame('NMZ-5877', $customer->fresh()->customer_number);
+    }
+
     protected function makeSuperAdmin()
     {
         $this->seedRoles();

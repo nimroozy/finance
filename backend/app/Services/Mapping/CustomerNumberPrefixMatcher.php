@@ -102,4 +102,26 @@ class CustomerNumberPrefixMatcher
 
         return (bool) preg_match('/^[A-Z]{2,}/', $normalized);
     }
+
+    /**
+     * Prefer explicit customer_number; fall back to a leading PREFIX-digits token in contact_name.
+     * Business data often stores the customer number inside the Zoho contact name.
+     */
+    public function effectiveCustomerNumber(?string $customerNumber, ?string $contactName = null): ?string
+    {
+        if (filled($customerNumber)) {
+            return trim((string) $customerNumber);
+        }
+
+        $name = trim((string) $contactName);
+        if ($name === '') {
+            return null;
+        }
+
+        if (preg_match('/^([A-Za-z]{2,}[\s\-_\/]*\d[\w]*)/u', $name, $matches)) {
+            return trim($matches[1]);
+        }
+
+        return null;
+    }
 }
