@@ -26,7 +26,9 @@ class ZohoSyncHeartbeatService
     public function recordSuccess(string $component, array $meta = []): ZohoSyncHeartbeat
     {
         $heartbeat = ZohoSyncHeartbeat::query()->firstOrNew(['component' => $component]);
-        $duration = $heartbeat->last_start_at ? $heartbeat->last_start_at->diffInMilliseconds(now()) : null;
+        $duration = $heartbeat->last_start_at
+            ? (int) round($heartbeat->last_start_at->diffInMilliseconds(now()))
+            : null;
         $heartbeat->fill([
             'status' => 'success', 'last_heartbeat_at' => now(), 'last_completion_at' => now(),
             'last_duration_ms' => $duration, 'last_error' => null, 'meta' => $meta,

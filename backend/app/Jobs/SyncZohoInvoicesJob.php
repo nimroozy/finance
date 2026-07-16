@@ -48,7 +48,12 @@ class SyncZohoInvoicesJob implements ShouldQueue
 
             $job->markCompleted($stats);
             $circuit->recordSuccess('invoices');
-            $heartbeat->recordSuccess('invoice_sync', $stats);
+            try {
+                $heartbeat->recordSuccess('invoice_sync', $stats);
+                $heartbeat->touch('queue_worker', 'success', ['job' => 'invoices']);
+            } catch (Throwable $heartbeatError) {
+                report($heartbeatError);
+            }
         } catch (Throwable $e) {
             $errorClass = ZohoErrorClassifier::classify($e);
             $breaker = $circuit->recordFailure('invoices', $e);

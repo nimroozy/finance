@@ -49,7 +49,12 @@ class SyncZohoCustomersJob implements ShouldQueue
             // Never mark complete if failed without entity persistence — stats track this.
             $job->markCompleted($stats);
             $circuit->recordSuccess('customers');
-            $heartbeat->recordSuccess('customer_sync', $stats);
+            try {
+                $heartbeat->recordSuccess('customer_sync', $stats);
+                $heartbeat->touch('queue_worker', 'success', ['job' => 'customers']);
+            } catch (Throwable $heartbeatError) {
+                report($heartbeatError);
+            }
         } catch (Throwable $e) {
             $errorClass = ZohoErrorClassifier::classify($e);
             $breaker = $circuit->recordFailure('customers', $e);
