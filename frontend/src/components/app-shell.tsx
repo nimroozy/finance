@@ -34,6 +34,9 @@ const NAV_GROUPS: NavGroup[] = [
   ] },
   { labelKey: "fieldCollection", items: [
     { href: "/assignments", labelKey: "assignments", permissions: ["assignments.view"] },
+    { href: "/customer-ownership", labelKey: "customerOwnership", permissions: ["customer_ownership.view"] },
+    { href: "/temporary-assignments", labelKey: "temporaryAssignments", permissions: ["temporary_assignments.view"] },
+    { href: "/ownership-conflicts", labelKey: "ownershipConflicts", permissions: ["ownership_conflicts.view"] },
     { href: "/routes", labelKey: "routes", permissions: ["routes.view"] },
     { href: "/visits", labelKey: "visits", permissions: ["visits.view"] },
     { href: "/promises", labelKey: "promises", permissions: ["promises.view"] },
@@ -60,6 +63,8 @@ const NAV_GROUPS: NavGroup[] = [
     { href: "/users", labelKey: "users", permissions: ["users.view", "users.manage"] },
     { href: "/roles", labelKey: "roles", permissions: ["roles.view"] },
     { href: "/settings", labelKey: "settings", permissions: ["settings.manage"] },
+    { href: "/settings/branch-payment-mappings", labelKey: "branchPaymentMappings", permissions: ["branch_payment_mapping.view"] },
+    { href: "/reports/branch-receivables", labelKey: "branchReceivables", permissions: ["receivables_dashboard.view"] },
     { href: "/audit-logs", labelKey: "auditLogs", permissions: ["audit.view"] },
   ] },
 ];
@@ -67,6 +72,8 @@ const NAV_GROUPS: NavGroup[] = [
 const COLLECTOR_NAV: NavGroup[] = [
   { labelKey: "myWork", items: [
     { href: "/collector", labelKey: "collectorHome", permissions: ["assignments.view", "visits.view"] },
+    { href: "/collector/permanent-customers", labelKey: "permanentCustomers", permissions: ["customer_ownership.view", "assignments.view"] },
+    { href: "/collector/debtors", labelKey: "myDebtors", permissions: ["customer_ownership.view", "assignments.view"] },
     { href: "/collector/assignments", labelKey: "myAssignments", permissions: ["assignments.view"] },
     { href: "/collector/routes", labelKey: "myRoutes", permissions: ["routes.view"] },
     { href: "/collector/visits", labelKey: "myVisits", permissions: ["visits.view"] },

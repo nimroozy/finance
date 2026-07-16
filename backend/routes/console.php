@@ -24,3 +24,8 @@ Schedule::job(new RunPaymentReconciliationJob)
     ->daily()
     ->name('payment-reconciliation-daily')
     ->withoutOverlapping();
+
+Schedule::command('assignments:expire-temporary')
+    ->hourly()
+    ->name('expire-temporary-assignments')
+    ->withoutOverlapping();

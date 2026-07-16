@@ -90,6 +90,20 @@ class RolePermissionSeeder extends Seeder
         'cash_adjustments.view',
         'cash_adjustments.manage',
         'custody_reversals.review',
+        // Stage 5.2 — permanent ownership / branch Zoho payment mapping
+        'customer_ownership.view',
+        'customer_ownership.create',
+        'customer_ownership.transfer',
+        'customer_ownership.end',
+        'temporary_assignments.view',
+        'temporary_assignments.create',
+        'temporary_assignments.cancel',
+        'branch_payment_mapping.view',
+        'branch_payment_mapping.manage',
+        'branch_payment_mapping.validate',
+        'ownership_conflicts.view',
+        'ownership_conflicts.resolve',
+        'receivables_dashboard.view',
     ];
 
     public function run(): void
@@ -159,6 +173,10 @@ class RolePermissionSeeder extends Seeder
             'cashboxes.view', 'cashboxes.manage', 'cashbox_transfers.view', 'cashbox_transfers.create', 'cashbox_transfers.approve',
             'bank_deposits.view', 'bank_deposits.manage', 'cash_reconciliation.view', 'cash_reconciliation.run',
             'cash_variances.view', 'cash_variances.manage', 'cash_adjustments.view', 'cash_adjustments.manage', 'custody_reversals.review',
+            'customer_ownership.view', 'customer_ownership.create', 'customer_ownership.transfer', 'customer_ownership.end',
+            'temporary_assignments.view', 'temporary_assignments.create', 'temporary_assignments.cancel',
+            'branch_payment_mapping.view', 'branch_payment_mapping.manage', 'branch_payment_mapping.validate',
+            'ownership_conflicts.view', 'ownership_conflicts.resolve', 'receivables_dashboard.view',
         ]);
 
         $branchManager->syncPermissions([
@@ -206,6 +224,10 @@ class RolePermissionSeeder extends Seeder
             'handovers.view', 'handovers.review', 'cashboxes.view', 'cashboxes.manage',
             'cashbox_transfers.view', 'cashbox_transfers.create', 'cashbox_transfers.approve',
             'cash_reconciliation.view', 'cash_reconciliation.run', 'cash_variances.view', 'cash_variances.manage',
+            'customer_ownership.view', 'customer_ownership.create', 'customer_ownership.transfer', 'customer_ownership.end',
+            'temporary_assignments.view', 'temporary_assignments.create', 'temporary_assignments.cancel',
+            'branch_payment_mapping.view', 'branch_payment_mapping.manage', 'branch_payment_mapping.validate',
+            'ownership_conflicts.view', 'ownership_conflicts.resolve', 'receivables_dashboard.view',
         ]);
 
         $collector->syncPermissions([
@@ -232,6 +254,8 @@ class RolePermissionSeeder extends Seeder
             'wallets.view',
             'reversals.request',
             'handovers.view', 'handovers.create', 'handovers.submit',
+            'customer_ownership.view',
+            'temporary_assignments.view',
         ]);
 
         $auditor->syncPermissions([

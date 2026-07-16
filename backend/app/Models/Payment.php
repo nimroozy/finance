@@ -76,6 +76,13 @@ class Payment extends Model
         'zoho_sync_status',
         'zoho_payment_id',
         'zoho_reference',
+        'branch_payment_configuration_id',
+        'zoho_account_id_snapshot',
+        'zoho_account_name_snapshot',
+        'zoho_location_id_used',
+        'zoho_payment_mode_used',
+        'mapping_version_used',
+        'mapping_validated_at',
         'sync_attempts',
         'last_sync_error',
         'idempotency_key',
@@ -104,6 +111,8 @@ class Payment extends Model
             'confirmed_at' => 'datetime',
             'reversed_at' => 'datetime',
             'draft_expires_at' => 'datetime',
+            'mapping_validated_at' => 'datetime',
+            'mapping_version_used' => 'integer',
         ];
     }
 

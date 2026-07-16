@@ -148,3 +148,37 @@ test("health endpoint is reachable via same host when configured", async ({
   const res = await request.get(`${base}/api/v1/health`);
   expect(res.ok()).toBeTruthy();
 });
+
+test.describe("stage 5.2 ownership shells", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript((user) => {
+      window.localStorage.setItem(
+        "auth-storage",
+        JSON.stringify({ state: { token: "e2e-mock-token", user }, version: 0 }),
+      );
+    }, {
+      id: 1, name: "Admin", email: "admin@finance.mns.af", username: "admin", locale: "en", status: "active",
+      roles: ["Super Administrator"], permissions: [
+        "dashboard.view","customer_ownership.view","customer_ownership.create","temporary_assignments.view",
+        "branch_payment_mapping.view","receivables_dashboard.view","ownership_conflicts.view",
+        "zoho.view","zoho.configure","assignments.view"
+      ], force_password_change: false, branches: [],
+    });
+    await page.route("**/api/v1/**", async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ success: true, data: [] }) });
+    });
+  });
+  for (const path of [
+    "/en/customer-ownership",
+    "/en/temporary-assignments",
+    "/en/settings/branch-payment-mappings",
+    "/en/reports/branch-receivables",
+    "/en/collector/permanent-customers",
+    "/en/collector/debtors",
+  ]) {
+    test(`route ${path}`, async ({ page }) => {
+      await page.goto(path);
+      await expect(page.locator("body")).toBeVisible();
+    });
+  }
+});

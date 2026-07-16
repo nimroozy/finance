@@ -8,6 +8,7 @@ use App\Models\InvoiceCustomField;
 use App\Models\ZohoEntityMapping;
 use App\Models\ZohoSyncCursor;
 use App\Models\ZohoSyncJob;
+use App\Services\Ownership\CustomerWorkQueueService;
 use Illuminate\Support\Carbon;
 use Throwable;
 
@@ -17,6 +18,7 @@ class ZohoInvoiceSyncService
         protected ZohoApiClient $api,
         protected ZohoBranchMappingService $branchMapping,
         protected ZohoConfig $config,
+        protected CustomerWorkQueueService $workQueues,
     ) {}
 
     /**
@@ -237,6 +239,13 @@ class ZohoInvoiceSyncService
         // Keep customer outstanding roughly in sync when invoice balances change
         if ($customer->outstanding_receivable === null || $customer->sync_status === 'placeholder') {
             // no-op — customer sync owns outstanding
+        }
+
+        try {
+            $freshCustomer = Customer::withoutGlobalScopes()->find($customer->id) ?? $customer;
+            $this->workQueues->routeInvoice($freshCustomer, $model);
+        } catch (Throwable) {
+            // Routing must not break invoice warehouse sync.
         }
 
         return $result;

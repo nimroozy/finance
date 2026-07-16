@@ -128,6 +128,11 @@ class CashHandoverService
                 'approved_amount' => $approved,
                 'status' => $status,
                 'handover_number' => $fresh?->handover_number,
+                'zoho_customer_payment_created' => false,
+            ], $locked->branch_id);
+            $this->audit->log('cash_handover.completed_without_zoho_payment', $fresh, null, [
+                'note' => 'Handover is internal custody only; Zoho customer payment already posted at collection time.',
+                'payment_ids' => $fresh?->items?->pluck('payment_id')->filter()->values()->all(),
             ], $locked->branch_id);
 
             return $fresh;

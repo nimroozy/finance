@@ -2,10 +2,13 @@
 
 namespace App\Services\Zoho;
 
+use App\Models\BranchPaymentConfiguration;
+use App\Models\BranchZohoAccountMapping;
 use App\Models\Payment;
 use App\Models\PaymentSyncAttempt;
 use App\Models\ZohoPaymentModeMapping;
 use App\Services\AuditLogger;
+use App\Services\Ownership\BranchPaymentMappingService;
 use App\Services\Payments\PaymentStatusTransitionService;
 use App\Support\Money;
 use Illuminate\Support\Facades\DB;
@@ -19,6 +22,7 @@ class ZohoPaymentSyncService
         protected ZohoApiClient $client,
         protected PaymentStatusTransitionService $transitions,
         protected AuditLogger $audit,
+        protected BranchPaymentMappingService $branchPayments,
     ) {}
 
     public function isDryRun(): bool
@@ -69,6 +73,33 @@ class ZohoPaymentSyncService
             $locked->sync_attempts = $attemptNumber;
             $locked->zoho_sync_status = Payment::ZOHO_SYNCING;
             $locked->save();
+
+            if (! $effectiveDryRun) {
+                try {
+                    $mapping = $this->branchPayments->assertReadyForLivePayment((int) $locked->branch_id);
+                    $this->snapshotMapping($locked, $mapping);
+                } catch (Throwable $e) {
+                    // forceLive smoke/admin path may use configured default account when mapping is incomplete.
+                    if ($forceLive && trim((string) config('zoho.payments.default_account_id', '')) !== '') {
+                        $this->audit->log('payment.zoho_mapping_fallback_default', $locked, null, [
+                            'error' => $e->getMessage(),
+                        ], $locked->branch_id);
+                    } else {
+                        $locked->zoho_sync_status = Payment::ZOHO_FAILED;
+                        $locked->last_sync_error = $e->getMessage();
+                        $locked->save();
+                        $this->audit->log('payment.zoho_blocked_mapping', $locked, null, [
+                            'error' => $e->getMessage(),
+                        ], $locked->branch_id);
+                        throw $e;
+                    }
+                }
+            } else {
+                $mapping = BranchZohoAccountMapping::query()->where('branch_id', $locked->branch_id)->first();
+                if ($mapping) {
+                    $this->snapshotMapping($locked, $mapping);
+                }
+            }
 
             $payload = $this->buildPayload($locked);
             $started = microtime(true);
@@ -374,8 +405,8 @@ class ZohoPaymentSyncService
             ];
         }
 
-        $mode = $this->resolveZohoPaymentMode($payment);
-        $accountId = $this->resolveDepositAccountId();
+        $mode = $payment->zoho_payment_mode_used ?: $this->resolveZohoPaymentMode($payment);
+        $accountId = $payment->zoho_account_id_snapshot ?: $this->resolveDepositAccountId($payment);
 
         $payload = [
             'customer_id' => $customer?->zoho_contact_id,
@@ -390,12 +421,44 @@ class ZohoPaymentSyncService
         if ($accountId) {
             $payload['account_id'] = $accountId;
         }
+        if ($payment->zoho_location_id_used) {
+            // Zoho Books customer payments typically do not take location_id; snapshot retained for audit.
+        }
+
+        $this->audit->log('payment.zoho_account_selected', $payment, null, [
+            'account_id' => $accountId,
+            'payment_mode' => $mode,
+            'location_id' => $payment->zoho_location_id_used,
+            'mapping_version' => $payment->mapping_version_used,
+        ], $payment->branch_id);
 
         return $payload;
     }
 
-    protected function resolveDepositAccountId(): ?string
+    protected function snapshotMapping(Payment $payment, BranchZohoAccountMapping $mapping): void
     {
+        $config = BranchPaymentConfiguration::query()->where('branch_id', $payment->branch_id)->first();
+        $payment->branch_payment_configuration_id = $config?->id;
+        $payment->zoho_account_id_snapshot = $mapping->zoho_account_id;
+        $payment->zoho_account_name_snapshot = $mapping->zoho_account_name;
+        $payment->zoho_location_id_used = $mapping->zoho_location_id;
+        $payment->zoho_payment_mode_used = $mapping->zoho_payment_mode_name;
+        $payment->mapping_version_used = $mapping->mapping_version;
+        $payment->mapping_validated_at = $mapping->last_validated_at;
+        $payment->save();
+    }
+
+    protected function resolveDepositAccountId(?Payment $payment = null): ?string
+    {
+        if ($payment?->zoho_account_id_snapshot) {
+            return $payment->zoho_account_id_snapshot;
+        }
+        if ($payment?->branch_id) {
+            $mapping = BranchZohoAccountMapping::query()->where('branch_id', $payment->branch_id)->where('is_active', true)->first();
+            if ($mapping?->zoho_account_id) {
+                return $mapping->zoho_account_id;
+            }
+        }
         $configured = trim((string) config('zoho.payments.default_account_id', ''));
         if ($configured !== '') {
             return $configured;

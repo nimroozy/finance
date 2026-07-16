@@ -149,3 +149,11 @@ Authenticated download: `GET /api/v1/receipts/{uuid}/pdf`. Public verify: `GET /
 **Never** run PHPUnit against production Postgres. Prefer `app:stage4-smoke` for VPS checks.
 
 Health: `GET /api/v1/health` and `GET /up`
+
+## Temporary assignment expiry
+
+```bash
+php artisan assignments:expire-temporary
+```
+
+Scheduled hourly. Restores permanent ownership in the work queue.

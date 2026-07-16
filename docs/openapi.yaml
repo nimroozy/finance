@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Collection Management System API
-  version: 1.6.0
+  version: 1.7.0
   license:
     name: Proprietary
     url: https://finance.mns.af
@@ -3253,6 +3253,67 @@ paths:
                 $ref: '#/components/schemas/SuccessEnvelope'
         '401':
           $ref: '#/components/responses/Unauthorized'
+
+  /customer-ownership:
+    get:
+      summary: List permanent ownership rows
+      tags: [Ownership]
+      responses:
+        '200':
+          description: OK
+        '401':
+          description: Unauthorized
+    post:
+      summary: Assign permanent ownership
+      tags: [Ownership]
+      responses:
+        '201':
+          description: Created
+        '401':
+          description: Unauthorized
+  /temporary-assignments:
+    get:
+      summary: List temporary assignments
+      tags: [Ownership]
+      responses:
+        '200':
+          description: OK
+        '401':
+          description: Unauthorized
+    post:
+      summary: Create temporary assignment
+      tags: [Ownership]
+      responses:
+        '201':
+          description: Created
+        '401':
+          description: Unauthorized
+  /branch-payment-mappings:
+    get:
+      summary: List branch Zoho account mappings
+      tags: [Ownership]
+      responses:
+        '200':
+          description: OK
+        '401':
+          description: Unauthorized
+    post:
+      summary: Upsert branch Zoho account mapping
+      tags: [Ownership]
+      responses:
+        '200':
+          description: OK
+        '401':
+          description: Unauthorized
+  /reports/branch-receivables:
+    get:
+      summary: Branch receivables dashboard
+      tags: [Reports]
+      responses:
+        '200':
+          description: OK
+        '401':
+          description: Unauthorized
 
 components:
   securitySchemes:

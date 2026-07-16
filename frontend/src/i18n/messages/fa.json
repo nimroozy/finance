@@ -60,7 +60,14 @@
     "reconciliation": "تطبیق صندوق",
     "zohoStructure": "ساختار زوهو",
     "locationMapping": "نگاشت مکان‌ها",
-    "branchMappings": "نگاشت شعب"
+    "branchMappings": "نگاشت شعب",
+    "customerOwnership": "مالکیت مشتری",
+    "temporaryAssignments": "اختصاص موقت",
+    "ownershipConflicts": "تعارض مالکیت",
+    "branchPaymentMappings": "نگاشت حساب پرداخت شعبه",
+    "branchReceivables": "مطالبات شعب",
+    "permanentCustomers": "مشتریان دائمی",
+    "myDebtors": "بدهکاران جاری"
   },
   "common": {
     "loading": "در حال بارگذاری…",
