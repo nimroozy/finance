@@ -2,6 +2,10 @@
 
 namespace App\Services\Zoho;
 
+use App\Models\Branch;
+use App\Models\Customer;
+use App\Models\CustomerAssignment;
+use App\Models\Payment;
 use App\Models\ZohoBranchMapping;
 use App\Models\ZohoReportingTagMapping;
 
@@ -14,11 +18,31 @@ class ZohoBranchMappingService
      */
     public function resolveBranchId(array $payload): ?int
     {
+        $locationId = $this->extractLocationId($payload);
+        if ($locationId !== null) {
+            $branch = Branch::withoutGlobalScopes()
+                ->where('zoho_location_id', $locationId)
+                ->where('is_active', true)
+                ->first();
+            if ($branch) {
+                return (int) $branch->id;
+            }
+        }
+
         $mappings = ZohoBranchMapping::query()
             ->where('is_active', true)
             ->get();
 
-        foreach ($mappings as $mapping) {
+        $priority = (array) config('zoho.sync.mapping_priority', []);
+        foreach ($mappings->sortBy(function (ZohoBranchMapping $mapping) use ($priority) {
+            $name = $mapping->mapping_method === ZohoBranchMapping::METHOD_REPORTING_TAG
+                ? 'reporting_tag_option'
+                : $mapping->mapping_method;
+
+            $position = array_search($name, $priority, true);
+
+            return $position === false ? 999 : $position;
+        }) as $mapping) {
             if ($mapping->mapping_method === ZohoBranchMapping::METHOD_REPORTING_TAG) {
                 if ($this->matchReportingTag($payload, $mapping->zoho_value)) {
                     return (int) $mapping->branch_id;
@@ -74,6 +98,29 @@ class ZohoBranchMappingService
         }
 
         return null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    public function extractLocationId(array $payload): ?string
+    {
+        $value = $payload['location_id']
+            ?? $payload['location']['location_id']
+            ?? $payload['branch']['location_id']
+            ?? null;
+
+        return filled($value) ? (string) $value : null;
+    }
+
+    public function customerHasBranchConflict(Customer $customer, ?int $newBranchId): bool
+    {
+        if ($customer->branch_id === $newBranchId) {
+            return false;
+        }
+
+        return Payment::withoutGlobalScopes()->where('customer_id', $customer->id)->exists()
+            || CustomerAssignment::withoutGlobalScopes()->where('customer_id', $customer->id)->exists();
     }
 
     /**

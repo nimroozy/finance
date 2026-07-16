@@ -77,10 +77,22 @@ return [
     |--------------------------------------------------------------------------
     */
     'schedule' => [
-        'customer_sync_minutes' => (int) env('ZOHO_CUSTOMER_SYNC_MINUTES', 60),
-        'invoice_sync_minutes' => (int) env('ZOHO_INVOICE_SYNC_MINUTES', 60),
-        'token_refresh_minutes' => (int) env('ZOHO_TOKEN_REFRESH_MINUTES', 30),
+        'customer_sync_minutes' => (int) env('ZOHO_CUSTOMER_SYNC_MINUTES', 15),
+        'invoice_sync_minutes' => (int) env('ZOHO_INVOICE_SYNC_MINUTES', 5),
+        'token_refresh_minutes' => (int) env('ZOHO_TOKEN_REFRESH_MINUTES', 10),
         'retry_failed_minutes' => (int) env('ZOHO_RETRY_FAILED_MINUTES', 15),
+        'structure_sync_minutes' => (int) env('ZOHO_STRUCTURE_SYNC_MINUTES', 360),
+        'full_customer_daily' => (bool) env('ZOHO_FULL_CUSTOMER_DAILY', true),
+        'full_invoice_daily' => (bool) env('ZOHO_FULL_INVOICE_DAILY', true),
+        'nightly_full_hour_utc' => (int) env('ZOHO_NIGHTLY_FULL_HOUR_UTC', 2),
+    ],
+
+    'sync' => [
+        'cursor_overlap_minutes' => (int) env('ZOHO_CURSOR_OVERLAP_MINUTES', 2),
+        'circuit_breaker_threshold' => (int) env('ZOHO_CIRCUIT_BREAKER_THRESHOLD', 3),
+        'circuit_breaker_cooldown_minutes' => (int) env('ZOHO_CIRCUIT_BREAKER_COOLDOWN_MINUTES', 30),
+        'mapping_priority' => ['zoho_location', 'reporting_tag_option', 'custom_field', 'verified_local', 'unmapped'],
+        'chart_of_accounts_page_limit' => (int) env('ZOHO_ACCOUNTS_PAGE_LIMIT', 10),
     ],
 
     'frontend_connected_path' => '/en/zoho?connected=1',

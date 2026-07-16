@@ -333,6 +333,20 @@ export default function ZohoPage() {
         <p className="mb-3 text-sm font-medium text-foreground">{t("links")}</p>
         <div className="flex flex-wrap gap-2">
           <Link
+            href="/zoho/sync-health"
+            className="rounded-md border border-primary bg-primary px-3 py-2 text-sm text-white hover:opacity-90"
+          >
+            {t("syncHealth")}
+          </Link>
+          {canConfigure ? (
+            <Link
+              href="/zoho/branch-mappings"
+              className="rounded-md border border-primary px-3 py-2 text-sm font-medium text-primary hover:bg-sand-soft"
+            >
+              {t("branchMappings")}
+            </Link>
+          ) : null}
+          <Link
             href="/zoho/sync-jobs"
             className="rounded-md border border-border px-3 py-2 text-sm hover:bg-sand-soft"
           >
@@ -344,14 +358,6 @@ export default function ZohoPage() {
           >
             {t("apiLogs")}
           </Link>
-          {canConfigure ? (
-            <Link
-              href="/zoho/branch-mappings"
-              className="rounded-md border border-border px-3 py-2 text-sm hover:bg-sand-soft"
-            >
-              {t("branchMappings")}
-            </Link>
-          ) : null}
           {canConfigure || canManageCustomers ? (
             <Link
               href="/zoho/unmapped"

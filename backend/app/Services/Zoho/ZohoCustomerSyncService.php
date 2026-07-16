@@ -5,6 +5,7 @@ namespace App\Services\Zoho;
 use App\Models\Customer;
 use App\Models\CustomerCustomField;
 use App\Models\ZohoEntityMapping;
+use App\Models\ZohoSyncCursor;
 use App\Models\ZohoSyncJob;
 use Illuminate\Support\Carbon;
 use Throwable;
@@ -30,11 +31,9 @@ class ZohoCustomerSyncService
      */
     public function syncIncremental(?ZohoSyncJob $job = null): array
     {
-        $lastSynced = Customer::withoutGlobalScopes()
-            ->whereNotNull('zoho_modified_at')
-            ->max('zoho_modified_at');
-
-        $since = $lastSynced ? Carbon::parse($lastSynced)->subMinute() : null;
+        $cursor = ZohoSyncCursor::query()->firstOrCreate(['entity' => 'customers']);
+        $since = $cursor->successful_cursor?->copy()
+            ->subMinutes((int) config('zoho.sync.cursor_overlap_minutes', 2));
 
         return $this->sync($since, $job);
     }
@@ -45,53 +44,87 @@ class ZohoCustomerSyncService
     public function sync(?Carbon $lastModifiedTime = null, ?ZohoSyncJob $job = null): array
     {
         $client = $this->api->forSyncJob($job);
-        $stats = ['processed' => 0, 'created' => 0, 'updated' => 0, 'failed' => 0];
+        $cursor = ZohoSyncCursor::query()->firstOrCreate(['entity' => 'customers']);
+        $requestedTo = now()->utc();
+        $stats = [
+            'requested_from' => $lastModifiedTime ? ZohoDateTime::formatQueryTimestamp($lastModifiedTime) : null,
+            'requested_to' => ZohoDateTime::formatQueryTimestamp($requestedTo),
+            'successful_cursor' => $cursor->successful_cursor?->toIso8601String(),
+            'page_count' => 0, 'fetched' => 0, 'processed' => 0, 'created' => 0,
+            'updated' => 0, 'skipped' => 0, 'failed' => 0,
+        ];
         $page = 1;
         $perPage = (int) config('zoho.http.per_page', 200);
         $hasMore = true;
 
-        while ($hasMore) {
-            $query = [
-                'page' => $page,
-                'per_page' => $perPage,
-            ];
+        $cursor->update([
+            'last_requested_from' => $lastModifiedTime,
+            'last_requested_to' => $requestedTo,
+            'last_error' => null,
+        ]);
+        $job?->update(['cursor_from' => $lastModifiedTime, 'cursor_to' => $requestedTo]);
 
-            if ($lastModifiedTime) {
-                $query['last_modified_time'] = $lastModifiedTime->format('Y-m-d\TH:i:sP');
-            }
+        try {
+            while ($hasMore) {
+                $query = [
+                    'page' => $page,
+                    'per_page' => $perPage,
+                ];
 
-            if ($job) {
-                $job->update([
-                    'progress' => ['page' => $page, 'entity' => 'customers'],
-                ]);
-            }
+                if ($lastModifiedTime) {
+                    $query['last_modified_time'] = ZohoDateTime::formatQueryTimestamp($lastModifiedTime);
+                }
 
-            $response = $client->get('contacts', $query, 'customer');
-            $contacts = $response['contacts'] ?? [];
+                if ($job) {
+                    $job->update([
+                        'progress' => array_merge($stats, ['page' => $page, 'entity' => 'customers']),
+                    ]);
+                }
 
-            if (! is_array($contacts)) {
-                $contacts = [];
-            }
+                $response = $client->get('contacts', $query, 'customer');
+                $contacts = $response['contacts'] ?? [];
 
-            foreach ($contacts as $contact) {
-                try {
-                    $result = $this->upsertContact($contact);
-                    $stats['processed']++;
-                    $stats[$result]++;
-                } catch (Throwable $e) {
-                    $stats['processed']++;
-                    $stats['failed']++;
+                if (! is_array($contacts)) {
+                    $contacts = [];
+                }
+                $stats['page_count']++;
+                $stats['fetched'] += count($contacts);
+
+                foreach ($contacts as $contact) {
+                    try {
+                        $result = $this->upsertContact($contact);
+                        $stats['processed']++;
+                        $stats[$result]++;
+                    } catch (Throwable $e) {
+                        $stats['processed']++;
+                        $stats['failed']++;
+                    }
+                }
+
+                $pageContext = $response['page_context'] ?? [];
+                $hasMore = (bool) ($pageContext['has_more_page'] ?? false);
+                $page++;
+
+                if (count($contacts) === 0) {
+                    $hasMore = false;
                 }
             }
-
-            $pageContext = $response['page_context'] ?? [];
-            $hasMore = (bool) ($pageContext['has_more_page'] ?? false);
-            $page++;
-
-            if (count($contacts) === 0) {
-                $hasMore = false;
-            }
+        } catch (Throwable $e) {
+            $cursor->update(['last_error' => $e->getMessage(), 'meta' => $stats]);
+            $job?->update(['progress' => $stats, 'stats' => $stats]);
+            throw $e;
         }
+
+        if ($stats['failed'] === 0) {
+            $cursor->update([
+                'successful_cursor' => $requestedTo,
+                'last_success_at' => now(),
+                'last_error' => null,
+                'meta' => $stats,
+            ]);
+            $stats['successful_cursor'] = ZohoDateTime::formatQueryTimestamp($requestedTo);
+        }
+        $job?->update(['progress' => $stats, 'stats' => $stats]);
 
         return $stats;
     }
@@ -136,8 +169,8 @@ class ZohoCustomerSyncService
                 ? Customer::STATUS_UNMAPPED
                 : $this->mapStatus($contact),
             'reporting_tags' => $contact['reporting_tags'] ?? $contact['tags'] ?? null,
-            'zoho_created_at' => $this->parseZohoDate($contact['created_time'] ?? null),
-            'zoho_modified_at' => $this->parseZohoDate($contact['last_modified_time'] ?? null),
+            'zoho_created_at' => ZohoDateTime::parse($contact['created_time'] ?? null),
+            'zoho_modified_at' => ZohoDateTime::parse($contact['last_modified_time'] ?? null),
             'last_synced_at' => now(),
             'sync_status' => 'synced',
             'is_unmapped' => $isUnmapped,

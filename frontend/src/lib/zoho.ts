@@ -1,10 +1,17 @@
 import { apiFetch, toQuery } from "@/lib/api";
 import type {
+  Branch,
   ZohoApiLog,
+  ZohoAutoMatchResult,
   ZohoBranchMapping,
   ZohoBranchMappingPayload,
+  ZohoCircuitBreaker,
   ZohoDataCenter,
+  ZohoHealth,
+  ZohoLocation,
   ZohoOrganization,
+  ZohoPaymentMode,
+  ZohoReportingTag,
   ZohoReportingTagMapping,
   ZohoStatus,
   ZohoSyncJob,
@@ -13,6 +20,22 @@ import type {
 
 export async function getZohoStatus() {
   return apiFetch<ZohoStatus>("/zoho/status");
+}
+
+export async function getZohoHealth() {
+  return apiFetch<ZohoHealth>("/zoho/health");
+}
+
+export async function listZohoLocations() {
+  return apiFetch<ZohoLocation[]>("/zoho/locations");
+}
+
+export async function listZohoReportingTags() {
+  return apiFetch<ZohoReportingTag[]>("/zoho/reporting-tags");
+}
+
+export async function listZohoPaymentModes() {
+  return apiFetch<ZohoPaymentMode[]>("/zoho/payment-modes");
 }
 
 export async function getZohoDataCenters() {
@@ -55,6 +78,13 @@ export async function selectZohoOrganization(zohoOrgId: string) {
 
 export async function testZohoConnection() {
   return apiFetch<Record<string, unknown>>("/zoho/test", { method: "POST" });
+}
+
+export async function syncZohoStructure() {
+  return apiFetch<{ queued: boolean; sync_job_id: number }>(
+    "/zoho/structure/sync",
+    { method: "POST" },
+  );
 }
 
 export async function triggerZohoSync(
@@ -106,6 +136,56 @@ export async function listZohoApiLogs(page = 1, perPage = 25) {
 
 export async function listZohoBranchMappings() {
   return apiFetch<ZohoBranchMapping[]>("/zoho/branch-mappings");
+}
+
+export async function previewZohoAutoMatch() {
+  return apiFetch<ZohoAutoMatchResult[]>(
+    "/zoho/branch-mappings/preview-auto-match",
+    { method: "POST" },
+  );
+}
+
+export async function applyZohoAutoMatch() {
+  return apiFetch<{ applied: number }>(
+    "/zoho/branch-mappings/apply-auto-match",
+    {
+      method: "POST",
+      body: JSON.stringify({ confirmed: true }),
+    },
+  );
+}
+
+export async function linkBranchLocation(
+  branchId: number,
+  zohoLocationId: string,
+) {
+  return apiFetch<Branch>(`/zoho/branches/${branchId}/link-location`, {
+    method: "POST",
+    body: JSON.stringify({ zoho_location_id: zohoLocationId }),
+  });
+}
+
+export async function importZohoLocationAsBranch(zohoId: string) {
+  return apiFetch<Branch>(`/zoho/locations/${zohoId}/import-as-branch`, {
+    method: "POST",
+  });
+}
+
+export async function resumeZohoCircuit(type: string) {
+  return apiFetch<ZohoCircuitBreaker>(
+    `/zoho/circuit-breakers/${encodeURIComponent(type)}/resume`,
+    { method: "POST" },
+  );
+}
+
+export async function cleanupZohoFailedJobs(apply: boolean) {
+  return apiFetch<{ output: string; applied: boolean }>(
+    "/zoho/failed-jobs/cleanup",
+    {
+      method: "POST",
+      body: JSON.stringify({ apply, only_timestamp: true }),
+    },
+  );
 }
 
 export async function createZohoBranchMapping(

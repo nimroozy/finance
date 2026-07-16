@@ -4,6 +4,7 @@ namespace App\Services\Zoho;
 
 use App\Models\ZohoConnection;
 use App\Models\ZohoSyncJob;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
@@ -83,6 +84,7 @@ class ZohoApiClient
         $maxAttempts = max(1, (int) config('zoho.http.retries', 3));
         $attempt = 0;
         $lastException = null;
+        $refreshedAfterUnauthorized = false;
 
         while ($attempt < $maxAttempts) {
             $attempt++;
@@ -124,6 +126,9 @@ class ZohoApiClient
                 ]);
 
                 if ($response->status() === 429) {
+                    if ($attempt >= $maxAttempts) {
+                        throw $this->apiException($response, $path);
+                    }
                     $retryAfter = (int) ($response->header('Retry-After') ?: 1);
                     usleep(max(1, $retryAfter) * 1_000_000);
 
@@ -136,25 +141,44 @@ class ZohoApiClient
                     continue;
                 }
 
+                if ($response->status() === 401 && ! $refreshedAfterUnauthorized) {
+                    $connection = $this->tokenService->refresh($connection);
+                    $token = $connection->access_token;
+                    $refreshedAfterUnauthorized = true;
+                    $attempt--;
+
+                    continue;
+                }
+
                 if (! $response->successful()) {
-                    throw new RuntimeException(
-                        'Zoho API error ['.$response->status().']: '.$this->logger->sanitize($response->body())
-                    );
+                    throw $this->apiException($response, $path);
                 }
 
                 return is_array($json) ? $json : [];
-            } catch (RuntimeException $e) {
+            } catch (ZohoApiException $e) {
+                throw $e;
+            } catch (ConnectionException $e) {
                 $lastException = $e;
 
                 if ($attempt >= $maxAttempts) {
-                    throw $e;
+                    throw new ZohoApiException(
+                        'Zoho network error: '.$e->getMessage(),
+                        endpoint: $path,
+                        errorClass: 'network',
+                        previous: $e,
+                    );
                 }
 
                 usleep($this->backoffMicros($attempt));
             }
         }
 
-        throw $lastException ?? new RuntimeException('Zoho API request failed.');
+        throw new ZohoApiException(
+            $lastException?->getMessage() ?? 'Zoho API request failed.',
+            endpoint: $path,
+            errorClass: 'network',
+            previous: $lastException,
+        );
     }
 
     protected function backoffMicros(int $attempt): int
@@ -162,5 +186,23 @@ class ZohoApiClient
         $base = (int) config('zoho.http.retry_delay_ms', 500);
 
         return (int) ($base * (2 ** ($attempt - 1)) * 1000);
+    }
+
+    protected function apiException(Response $response, string $endpoint): ZohoApiException
+    {
+        $body = $response->json() ?? $response->body();
+        $message = is_array($body)
+            ? (string) ($body['message'] ?? $body['error'] ?? $response->body())
+            : (string) $body;
+        $errorClass = ZohoErrorClassifier::classify($message, $response->status());
+
+        return new ZohoApiException(
+            'Zoho API error ['.$response->status().']: '.$this->logger->sanitize($message),
+            $response->status(),
+            is_array($body) && isset($body['code']) ? (string) $body['code'] : null,
+            $endpoint,
+            $body,
+            $errorClass,
+        );
     }
 }
