@@ -17,6 +17,16 @@ export interface AuthUser {
   status: UserStatus;
   force_password_change: boolean;
   last_login_at?: string | null;
+  default_app_id?: string | null;
+  ui_preferences?: {
+    locale?: string | null;
+    theme?: "light" | "dark" | "system" | null;
+    default_app_id?: string | null;
+    favorite_app_ids?: string[];
+    recent_app_ids?: string[];
+    date_format?: string | null;
+    calendar_system?: string | null;
+  } | null;
   roles: string[];
   permissions: string[];
   branches: BranchSummary[];

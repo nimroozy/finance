@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { useAuthStore } from "@/store/auth-store";
+import { postLoginPath } from "@/lib/ui-preferences";
 import { LoadingState } from "@/components/ui/layout";
 import { useTranslations } from "next-intl";
 
@@ -17,11 +18,7 @@ export default function LocaleHomePage() {
       router.replace("/login");
       return;
     }
-    if (user.force_password_change) {
-      router.replace("/change-password");
-      return;
-    }
-    router.replace("/dashboard");
+    router.replace(postLoginPath(user));
   }, [hydrated, token, user, router]);
 
   return <LoadingState label={t("loading")} />;

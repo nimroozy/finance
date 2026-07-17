@@ -1,11 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { Modal } from "@/components/ui/modal";
 import { Input } from "@/components/ui/form";
 import { operationsSearch } from "@/lib/operations";
+import { APP_CATALOG, isAppVisible } from "@/config/app-catalog";
+import { useAuthStore } from "@/store/auth-store";
+import { recordRecentApp } from "@/lib/ui-preferences";
 import { cn } from "@/lib/utils";
 
 type Hit = {
@@ -72,12 +75,32 @@ export function CommandMenu({
   onOpenChange: (open: boolean) => void;
 }) {
   const t = useTranslations("opsUi");
+  const tApps = useTranslations("apps");
   const tCommon = useTranslations("common");
   const router = useRouter();
+  const { hasAnyPermission } = useAuthStore();
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<Hit[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const appHits = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (q.length < 1) return [] as Hit[];
+    return APP_CATALOG.filter((app) => isAppVisible(app, hasAnyPermission))
+      .filter((app) => {
+        const name = tApps(app.nameKey).toLowerCase();
+        const desc = tApps(app.descriptionKey).toLowerCase();
+        return app.id.includes(q) || name.includes(q) || desc.includes(q);
+      })
+      .slice(0, 8)
+      .map((app) => ({
+        id: `app-${app.id}`,
+        group: "apps",
+        label: tApps(app.nameKey),
+        href: app.href,
+      }));
+  }, [query, hasAnyPermission, tApps]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -113,7 +136,8 @@ export function CommandMenu({
         .catch(() => {
           if (!cancelled) {
             setHits([]);
-            setError(tCommon("error"));
+            // App hits still usable even if ops search fails
+            setError(null);
           }
         })
         .finally(() => {
@@ -126,6 +150,8 @@ export function CommandMenu({
     };
   }, [open, query, tCommon]);
 
+  const combined = [...appHits, ...hits];
+
   return (
     <Modal open={open} title={t("commandMenuTitle")} onClose={() => onOpenChange(false)}>
       <Input
@@ -135,19 +161,20 @@ export function CommandMenu({
         onChange={(e) => setQuery(e.target.value)}
         placeholder={t("commandMenuPlaceholder")}
         aria-label={t("commandMenuTitle")}
+        data-testid="command-menu-input"
       />
       <div className="mt-3 max-h-72 overflow-y-auto">
-        {loading ? (
+        {loading && hits.length === 0 && appHits.length === 0 ? (
           <p className="px-1 py-3 text-sm text-muted">{tCommon("loading")}</p>
         ) : error ? (
           <p className="px-1 py-3 text-sm text-danger">{error}</p>
-        ) : query.trim().length < 2 ? (
+        ) : query.trim().length < 1 ? (
           <p className="px-1 py-3 text-sm text-muted">{t("commandMenuHint")}</p>
-        ) : hits.length === 0 ? (
+        ) : combined.length === 0 ? (
           <p className="px-1 py-3 text-sm text-muted">{t("noResults")}</p>
         ) : (
-          <ul className="space-y-1">
-            {hits.map((hit) => (
+          <ul className="space-y-1" data-testid="command-menu-results">
+            {combined.map((hit) => (
               <li key={hit.id}>
                 <button
                   type="button"
@@ -156,11 +183,16 @@ export function CommandMenu({
                   )}
                   onClick={() => {
                     onOpenChange(false);
+                    if (hit.id.startsWith("app-")) {
+                      void recordRecentApp(hit.id.replace(/^app-/, ""));
+                    }
                     router.push(hit.href);
                   }}
                 >
                   <span className="font-medium text-foreground">{hit.label}</span>
-                  <span className="text-xs text-muted">{t(hit.group as "tickets")}</span>
+                  <span className="text-xs text-muted">
+                    {hit.group === "apps" ? tApps("group_operations") : t(hit.group as "tickets")}
+                  </span>
                 </button>
               </li>
             ))}

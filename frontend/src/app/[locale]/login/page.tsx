@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { login } from "@/lib/auth";
 import { ApiError } from "@/lib/api";
+import { postLoginPath } from "@/lib/ui-preferences";
 import { useAuthStore } from "@/store/auth-store";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { Button } from "@/components/ui/button";
@@ -26,11 +27,7 @@ export default function LoginPage() {
   useEffect(() => {
     if (!hydrated) return;
     if (token && user) {
-      if (user.force_password_change) {
-        router.replace("/change-password");
-      } else {
-        router.replace("/dashboard");
-      }
+      router.replace(postLoginPath(user));
     }
   }, [hydrated, token, user, router]);
 
@@ -40,11 +37,13 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const data = await login(loginValue.trim(), password);
-      if (data.force_password_change || data.user.force_password_change) {
-        router.replace("/change-password");
-      } else {
-        router.replace("/dashboard");
-      }
+      router.replace(
+        postLoginPath({
+          ...data.user,
+          force_password_change:
+            data.force_password_change || data.user.force_password_change,
+        }),
+      );
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message);
