@@ -31,7 +31,7 @@ Each app defines:
 | `nameKey` / `descriptionKey` | i18n under `apps.*` |
 | Role default order maps | Collector, support, NOC, sales, inventory, manager, admin |
 
-Apps that are not implemented on this branch (e.g. Stage 10 Services) are omitted — no dead cards.
+Stage 10 Services is included on the Stage 10.1 integrated tip (`service_lifecycle` feature flag). Catalog cards remain permission-gated — no dead cards for disabled modules (e.g. Radius).
 
 ## Visibility
 

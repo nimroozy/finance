@@ -49,12 +49,13 @@ Do **not** create a second independent general ledger.
 | Finance | Local finance workflows that sync to Zoho | Partial (collections) |
 | Collections | Assignments, visits, payments, wallets, handovers | Delivered |
 | Zoho Integration | OAuth, sync, mapping, payment push, reconciliation | Delivered |
-| Service Lifecycle | Packages, activation, suspension, contracts, finance holds, read-only billing | **Stage 10 delivered on branch** |
+| Service Lifecycle | Packages, activation, suspension, contracts, finance holds, read-only billing | **Stage 10 delivered; in 10.1 tip** |
 | Radius Integration | Branch-aware adapters, cached views, queued commands | Stage 12 (deferred) |
 | WhatsApp | Cloud API connection, templates, outbound, webhooks | **Stage 6 complete / foundation** |
 | Notifications | Channel orchestration (in-app, WhatsApp, future email/SMS) | Stage 6 foundation |
 | Reporting | Operational and management dashboards | Stage 7 ops dashboards partial; Stage 11 full |
-| Presentation / UX shell | App launcher, preferences, theme, EN/FA RTL shell | **Stage 9.1 delivered on branch** |
+| Presentation / UX shell | App launcher, preferences, theme, EN/FA RTL shell | **Stage 9.1 delivered; in 10.1 tip** |
+| Integrated stable tip | Stages 7–10 + 9.1 unified deploy baseline | **Stage 10.1 tip branch** |
 | Audit | Immutable action history across domains | Delivered |
 
 Detailed contracts: [DOMAIN_BOUNDARIES.md](DOMAIN_BOUNDARIES.md).

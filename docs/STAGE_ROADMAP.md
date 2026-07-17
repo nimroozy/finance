@@ -20,7 +20,9 @@ Unified multi-branch ISP operations so branch staff can work without daily login
 | **7** | **Ticketing, tasks, installation queue** | **Complete / delivered on branch** |
 | **8** | **CRM, sales pipeline, installations handoff** | **In progress / delivered on branch** |
 | **9** | **Inventory, assets, sites, towers** | **In progress / delivered on branch** |
-| **9.1** | **Unified app launcher, bilingual UI, UX shell** | **In progress / delivered on branch** |
+| **9.1** | **Unified app launcher, bilingual UI, UX shell** | **Complete / in 10.1 tip** |
+| **10** | **ISP service lifecycle** | **Complete / in 10.1 tip** |
+| **10.1** | **Integrated stable baseline (7→10 + 9.1)** | **In progress / tip branch** |
 
 ## Stage 6 — WhatsApp & notifications (complete / foundation)
 
@@ -126,7 +128,7 @@ Docs: [APP_LAUNCHER_ARCHITECTURE.md](APP_LAUNCHER_ARCHITECTURE.md), [DESIGN_SYST
 
 ## Stage 10 — ISP Service Lifecycle
 
-**Delivered on branch** `cursor/stage-10-service-lifecycle` (backend + frontend ops workspace).
+**Delivered on branch** `cursor/stage-10-service-lifecycle` (PR #15) and included in integrated tip `cursor/stage-10-1-integrated-stable` (PR #17).
 
 Commercial/operational service lifecycle after installation: packages, locations, activation, suspension, reactivation, cancellation, change requests, relocation, renewals, contracts, finance holds, and Zoho-synced read-only billing views.
 
@@ -139,6 +141,16 @@ Docs: [STAGE_10_SERVICE_LIFECYCLE.md](STAGE_10_SERVICE_LIFECYCLE.md).
 - Zoho remains source of truth for customers / invoices / payments — billing views are read-only from synced data.
 - Radius feature flag stays **false** (deferred to Stage 12).
 - Stage 10 = **Service Lifecycle**; Radius is **not** Stage 10.
+
+---
+
+## Stage 10.1 — Integrated stable baseline
+
+**Tip branch:** `cursor/stage-10-1-integrated-stable` (draft PR #17). Version label: `10.1-integrated-stable`.
+
+Unifies Stages **7 / 7.1 / 8 / 9 / 9.1 / 10** for production deploy. Docs: [STAGE_10_1_INTEGRATED_STABLE.md](STAGE_10_1_INTEGRATED_STABLE.md), [BRANCH_INTEGRATION_HISTORY.md](BRANCH_INTEGRATION_HISTORY.md), [REGRESSION_TEST_MATRIX.md](REGRESSION_TEST_MATRIX.md), [PRODUCTION_SMOKE_TEST.md](PRODUCTION_SMOKE_TEST.md).
+
+**Hard rules:** No Stage 11. No Radius. Preserve superseded PRs #15/#16 for audit (close later as superseded). Do not mutate financial or ledger calculations.
 
 ---
 
