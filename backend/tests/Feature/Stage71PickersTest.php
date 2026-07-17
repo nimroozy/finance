@@ -85,8 +85,12 @@ class Stage71PickersTest extends TestCase
             ->assertJsonStructure([
                 'data' => [
                     'app_name',
+                    'stage',
+                    'git_sha',
                     'commit_sha',
+                    'branch',
                     'build_timestamp',
+                    'deployment_timestamp',
                     'backend_version',
                     'frontend_version',
                     'migration_batch',
@@ -95,10 +99,12 @@ class Stage71PickersTest extends TestCase
                     'laravel_version',
                 ],
             ])
-            ->assertJsonPath('data.backend_version', '7.1');
+            ->assertJsonPath('data.backend_version', '7.1')
+            ->assertJsonPath('data.stage', '10.1-integrated-stable');
 
         $health = $this->getJson('/api/v1/health');
         $this->assertContains($health->status(), [200, 503]);
         $this->assertArrayHasKey('deployment', $health->json('data'));
+        $this->assertSame('10.1-integrated-stable', $health->json('data.deployment.stage'));
     }
 }

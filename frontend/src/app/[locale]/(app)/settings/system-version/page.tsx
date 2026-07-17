@@ -46,10 +46,13 @@ export default function SystemVersionPage() {
           <RecordSummary
             items={[
               { label: t("appName"), value: data.app_name || "—" },
+              { label: t("stage"), value: data.stage || "—" },
               { label: t("backendVersion"), value: data.backend_version || "—" },
               { label: t("frontendVersion"), value: data.frontend_version || "—" },
-              { label: t("commitSha"), value: data.commit_sha || "—" },
+              { label: t("commitSha"), value: data.git_sha || data.commit_sha || "—" },
+              { label: t("branch"), value: data.branch || "—" },
               { label: t("buildTimestamp"), value: data.build_timestamp || "—" },
+              { label: t("deploymentTimestamp"), value: data.deployment_timestamp || "—" },
               { label: t("migrationBatch"), value: data.migration_batch ?? "—" },
               { label: t("latestMigration"), value: data.latest_migration || "—" },
               { label: t("phpVersion"), value: data.php_version || "—" },

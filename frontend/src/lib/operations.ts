@@ -245,8 +245,12 @@ export async function uploadAttachment(params: {
 
 export type SystemVersionInfo = {
   app_name?: string;
+  stage?: string | null;
+  git_sha?: string | null;
   commit_sha?: string | null;
+  branch?: string | null;
   build_timestamp?: string | null;
+  deployment_timestamp?: string | null;
   backend_version?: string | null;
   frontend_version?: string | null;
   migration_batch?: number | null;

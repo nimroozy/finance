@@ -141,10 +141,10 @@ export const APP_CATALOG: CatalogApp[] = [
   },
   {
     id: "noc",
-    href: "/noc/dashboard",
+    href: "/noc/services",
     icon: Radar,
     group: "operations",
-    permissions: ["escalations.view", "dashboard.view"],
+    permissions: ["escalations.view", "dashboard.view", "services.noc.view"],
     nameKey: "noc",
     descriptionKey: "nocDesc",
     matchPrefixes: ["/noc"],
@@ -500,8 +500,8 @@ export const APP_CONTEXT_NAV: Record<string, AppNavItem[]> = {
     { href: "/support/dashboard", labelKey: "supportDashboard", permissions: ["reports.support", "tickets.view"] },
   ],
   noc: [
-    { href: "/noc/dashboard", labelKey: "nocDashboard", permissions: ["escalations.view", "dashboard.view"] },
     { href: "/noc/services", labelKey: "nocServices", permissions: ["services.noc.view", "services.view"] },
+    { href: "/noc/dashboard", labelKey: "nocDashboard", permissions: ["escalations.view", "dashboard.view"] },
   ],
   services: [
     { href: "/services/dashboard", labelKey: "servicesDashboard", permissions: ["services.dashboard.view", "services.view"] },

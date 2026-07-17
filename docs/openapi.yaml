@@ -4259,7 +4259,7 @@ paths:
       operationId: systemVersion
       responses:
         '200':
-          description: app_name, commit_sha, build_timestamp, backend/frontend versions, migration info, php/laravel versions
+          description: app_name, stage (10.1-integrated-stable), git_sha/commit_sha, branch, build_timestamp, deployment_timestamp, backend/frontend versions, migration info, php/laravel versions
 
   /pickers/customers:
     get:
