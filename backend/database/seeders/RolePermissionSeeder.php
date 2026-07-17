@@ -144,6 +144,24 @@ class RolePermissionSeeder extends Seeder
         'departments.manage',
         'ticket_types.manage',
         'task_templates.manage',
+        // Stage 8 — CRM / sales pipeline
+        'crm.leads.view',
+        'crm.leads.create',
+        'crm.leads.update',
+        'crm.leads.assign',
+        'crm.leads.convert',
+        'crm.activities.manage',
+        'crm.follow_ups.manage',
+        'crm.surveys.view',
+        'crm.surveys.manage',
+        'crm.quotations.view',
+        'crm.quotations.create',
+        'crm.quotations.approve',
+        'crm.coverage.manage',
+        'crm.targets.view',
+        'crm.targets.manage',
+        'crm.reports.view',
+        'crm.pipeline.manage',
     ];
 
     public function run(): void
@@ -229,6 +247,11 @@ class RolePermissionSeeder extends Seeder
             'whatsapp.ticket_intake',
             'attachments.upload',
             'escalations.view',
+            // Stage 8
+            'crm.quotations.view', 'crm.quotations.approve',
+            'crm.reports.view',
+            'crm.leads.view',
+            'crm.targets.view',
         ]);
 
         $branchManager->syncPermissions([
@@ -292,6 +315,16 @@ class RolePermissionSeeder extends Seeder
             'whatsapp.ticket_intake', 'whatsapp.staff_actions',
             'departments.manage',
             'whatsapp.view',
+            // Stage 8 — broad CRM / sales
+            'crm.leads.view', 'crm.leads.create', 'crm.leads.update', 'crm.leads.assign', 'crm.leads.convert',
+            'crm.activities.manage',
+            'crm.follow_ups.manage',
+            'crm.surveys.view', 'crm.surveys.manage',
+            'crm.quotations.view', 'crm.quotations.create', 'crm.quotations.approve',
+            'crm.coverage.manage',
+            'crm.targets.view', 'crm.targets.manage',
+            'crm.reports.view',
+            'crm.pipeline.manage',
         ]);
 
         $collector->syncPermissions([
@@ -360,6 +393,12 @@ class RolePermissionSeeder extends Seeder
             'installations.view',
             'reports.support', 'reports.technical', 'reports.management',
             'whatsapp.view',
+            // Stage 8 — view + reports
+            'crm.leads.view',
+            'crm.surveys.view',
+            'crm.quotations.view',
+            'crm.targets.view',
+            'crm.reports.view',
         ]);
     }
 }
