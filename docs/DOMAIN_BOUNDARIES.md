@@ -13,13 +13,13 @@ Each domain owns its tables, services, permissions, API resources, domain events
 
 ## Identity
 
-**Owns:** users, roles, permissions, sessions, password policy, department memberships (future).
+**Owns:** users, roles, permissions, sessions, password policy, department memberships (future), **per-user UI preferences** (Stage 9.1: theme, locale hint, favorite/recent apps, default landing app).
 
-**Exposes:** auth APIs, `/users`, `/roles`.
+**Exposes:** auth APIs, `/users`, `/roles`, `/me/ui-preferences*`.
 
 **Events:** `UserCreated`, `UserDeactivated`, `RoleChanged`.
 
-**Must not:** call Zoho/Radius/WhatsApp directly for account creation side effects — emit notification intents.
+**Must not:** call Zoho/Radius/WhatsApp directly for account creation side effects — emit notification intents. UI preferences must not grant permissions.
 
 ---
 
@@ -173,11 +173,13 @@ Docs: [TOWER_SITE_ASSET_MODEL.md](TOWER_SITE_ASSET_MODEL.md), [CUSTOMER_SERVICE_
 
 ---
 
-## Radius Integration (Stage 10)
+## Radius Integration (Stage 10 — separate branch)
 
 **Owns:** branch adapter configs, cached subscriber views, command queue, package/customer mappings, health checks.
 
 **Must not:** block page loads on live Radius DB connectivity — use cache + async commands.
+
+**Note:** Stage 10 service lifecycle / Radius work ships on its own branch. It is **not** part of Stage 9.1 (`cursor/stage-9-1-unified-app-ui`).
 
 ---
 

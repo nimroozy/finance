@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\AssignmentController;
 use App\Http\Controllers\Api\V1\AuditLogController;
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\UserUiPreferenceController;
 use App\Http\Controllers\Api\V1\BranchController;
 use App\Http\Controllers\Api\V1\CashboxController;
 use App\Http\Controllers\Api\V1\CashboxTransferController;
@@ -72,6 +73,15 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
             Route::get('/me', [AuthController::class, 'me'])->name('me');
             Route::post('/change-password', [AuthController::class, 'changePassword'])->name('change-password');
+        });
+
+        Route::prefix('me')->name('me.')->group(function () {
+            Route::get('/ui-preferences', [UserUiPreferenceController::class, 'show'])->name('ui-preferences.show');
+            Route::put('/ui-preferences', [UserUiPreferenceController::class, 'update'])->name('ui-preferences.update');
+            Route::put('/ui-preferences/favorites/reorder', [UserUiPreferenceController::class, 'reorderFavorites'])->name('ui-preferences.favorites.reorder');
+            Route::post('/ui-preferences/favorites/{appId}', [UserUiPreferenceController::class, 'addFavorite'])->name('ui-preferences.favorites.add');
+            Route::delete('/ui-preferences/favorites/{appId}', [UserUiPreferenceController::class, 'removeFavorite'])->name('ui-preferences.favorites.remove');
+            Route::post('/ui-preferences/recent/{appId}', [UserUiPreferenceController::class, 'recordRecent'])->name('ui-preferences.recent');
         });
 
         Route::get('/dashboard/summary', [DashboardController::class, 'summary'])->name('dashboard.summary');
