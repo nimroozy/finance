@@ -57,14 +57,58 @@ class AttachmentController extends Controller
         ], null, 201);
     }
 
+    public function forTicket(int $id): JsonResponse
+    {
+        $ticket = Ticket::query()->findOrFail($id);
+        $this->authorize('view', $ticket);
+
+        return ApiResponse::success($this->summarize($ticket->attachments()->orderByDesc('id')->get()));
+    }
+
+    public function forTask(int $id): JsonResponse
+    {
+        $task = Task::query()->findOrFail($id);
+        $this->authorize('view', $task);
+
+        return ApiResponse::success($this->summarize($task->attachments()->orderByDesc('id')->get()));
+    }
+
     public function download(Request $request, string $attachment): StreamedResponse|JsonResponse
     {
-        if (! $request->hasValidSignature()) {
+        $model = OperationalAttachment::query()->where('uuid', $attachment)->firstOrFail();
+
+        if ($request->hasValidSignature()) {
+            return Storage::disk($model->disk)->download($model->path, $model->original_name);
+        }
+
+        $user = $request->user('sanctum') ?? Auth::guard('sanctum')->user();
+        if (! $user) {
             return ApiResponse::error('Invalid or expired download link.', [], 403);
         }
 
-        $model = OperationalAttachment::query()->where('uuid', $attachment)->firstOrFail();
+        Auth::setUser($user);
+        $this->authorize('view', $model);
 
         return Storage::disk($model->disk)->download($model->path, $model->original_name);
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, OperationalAttachment>  $attachments
+     * @return list<array<string, mixed>>
+     */
+    private function summarize($attachments): array
+    {
+        return $attachments->map(fn (OperationalAttachment $a) => [
+            'id' => $a->id,
+            'uuid' => $a->uuid,
+            'original_name' => $a->original_name,
+            'mime' => $a->mime,
+            'size' => $a->size,
+            'kind' => $a->kind,
+            'virus_scan_status' => $a->virus_scan_status,
+            'uploaded_by' => $a->uploaded_by,
+            'created_at' => optional($a->created_at)?->toIso8601String(),
+            'download_url' => $this->attachments->temporaryDownloadUrl($a),
+        ])->values()->all();
     }
 }

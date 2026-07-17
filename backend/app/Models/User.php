@@ -74,6 +74,13 @@ class User extends Authenticatable
         return $this->belongsToMany(Branch::class)->withTimestamps();
     }
 
+    public function departments(): BelongsToMany
+    {
+        return $this->belongsToMany(\App\Models\Org\Department::class)
+            ->withPivot('is_lead')
+            ->withTimestamps();
+    }
+
     public function collector(): HasOne
     {
         return $this->hasOne(Collector::class);

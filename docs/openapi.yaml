@@ -3753,8 +3753,23 @@ paths:
       parameters:
         - { in: query, name: branch_id, schema: { type: integer } }
         - { in: query, name: status, schema: { type: string } }
+        - { in: query, name: priority, schema: { type: string } }
         - { in: query, name: type_code, schema: { type: string } }
         - { in: query, name: customer_id, schema: { type: integer } }
+        - { in: query, name: department_id, schema: { type: integer } }
+        - { in: query, name: team_id, schema: { type: integer } }
+        - { in: query, name: assignee_id, schema: { type: integer } }
+        - { in: query, name: source, schema: { type: string } }
+        - { in: query, name: sla_state, schema: { type: string, enum: [ok, at_risk, breached, paused] } }
+        - { in: query, name: search, schema: { type: string } }
+        - { in: query, name: created_from, schema: { type: string, format: date } }
+        - { in: query, name: created_to, schema: { type: string, format: date } }
+        - { in: query, name: updated_from, schema: { type: string, format: date } }
+        - { in: query, name: updated_to, schema: { type: string, format: date } }
+        - { in: query, name: overdue, schema: { type: boolean } }
+        - { in: query, name: unassigned, schema: { type: boolean } }
+        - { in: query, name: major_incident_id, schema: { type: integer } }
+        - { in: query, name: sort, schema: { type: string } }
         - { in: query, name: per_page, schema: { type: integer, default: 15 } }
       responses:
         '200': { description: Paginated ticket list }
@@ -3783,7 +3798,8 @@ paths:
       parameters:
         - $ref: '#/components/parameters/IdPath'
       responses:
-        '200': { description: Ticket detail }
+        '200':
+          description: Ticket detail including allowed_transitions, tasks, attachments_summary, recent_work_logs, watchers, sla_state, open_related
         '404': { $ref: '#/components/responses/NotFound' }
     put:
       tags: [Tickets]
@@ -3951,6 +3967,15 @@ paths:
         - { in: query, name: branch_id, schema: { type: integer } }
         - { in: query, name: status, schema: { type: string } }
         - { in: query, name: ticket_id, schema: { type: integer } }
+        - { in: query, name: installation_id, schema: { type: integer } }
+        - { in: query, name: type, schema: { type: string, enum: [field, office] } }
+        - { in: query, name: assignee_id, schema: { type: integer } }
+        - { in: query, name: department_id, schema: { type: integer } }
+        - { in: query, name: search, schema: { type: string } }
+        - { in: query, name: my, schema: { type: boolean } }
+        - { in: query, name: overdue, schema: { type: boolean } }
+        - { in: query, name: today, schema: { type: boolean } }
+        - { in: query, name: unassigned, schema: { type: boolean } }
         - { in: query, name: per_page, schema: { type: integer, default: 15 } }
       responses:
         '200': { description: Paginated task list }
@@ -4186,10 +4211,28 @@ paths:
                 kind: { type: string, nullable: true }
       responses:
         '201': { description: Attachment uploaded with signed download URL }
+  /tickets/{id}/attachments:
+    get:
+      tags: [Attachments]
+      summary: List ticket attachments
+      operationId: listTicketAttachments
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200': { description: Attachment summary list with download URLs }
+  /tasks/{id}/attachments:
+    get:
+      tags: [Attachments]
+      summary: List task attachments
+      operationId: listTaskAttachments
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200': { description: Attachment summary list with download URLs }
   /attachments/{attachment}/download:
     get:
       tags: [Attachments]
-      summary: Download attachment (signed URL)
+      summary: Download attachment (signed URL or authenticated)
       operationId: downloadAttachment
       security: []
       parameters:
@@ -4202,7 +4245,63 @@ paths:
         - { in: query, name: expires, schema: { type: integer } }
       responses:
         '200': { description: File stream }
-        '403': { description: Invalid or expired signature }
+        '403': { description: Invalid or expired signature / unauthorized }
+
+  /system/version:
+    get:
+      tags: [System]
+      summary: Deployment metadata
+      operationId: systemVersion
+      responses:
+        '200':
+          description: app_name, commit_sha, build_timestamp, backend/frontend versions, migration info, php/laravel versions
+
+  /pickers/customers:
+    get:
+      tags: [Pickers]
+      summary: Lightweight customer search for forms
+      operationId: pickerCustomers
+      parameters:
+        - { in: query, name: q, schema: { type: string } }
+        - { in: query, name: branch_id, schema: { type: integer } }
+      responses:
+        '200': { description: Customer picker rows }
+  /pickers/users:
+    get:
+      tags: [Pickers]
+      summary: Lightweight user/assignee search (tickets.assign or tasks.assign)
+      operationId: pickerUsers
+      parameters:
+        - { in: query, name: q, schema: { type: string } }
+        - { in: query, name: branch_id, schema: { type: integer } }
+        - { in: query, name: department_id, schema: { type: integer } }
+      responses:
+        '200': { description: User picker rows }
+  /pickers/departments:
+    get:
+      tags: [Pickers]
+      summary: Department picker
+      operationId: pickerDepartments
+      parameters:
+        - { in: query, name: branch_id, schema: { type: integer } }
+      responses:
+        '200': { description: Department picker rows }
+  /pickers/teams:
+    get:
+      tags: [Pickers]
+      summary: Team picker
+      operationId: pickerTeams
+      parameters:
+        - { in: query, name: department_id, schema: { type: integer } }
+      responses:
+        '200': { description: Team picker rows }
+  /pickers/branches:
+    get:
+      tags: [Pickers]
+      summary: Branch picker (scoped to caller)
+      operationId: pickerBranches
+      responses:
+        '200': { description: Branch picker rows }
 
   /sla-policies:
     get:
@@ -4306,6 +4405,9 @@ paths:
       parameters:
         - { in: query, name: branch_id, schema: { type: integer } }
         - { in: query, name: status, schema: { type: string } }
+        - { in: query, name: search, schema: { type: string } }
+        - { in: query, name: salesperson_id, schema: { type: integer } }
+        - { in: query, name: technician_id, schema: { type: integer } }
         - { in: query, name: per_page, schema: { type: integer, default: 15 } }
       responses:
         '200': { description: Paginated installation list }

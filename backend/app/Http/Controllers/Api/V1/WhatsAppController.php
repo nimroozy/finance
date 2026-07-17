@@ -113,7 +113,7 @@ class WhatsAppController extends Controller
         $this->authorizeConversation($request->user(), $conversation);
         $conversation->load([
             'inboundMessages' => fn ($q) => $q->orderBy('received_at'),
-            'customer:id,name,mobile,phone',
+            'customer:id,contact_name,mobile,phone',
         ]);
 
         return ApiResponse::success($conversation);

@@ -45,6 +45,9 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('v1')->name('api.v1.')->group(function () {
     Route::get('/health', HealthController::class)->name('health');
 
+    Route::get('/attachments/{attachment}/download', [\App\Http\Controllers\Api\V1\AttachmentController::class, 'download'])
+        ->name('attachments.download');
+
     Route::get('/whatsapp/webhook', [WhatsAppWebhookController::class, 'verify'])
         ->middleware('throttle:60,1')->name('whatsapp.webhook.verify');
     Route::post('/whatsapp/webhook', [WhatsAppWebhookController::class, 'receive'])
@@ -72,6 +75,17 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         });
 
         Route::get('/dashboard/summary', [DashboardController::class, 'summary'])->name('dashboard.summary');
+
+        Route::get('/system/version', \App\Http\Controllers\Api\V1\SystemVersionController::class)
+            ->name('system.version');
+
+        Route::prefix('pickers')->name('pickers.')->group(function () {
+            Route::get('/customers', [\App\Http\Controllers\Api\V1\PickerController::class, 'customers'])->name('customers');
+            Route::get('/users', [\App\Http\Controllers\Api\V1\PickerController::class, 'users'])->name('users');
+            Route::get('/departments', [\App\Http\Controllers\Api\V1\PickerController::class, 'departments'])->name('departments');
+            Route::get('/teams', [\App\Http\Controllers\Api\V1\PickerController::class, 'teams'])->name('teams');
+            Route::get('/branches', [\App\Http\Controllers\Api\V1\PickerController::class, 'branches'])->name('branches');
+        });
 
         Route::middleware('permission:users.manage|users.view')->group(function () {
             Route::get('/users', [UserController::class, 'index'])->name('users.index');
@@ -496,6 +510,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         Route::middleware('permission:tickets.view|tickets.view_all_branch|tickets.view_all')->group(function () {
             Route::get('/tickets', [\App\Http\Controllers\Api\V1\TicketController::class, 'index'])->name('tickets.index');
             Route::get('/tickets/{id}', [\App\Http\Controllers\Api\V1\TicketController::class, 'show'])->whereNumber('id')->name('tickets.show');
+            Route::get('/tickets/{id}/attachments', [\App\Http\Controllers\Api\V1\AttachmentController::class, 'forTicket'])->whereNumber('id')->name('tickets.attachments');
         });
         Route::middleware('permission:tickets.create')->post('/tickets', [\App\Http\Controllers\Api\V1\TicketController::class, 'store'])->name('tickets.store');
         Route::middleware('permission:tickets.update')->group(function () {
@@ -518,6 +533,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::get('/tasks', [\App\Http\Controllers\Api\V1\TaskController::class, 'index'])->name('tasks.index');
             Route::get('/tasks/my', [\App\Http\Controllers\Api\V1\TaskController::class, 'my'])->name('tasks.my');
             Route::get('/tasks/{id}', [\App\Http\Controllers\Api\V1\TaskController::class, 'show'])->whereNumber('id')->name('tasks.show');
+            Route::get('/tasks/{id}/attachments', [\App\Http\Controllers\Api\V1\AttachmentController::class, 'forTask'])->whereNumber('id')->name('tasks.attachments');
         });
         Route::middleware('permission:tasks.create')->post('/tasks', [\App\Http\Controllers\Api\V1\TaskController::class, 'store'])->name('tasks.store');
         Route::middleware('permission:tasks.assign')->post('/tasks/{id}/offer', [\App\Http\Controllers\Api\V1\TaskController::class, 'offer'])->whereNumber('id')->name('tasks.offer');
@@ -543,8 +559,6 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         });
 
         Route::middleware('permission:attachments.upload')->post('/attachments', [\App\Http\Controllers\Api\V1\AttachmentController::class, 'upload'])->name('attachments.upload');
-        Route::get('/attachments/{attachment}/download', [\App\Http\Controllers\Api\V1\AttachmentController::class, 'download'])
-            ->name('attachments.download');
 
         Route::middleware('permission:sla.manage|tickets.view')->get('/sla-policies', [\App\Http\Controllers\Api\V1\SlaPolicyController::class, 'index'])->name('sla-policies.index');
         Route::middleware('permission:sla.manage')->group(function () {

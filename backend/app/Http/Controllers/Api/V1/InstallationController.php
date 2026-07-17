@@ -21,15 +21,37 @@ class InstallationController extends Controller
         $this->authorize('viewAny', Installation::class);
         $user = Auth::user();
 
-        $query = Installation::query();
+        $query = Installation::query()->with([
+            'customer:id,customer_number,contact_name,phone',
+            'salesperson:id,name',
+            'technician:id,name',
+        ]);
         if (! $user->isSuperAdmin() && ! $user->isCentralFinanceAdmin()) {
             $query->whereIn('branch_id', $user->branchIds());
         }
 
-        $page = $query
+        $query
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))
-            ->orderByDesc('id')
-            ->paginate($request->integer('per_page', 15));
+            ->when($request->filled('branch_id'), fn ($q) => $q->where('branch_id', $request->integer('branch_id')))
+            ->when($request->filled('salesperson_id'), fn ($q) => $q->where('salesperson_id', $request->integer('salesperson_id')))
+            ->when($request->filled('technician_id'), fn ($q) => $q->where('technician_id', $request->integer('technician_id')));
+
+        if ($request->filled('search')) {
+            $term = '%'.$request->string('search').'%';
+            $query->where(function ($q) use ($term) {
+                $q->where('installation_number', 'like', $term)
+                    ->orWhere('prospect_name', 'like', $term)
+                    ->orWhere('contact_name', 'like', $term)
+                    ->orWhere('phone', 'like', $term)
+                    ->orWhere('address', 'like', $term)
+                    ->orWhereHas('customer', function ($cq) use ($term) {
+                        $cq->where('contact_name', 'like', $term)
+                            ->orWhere('customer_number', 'like', $term);
+                    });
+            });
+        }
+
+        $page = $query->orderByDesc('id')->paginate($request->integer('per_page', 15));
 
         return ApiResponse::paginated(
             $page->through(fn (Installation $i) => (new InstallationResource($i))->resolve())
@@ -41,7 +63,19 @@ class InstallationController extends Controller
         $installation = Installation::with('tasks')->findOrFail($id);
         $this->authorize('view', $installation);
 
-        return ApiResponse::success(new InstallationResource($installation));
+        $payload = (new InstallationResource($installation))->resolve();
+        $payload['allowed_transitions'] = collect(Installation::allowedTransitions()[$installation->status] ?? [])
+            ->map(fn (string $status) => [
+                'status' => $status,
+                'label' => \Illuminate\Support\Str::of($status)->replace('_', ' ')->title()->toString(),
+                'requires_reason' => $status === Installation::STATUS_CANCELLED,
+                'required_fields' => [],
+                'permission' => 'installations.update',
+            ])
+            ->values()
+            ->all();
+
+        return ApiResponse::success($payload);
     }
 
     public function store(Request $request): JsonResponse

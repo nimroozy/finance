@@ -205,9 +205,9 @@ class TicketService
         return $this->transitions->transition($ticket, Ticket::STATUS_REOPENED, $actor, $reason, 'reopen');
     }
 
-    public function transition(Ticket $ticket, string $toStatus, ?User $actor = null, ?string $reason = null, ?string $source = null): Ticket
+    public function transition(Ticket $ticket, string $toStatus, ?User $actor = null, ?string $reason = null, ?string $source = null, ?string $comment = null): Ticket
     {
-        return $this->transitions->transition($ticket, $toStatus, $actor, $reason, $source);
+        return $this->transitions->transition($ticket, $toStatus, $actor, $reason, $source, $comment);
     }
 
     /**
