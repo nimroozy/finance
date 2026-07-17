@@ -1303,11 +1303,21 @@
     "emptyWorkspace": "Nothing here yet.",
     "errorWorkspace": "Could not load this workspace.",
     "commandMenuTitle": "Operations search",
-    "commandMenuPlaceholder": "Search tickets, tasks, installations…",
+    "commandMenuPlaceholder": "Search customers, services, tickets, inventory…",
     "commandMenuHint": "Type at least 2 characters",
     "tickets": "Tickets",
     "tasks": "Tasks",
     "installations": "Installations",
+    "customers": "Customers",
+    "services": "Services",
+    "leads": "Leads",
+    "payments": "Payments",
+    "products": "Products",
+    "equipment": "Equipment",
+    "transfers": "Transfers",
+    "sites": "Sites",
+    "towers": "Towers",
+    "users": "Users",
     "attachments": "Attachments",
     "upload": "Upload",
     "refresh": "Refresh",
@@ -1996,6 +2006,9 @@
     "forbiddenTitle": "Access denied",
     "forbiddenBody": "You do not have permission to open this page.",
     "backToApps": "Back to apps",
-    "errorTitle": "Something went wrong"
+    "errorTitle": "Something went wrong",
+    "expandSidebar": "Expand sidebar",
+    "collapseSidebar": "Collapse sidebar",
+    "navLabel": "Navigation"
   }
 }

@@ -120,7 +120,11 @@ export default function ServiceDetailPage() {
         listServiceLocations({ customer_id: customerId, per_page: 100 }).catch(() => null),
         getActivationChecklist(id).catch(() => null),
       ]);
-      if (checklistRes) setChecklist(checklistRes.data);
+      if (checklistRes?.data && typeof checklistRes.data === "object" && "checklist" in checklistRes.data) {
+        setChecklist(checklistRes.data);
+      } else {
+        setChecklist(null);
+      }
       if (billingRes) setBilling(billingRes.data);
       if (timelineRes) setTimeline(timelineRes.data);
       if (equipRes) {
@@ -370,7 +374,7 @@ export default function ServiceDetailPage() {
         <div className="grid gap-4 lg:grid-cols-2">
           <Panel className="space-y-4 p-4" data-testid="activation-checklist">
             <h3 className="text-sm font-semibold">{t("activationChecklistTitle")}</h3>
-            {checklist ? (
+            {checklist?.checklist ? (
               <ul className="space-y-2 text-sm">
                 {ACTIVATION_CHECKLIST.map((key) => (
                   <li key={key} className="flex items-center justify-between gap-2">
@@ -487,31 +491,33 @@ export default function ServiceDetailPage() {
           {!canChange ? (
             <Alert tone="danger">{t("permissionDenied")}</Alert>
           ) : (
-            <Alert>{t("changeWizardHint")} · step {changeStep}</Alert>
-            <form className="grid max-w-lg gap-3" onSubmit={onChangePackage}>
-              <label className="block space-y-1">
-                <span className="text-sm font-medium">{t("fields.package")}</span>
-                <Select
-                  value={changePackageId}
-                  onChange={(e) => setChangePackageId(e.target.value)}
-                  data-testid="change-package"
-                >
-                  <option value="">{t("fields.selectPackage")}</option>
-                  {packages.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.code} — {p.name}
-                    </option>
-                  ))}
-                </Select>
-              </label>
-              <label className="block space-y-1">
-                <span className="text-sm font-medium">{t("fields.reason")}</span>
-                <Input value={changeReason} onChange={(e) => setChangeReason(e.target.value)} />
-              </label>
-              <Button type="submit" disabled={busy || !changePackageId}>
-                {t("actions.submitChange")}
-              </Button>
-            </form>
+            <>
+              <Alert>{t("changeWizardHint")} · step {changeStep}</Alert>
+              <form className="grid max-w-lg gap-3" onSubmit={onChangePackage}>
+                <label className="block space-y-1">
+                  <span className="text-sm font-medium">{t("fields.package")}</span>
+                  <Select
+                    value={changePackageId}
+                    onChange={(e) => setChangePackageId(e.target.value)}
+                    data-testid="change-package"
+                  >
+                    <option value="">{t("fields.selectPackage")}</option>
+                    {packages.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.code} — {p.name}
+                      </option>
+                    ))}
+                  </Select>
+                </label>
+                <label className="block space-y-1">
+                  <span className="text-sm font-medium">{t("fields.reason")}</span>
+                  <Input value={changeReason} onChange={(e) => setChangeReason(e.target.value)} />
+                </label>
+                <Button type="submit" disabled={busy || !changePackageId}>
+                  {t("actions.submitChange")}
+                </Button>
+              </form>
+            </>
           )}
         </Panel>
       ) : null}
@@ -521,27 +527,29 @@ export default function ServiceDetailPage() {
           {!canRelocate ? (
             <Alert tone="danger">{t("permissionDenied")}</Alert>
           ) : (
-            <Alert>{t("relocateWizardHint")} · step {relocateStep}</Alert>
-            <form className="grid max-w-lg gap-3" onSubmit={onRelocate}>
-              <label className="block space-y-1">
-                <span className="text-sm font-medium">{t("fields.location")}</span>
-                <Select
-                  value={relocateLocationId}
-                  onChange={(e) => setRelocateLocationId(e.target.value)}
-                  data-testid="relocate-location"
-                >
-                  <option value="">{t("fields.selectLocation")}</option>
-                  {locations.map((loc) => (
-                    <option key={loc.id} value={loc.id}>
-                      {loc.name}
-                    </option>
-                  ))}
-                </Select>
-              </label>
-              <Button type="submit" disabled={busy || !relocateLocationId}>
-                {t("actions.submitRelocate")}
-              </Button>
-            </form>
+            <>
+              <Alert>{t("relocateWizardHint")} · step {relocateStep}</Alert>
+              <form className="grid max-w-lg gap-3" onSubmit={onRelocate}>
+                <label className="block space-y-1">
+                  <span className="text-sm font-medium">{t("fields.location")}</span>
+                  <Select
+                    value={relocateLocationId}
+                    onChange={(e) => setRelocateLocationId(e.target.value)}
+                    data-testid="relocate-location"
+                  >
+                    <option value="">{t("fields.selectLocation")}</option>
+                    {locations.map((loc) => (
+                      <option key={loc.id} value={loc.id}>
+                        {loc.name}
+                      </option>
+                    ))}
+                  </Select>
+                </label>
+                <Button type="submit" disabled={busy || !relocateLocationId}>
+                  {t("actions.submitRelocate")}
+                </Button>
+              </form>
+            </>
           )}
         </Panel>
       ) : null}

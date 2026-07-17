@@ -599,7 +599,8 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         Route::middleware('permission:installations.view|dashboard.view')->get('/operations/dashboard/finance', [\App\Http\Controllers\Api\V1\OperationsDashboardController::class, 'finance'])->name('operations.dashboard.finance');
         Route::middleware('permission:dashboard.view')->get('/operations/dashboard/manager', [\App\Http\Controllers\Api\V1\OperationsDashboardController::class, 'manager'])->name('operations.dashboard.manager');
 
-        Route::middleware('permission:tickets.view|tasks.view|installations.view')->get('/operations/search', \App\Http\Controllers\Api\V1\OperationsSearchController::class)->name('operations.search');
+        Route::middleware('permission:tickets.view|tasks.view|installations.view|customers.view|services.view|crm.leads.view|payments.view|inventory.products.view|inventory.equipment.view|inventory.transfers.view|inventory.sites.view|inventory.towers.view|users.view')->get('/operations/search', \App\Http\Controllers\Api\V1\OperationsSearchController::class)->name('operations.search');
+        Route::get('/apps/counts', \App\Http\Controllers\Api\V1\Apps\AppCountsController::class)->name('apps.counts');
         Route::middleware('permission:tickets.view')->get('/operations/reports/tickets', [\App\Http\Controllers\Api\V1\OperationsReportController::class, 'tickets'])->name('operations.reports.tickets');
         Route::middleware('permission:tasks.view')->get('/operations/reports/tasks', [\App\Http\Controllers\Api\V1\OperationsReportController::class, 'tasks'])->name('operations.reports.tasks');
         Route::middleware('permission:tickets.view|customers.view')->get('/customers/{customer}/timeline', [\App\Http\Controllers\Api\V1\CustomerTimelineController::class, 'show'])->whereNumber('customer')->name('customers.timeline');

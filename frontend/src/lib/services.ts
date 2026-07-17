@@ -100,7 +100,23 @@ export type IspService = {
   site_id?: number | null;
   customer?: ServiceCustomerRef | null;
   package?: ServicePackageRef | null;
+  package_version?: Record<string, unknown> | null;
   location?: ServiceLocationRef | null;
+  installation?: Record<string, unknown> | null;
+  sla?: Record<string, unknown> | null;
+  sla_template?: Record<string, unknown> | null;
+  equipment_summary?: {
+    total: number;
+    installed: number;
+    returned: number;
+    by_status: Record<string, number>;
+  };
+  technical_owner_id?: number | null;
+  sales_owner_id?: number | null;
+  support_owner_id?: number | null;
+  zoho_customer_id?: string | null;
+  start_date?: string | null;
+  reactivation_date?: string | null;
   allowed_commercial_transitions?: string[];
   allowed_operational_transitions?: string[];
   created_at?: string;

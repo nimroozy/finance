@@ -1303,11 +1303,21 @@
     "emptyWorkspace": "هنوز موردی نیست.",
     "errorWorkspace": "بارگذاری این فضای کاری ممکن نشد.",
     "commandMenuTitle": "جستجوی عملیات",
-    "commandMenuPlaceholder": "جستجوی تیکت، وظیفه، نصب…",
+    "commandMenuPlaceholder": "جستجوی مشتری، سرویس، تیکت، انبار…",
     "commandMenuHint": "حداقل ۲ نویسه وارد کنید",
     "tickets": "تیکت‌ها",
     "tasks": "وظایف",
     "installations": "نصب‌ها",
+    "customers": "مشتریان",
+    "services": "سرویس‌ها",
+    "leads": "سرنخ‌ها",
+    "payments": "پرداخت‌ها",
+    "products": "محصولات",
+    "equipment": "تجهیزات",
+    "transfers": "انتقال‌ها",
+    "sites": "سایت‌ها",
+    "towers": "دکل‌ها",
+    "users": "کاربران",
     "attachments": "پیوست‌ها",
     "upload": "بارگذاری",
     "refresh": "بازخوانی",
@@ -1996,6 +2006,9 @@
     "forbiddenTitle": "دسترسی مجاز نیست",
     "forbiddenBody": "مجوز باز کردن این صفحه را ندارید.",
     "backToApps": "بازگشت به برنامه‌ها",
-    "errorTitle": "خطایی رخ داد"
+    "errorTitle": "خطایی رخ داد",
+    "expandSidebar": "گسترش نوار کناری",
+    "collapseSidebar": "جمع کردن نوار کناری",
+    "navLabel": "ناوبری"
   }
 }

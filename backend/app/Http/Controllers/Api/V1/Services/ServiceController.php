@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Services;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\Api\V1\ServiceResource;
 use App\Models\Services\Service;
 use App\Models\Services\ServiceCancellation;
 use App\Models\Services\ServiceChangeRequest;
@@ -56,7 +57,10 @@ class ServiceController extends Controller
 
     public function show(int $id): JsonResponse
     {
-        $service = Service::with(['package', 'packageVersion', 'location', 'customer', 'slaTemplate'])->findOrFail($id);
+        $service = Service::with([
+            'package', 'packageVersion', 'location', 'customer', 'slaTemplate',
+            'installation', 'technicalOwner', 'salesOwner', 'supportOwner',
+        ])->findOrFail($id);
         $this->authorize('view', $service);
         $payload = $this->serialize($service);
         $payload['allowed_commercial_transitions'] = Service::allowedCommercialTransitions()[$service->commercial_status] ?? [];
@@ -99,6 +103,7 @@ class ServiceController extends Controller
         $this->authorize('update', $service);
         $data = $request->validate([
             'service_location_id' => ['nullable', 'integer', 'exists:service_locations,id'],
+            'installation_id' => ['nullable', 'integer', 'exists:installations,id'],
             'notes' => ['nullable', 'string'],
             'metadata' => ['nullable', 'array'],
             'technical_owner_id' => ['nullable', 'integer', 'exists:users,id'],
@@ -496,37 +501,7 @@ class ServiceController extends Controller
      */
     private function serialize(Service $service): array
     {
-        return [
-            'id' => $service->id,
-            'service_number' => $service->service_number,
-            'customer_id' => $service->customer_id,
-            'branch_id' => $service->branch_id,
-            'service_location_id' => $service->service_location_id,
-            'installation_id' => $service->installation_id,
-            'package_id' => $service->package_id,
-            'package_version_id' => $service->package_version_id,
-            'service_type_code' => $service->service_type_code,
-            'access_technology_code' => $service->access_technology_code,
-            'billing_frequency' => $service->billing_frequency,
-            'mrr' => $service->mrr,
-            'installation_fee' => $service->installation_fee,
-            'currency' => $service->currency,
-            'commercial_status' => $service->commercial_status,
-            'operational_status' => $service->operational_status,
-            'billing_status' => $service->billing_status,
-            'ownership_status' => $service->ownership_status,
-            'activation_date' => $service->activation_date,
-            'suspension_date' => $service->suspension_date,
-            'cancellation_date' => $service->cancellation_date,
-            'expiration_date' => $service->expiration_date,
-            'sla_template_id' => $service->sla_template_id,
-            'zoho_customer_id' => $service->zoho_customer_id,
-            'notes' => $service->notes,
-            'customer' => $service->relationLoaded('customer') ? $service->customer : null,
-            'package' => $service->relationLoaded('package') ? $service->package : null,
-            'location' => $service->relationLoaded('location') ? $service->location : null,
-            'created_at' => $service->created_at,
-            'updated_at' => $service->updated_at,
-        ];
+        return (new ServiceResource($service))->resolve();
     }
 }
+

@@ -40,6 +40,8 @@ function saveSidebarCollapsed(value: boolean) {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const t = useTranslations("nav");
+  const tShell = useTranslations("shell");
+  const tApps = useTranslations("apps");
   const tCommon = useTranslations("common");
   const locale = useLocale();
   const pathname = usePathname();
@@ -54,6 +56,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const isChangePassword = pathname.includes("/change-password");
   const isLauncher = pathname === "/apps" || pathname.startsWith("/apps/");
   const currentApp = useMemo(() => resolveAppFromPath(pathname), [pathname]);
+  const currentAppLabel = currentApp ? tApps(currentApp.nameKey) : tShell("allApps");
 
   useEffect(() => {
     setSidebarCollapsed(loadSidebarCollapsed());
@@ -85,7 +88,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const canSearch =
     !forcePassword &&
-    hasAnyPermission(["tickets.view", "tasks.view", "installations.view", "dashboard.view", "customers.view"]);
+    hasAnyPermission([
+      "tickets.view",
+      "tasks.view",
+      "installations.view",
+      "dashboard.view",
+      "customers.view",
+      "services.view",
+      "crm.leads.view",
+      "payments.view",
+      "inventory.products.view",
+      "inventory.equipment.view",
+      "users.view",
+    ]);
 
   if (!hydrated || !token || !user) {
     return <LoadingState label={tCommon("loading")} />;
@@ -190,17 +205,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-3">
             {!sidebarCollapsed ? (
               <p className="truncate text-xs font-semibold uppercase tracking-wider text-muted">
-                {currentApp ? currentApp.id : "app"}
+                {currentAppLabel}
               </p>
             ) : (
-              <span className="sr-only">nav</span>
+              <span className="sr-only">{tShell("navLabel")}</span>
             )}
             <Button
               type="button"
               variant="ghost"
               size="sm"
               className="h-8 w-8 p-0"
-              aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              aria-label={sidebarCollapsed ? tShell("expandSidebar") : tShell("collapseSidebar")}
               onClick={toggleSidebar}
               data-testid="sidebar-toggle"
             >
@@ -235,7 +250,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           >
             <div className="mb-2 flex items-center justify-between">
               <p className="text-xs font-semibold uppercase tracking-wider text-muted">
-                {currentApp?.id ?? "apps"}
+                {currentAppLabel}
               </p>
               <Button type="button" variant="ghost" size="sm" onClick={() => setMobileOpen(false)}>
                 {t("close")}
@@ -249,7 +264,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             >
               <span className="inline-flex items-center gap-2">
                 <PanelLeft className="h-4 w-4" aria-hidden />
-                Apps
+                {tShell("launcher")}
               </span>
             </Link>
           </nav>

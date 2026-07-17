@@ -5,7 +5,9 @@ namespace App\Services\ServiceLifecycle;
 use App\Events\Services\ServiceCreated;
 use App\Models\Customer;
 use App\Models\Services\Service;
+use App\Models\Services\ServiceLocation;
 use App\Models\Services\ServicePackage;
+use App\Models\Tickets\Installation;
 use App\Models\User;
 use App\Services\AuditLogger;
 use Illuminate\Support\Facades\DB;
@@ -30,14 +32,32 @@ class ServiceService
         return DB::transaction(function () use ($data, $actor) {
             $branchId = (int) $data['branch_id'];
             $customer = Customer::withoutGlobalScopes()->findOrFail($data['customer_id']);
+            $this->assertSameBranch($branchId, $customer->branch_id !== null ? (int) $customer->branch_id : null, 'Customer');
 
             $package = null;
             $version = null;
             if (! empty($data['package_id'])) {
                 $package = ServicePackage::query()->findOrFail($data['package_id']);
+                // Global packages (null branch_id) are allowed; branch packages must match.
+                $this->assertSameBranch(
+                    $branchId,
+                    $package->branch_id !== null ? (int) $package->branch_id : null,
+                    'Package',
+                    allowNull: true,
+                );
                 $version = ! empty($data['package_version_id'])
                     ? $package->versions()->whereKey($data['package_version_id'])->firstOrFail()
                     : $package->latestVersion();
+            }
+
+            if (! empty($data['service_location_id'])) {
+                $location = ServiceLocation::withoutGlobalScopes()->findOrFail($data['service_location_id']);
+                $this->assertSameBranch($branchId, (int) $location->branch_id, 'Service location');
+            }
+
+            if (! empty($data['installation_id'])) {
+                $installation = Installation::withoutGlobalScopes()->findOrFail($data['installation_id']);
+                $this->assertSameBranch($branchId, (int) $installation->branch_id, 'Installation');
             }
 
             $service = Service::query()->create([
@@ -88,7 +108,7 @@ class ServiceService
             $this->audit->log('service.created', $service, null, $service->toArray(), $branchId);
             ServiceCreated::dispatch($service->id, $branchId);
 
-            return $service->fresh(['package', 'location', 'customer']);
+            return $service->fresh(['package', 'packageVersion', 'location', 'customer', 'slaTemplate', 'installation']);
         });
     }
 
@@ -106,7 +126,20 @@ class ServiceService
             'support_owner_id', 'tower_id', 'site_id', 'network_node', 'vlan', 'static_ip',
             'public_ip', 'private_ip', 'pppoe_username_placeholder', 'circuit_id',
             'customer_reference', 'sla_template_id', 'expiration_date', 'start_date',
+            'installation_id',
         ];
+
+        $branchId = (int) $service->branch_id;
+
+        if (array_key_exists('service_location_id', $data) && $data['service_location_id']) {
+            $location = ServiceLocation::withoutGlobalScopes()->findOrFail($data['service_location_id']);
+            $this->assertSameBranch($branchId, (int) $location->branch_id, 'Service location');
+        }
+
+        if (array_key_exists('installation_id', $data) && $data['installation_id']) {
+            $installation = Installation::withoutGlobalScopes()->findOrFail($data['installation_id']);
+            $this->assertSameBranch($branchId, (int) $installation->branch_id, 'Installation');
+        }
 
         $old = $service->only($allowed);
         $service->fill(collect($data)->only($allowed)->all());
@@ -115,6 +148,23 @@ class ServiceService
 
         $this->audit->log('service.updated', $service, $old, $service->only($allowed), $service->branch_id);
 
-        return $service->fresh();
+        return $service->fresh([
+            'package', 'packageVersion', 'location', 'customer', 'slaTemplate', 'installation',
+        ]);
+    }
+
+    private function assertSameBranch(int $serviceBranchId, ?int $entityBranchId, string $label, bool $allowNull = false): void
+    {
+        if ($entityBranchId === null) {
+            if ($allowNull) {
+                return;
+            }
+
+            throw new InvalidArgumentException("{$label} must belong to the same branch as the service.");
+        }
+
+        if ($entityBranchId !== $serviceBranchId) {
+            throw new InvalidArgumentException("{$label} must belong to the same branch as the service.");
+        }
     }
 }

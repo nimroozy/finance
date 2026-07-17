@@ -82,7 +82,26 @@ Resolving “current app”: `resolveAppFromPath(pathname)` maps the route into 
 ## Quick create & search
 
 - Quick-create menu lists only actions the user can perform and that route to real pages.
-- Global search (Ctrl/Cmd+K) uses existing operations search plus catalog app hits.
+- Global search (Ctrl/Cmd+K) uses `/api/v1/operations/search` (customers, services, leads, tickets, tasks, installations, payments, products, equipment/serials/MAC, transfers, sites, towers, users) plus catalog app hits. Results are permission- and branch-scoped.
+
+## App badge counts
+
+`GET /api/v1/apps/counts` returns integers keyed by catalog app id (e.g. `tasks`, `support`, `installations`, `services`, `noc`). The launcher fetches counts on load and shows badges on matching cards. Counts respect the actor’s branch membership and module permissions.
+
+## Main apps vs submodules
+
+**Prefer main apps on the launcher grid.** Deep modules (package catalog, SLA templates, stock counts, purchase orders, etc.) belong in **app context nav** (`APP_CONTEXT_NAV`), not as separate launcher cards.
+
+Examples:
+
+| Launcher (main) | Context nav (submodules) |
+|-----------------|--------------------------|
+| Services | Pending install/activation, packages, SLA, NOC workspace |
+| Inventory | Products, receiving, counts, reservations |
+| Purchasing | Requests, orders (card itself hidden while `purchasing` feature flag is false) |
+| CRM | Leads list entry points; follow-ups / quotations stay under CRM nav |
+
+Purchasing remains gated by `featureFlag: "purchasing"` (`enabled: false` until Stage 11).
 
 ## Components
 

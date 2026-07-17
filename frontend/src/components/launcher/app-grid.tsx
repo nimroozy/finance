@@ -9,12 +9,14 @@ export function AppGrid({
   onToggleFavorite,
   onOpen,
   emptyLabel,
+  counts,
 }: {
   apps: CatalogApp[];
   favorites?: Set<string> | string[];
   onToggleFavorite?: (appId: string) => void;
   onOpen?: (appId: string) => void;
   emptyLabel?: string;
+  counts?: Record<string, number | undefined>;
 }) {
   const favSet =
     favorites instanceof Set
@@ -39,6 +41,7 @@ export function AppGrid({
           favorite={favSet.has(app.id)}
           onToggleFavorite={onToggleFavorite}
           onOpen={onOpen}
+          count={counts?.[app.id]}
         />
       ))}
     </div>

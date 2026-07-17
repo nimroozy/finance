@@ -76,9 +76,19 @@ export type EscalationRule = {
 };
 
 export type OperationsSearchResult = {
+  customers?: unknown[];
+  services?: unknown[];
+  leads?: unknown[];
   tickets?: unknown[];
   tasks?: unknown[];
   installations?: unknown[];
+  payments?: unknown[];
+  products?: unknown[];
+  equipment?: unknown[];
+  transfers?: unknown[];
+  sites?: unknown[];
+  towers?: unknown[];
+  users?: unknown[];
 };
 
 export type CustomerTimeline = {

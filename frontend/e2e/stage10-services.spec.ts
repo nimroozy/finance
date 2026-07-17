@@ -278,6 +278,25 @@ async function mockStage10Api(page: Page, user = MOCK_USER) {
       return;
     }
 
+    if (url.match(/\/services\/\d+\/activation-checklist/)) {
+      await fulfillJson(route, {
+        ready: false,
+        missing: ["zoho_linked", "installation_completed", "inventory_reconciled", "equipment_assigned"],
+        checklist: {
+          zoho_linked: false,
+          installation_completed: false,
+          inventory_reconciled: false,
+          equipment_assigned: false,
+        },
+      });
+      return;
+    }
+
+    if (url.includes("/apps/counts")) {
+      await fulfillJson(route, { tasks: 0, support: 0, installations: 0, services: 1, noc: 0 });
+      return;
+    }
+
     if (url.includes("/services") && method === "POST" && !url.match(/\/services\/\d+/)) {
       const body = req.postDataJSON() as Record<string, unknown>;
       const created = {
