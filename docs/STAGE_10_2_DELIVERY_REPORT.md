@@ -4,8 +4,8 @@
 **Branch:** `cursor/stage-10-2-production-recovery`  
 **VPS:** `root@209.38.194.184` (`/opt/collection-system`)  
 **Deploy stamp:** `20260717T211618Z`  
-**Tip SHA deployed:** `9b448c9f57d8d54401da3f97fca16b5dc9a785d0`  
-**Production SHA:** `9b448c9f57d8d54401da3f97fca16b5dc9a785d0`  
+**Tip SHA deployed:** `d12e08b4990220e36ad26b1daa3b5113834de81f`  
+**Production SHA:** `d12e08b4990220e36ad26b1daa3b5113834de81f`  
 **Code deploy SHA:** `50c6e6619ac025ef13d6a96c00f3c00c1c7d9b05`  
 **Do not merge until human review.** **Stage 11 not started.** **No Radius.**  
 **KEY_KEPT** (`~/.ssh/id_ed25519` preserved — not deleted).
@@ -81,7 +81,7 @@ Stage **10.2 production recovery** is live on production: service API completene
 | Check | Result |
 |-------|--------|
 | `/api/v1/health` → `deployment.stage` | **`10.2-production-recovery`** |
-| git_sha / commit_sha | `9b448c9f57d8d54401da3f97fca16b5dc9a785d0` (= tip) |
+| git_sha / commit_sha | `d12e08b4990220e36ad26b1daa3b5113834de81f` (= tip) |
 | branch | `cursor/stage-10-2-production-recovery` |
 | migration_batch | **19** (`2026_07_17_210000_stage102_service_lifecycle_recovery`) |
 | `/en/apps` | **200** |
@@ -125,3 +125,17 @@ Protected: payments and stock_transactions never deleted by this command.
 - [STAGE_10_2_PRODUCTION_RECOVERY.md](STAGE_10_2_PRODUCTION_RECOVERY.md)
 - [DEMO_PLACEHOLDER_CLEANUP.md](DEMO_PLACEHOLDER_CLEANUP.md)
 - [STAGE_10_1_DELIVERY_REPORT.md](STAGE_10_1_DELIVERY_REPORT.md)
+
+---
+
+## Closeout verification
+
+| Field | Value |
+|-------|-------|
+| tip SHA | `d12e08b4990220e36ad26b1daa3b5113834de81f` |
+| production SHA (`/api/v1/health`) | `d12e08b4990220e36ad26b1daa3b5113834de81f` |
+| stage | `10.2-production-recovery` |
+| COUNTS_MATCH | yes |
+| KEY_KEPT | yes |
+| demo cleanup --apply | skipped (ambiguous dry-run candidates) |
+
