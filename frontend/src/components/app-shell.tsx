@@ -70,6 +70,34 @@ const NAV_GROUPS: NavGroup[] = [
         ],
       }]
     : []),
+  ...((isModuleEnabled("ticketing") || isModuleEnabled("tasks") || isModuleEnabled("installations"))
+    ? [{
+        labelKey: "operationsSupport" as const,
+        items: [
+          ...(isModuleEnabled("ticketing")
+            ? [{ href: "/tickets", labelKey: "tickets", permissions: ["tickets.view"] }]
+            : []),
+          ...(isModuleEnabled("tasks")
+            ? [
+                { href: "/tasks/my", labelKey: "myTasks", permissions: ["tasks.view"] },
+                { href: "/tasks", labelKey: "tasks", permissions: ["tasks.view"] },
+              ]
+            : []),
+          ...(isModuleEnabled("installations")
+            ? [{ href: "/installations", labelKey: "installations", permissions: ["installations.view"] }]
+            : []),
+          ...(isModuleEnabled("ticketing")
+            ? [{ href: "/support/dashboard", labelKey: "supportDashboard", permissions: ["reports.support", "tickets.view"] }]
+            : []),
+          ...(isModuleEnabled("tasks")
+            ? [{ href: "/technical/dashboard", labelKey: "technicalDashboard", permissions: ["reports.technical", "tasks.view"] }]
+            : []),
+          { href: "/noc/dashboard", labelKey: "nocDashboard", permissions: ["escalations.view", "dashboard.view"] },
+          { href: "/finance/tasks", labelKey: "financeTasks", permissions: ["installations.view", "dashboard.view"] },
+          { href: "/management/service-operations", labelKey: "managementOps", permissions: ["reports.management"] },
+        ],
+      }]
+    : []),
   { labelKey: "administration", items: [
     { href: "/branches", labelKey: "branches", permissions: ["branches.view", "branches.manage"] },
     { href: "/zoho", labelKey: "zohoStructure", permissions: ["zoho.view"] },
@@ -81,6 +109,16 @@ const NAV_GROUPS: NavGroup[] = [
     { href: "/settings/branch-payment-mappings", labelKey: "branchPaymentMappings", permissions: ["branch_payment_mapping.view"] },
     { href: "/settings/customer-prefix-mappings", labelKey: "customerPrefixMappings", permissions: ["customer_prefix_mapping.view"] },
     { href: "/settings/mapping-cleanup", labelKey: "mappingCleanup", permissions: ["customer_prefix_mapping.view"] },
+    ...(isModuleEnabled("ticketing")
+      ? [
+          { href: "/settings/ticket-types", labelKey: "ticketTypes", permissions: ["ticket_types.manage"] },
+          { href: "/settings/sla-policies", labelKey: "slaPolicies", permissions: ["sla.manage"] },
+          { href: "/settings/escalation-rules", labelKey: "escalationRules", permissions: ["escalations.manage", "sla.manage"] },
+        ]
+      : []),
+    ...(isModuleEnabled("tasks")
+      ? [{ href: "/settings/task-templates", labelKey: "taskTemplates", permissions: ["task_templates.manage"] }]
+      : []),
     { href: "/reports/branch-receivables", labelKey: "branchReceivables", permissions: ["receivables_dashboard.view"] },
     { href: "/audit-logs", labelKey: "auditLogs", permissions: ["audit.view"] },
   ] },
