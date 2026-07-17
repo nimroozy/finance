@@ -2,7 +2,7 @@
 
 **Date (UTC):** 2026-07-17  
 **Branch:** `cursor/stage-7-ticketing-tasks`  
-**SHA:** `a4fa16bc4cd199f2cdd9cf6cc9bdf1360326c9fc`  
+**SHA:** `5350d39 (includes delivery report commits)`  
 **Base:** `cursor/stage-6-whatsapp` @ `af147c44870a07952fc8300d3eaf0a6ebca4c600`  
 **Draft PR:** not created — `gh pr create` failed: GraphQL Resource not accessible by integration (createPullRequest). Head `cursor/stage-7-ticketing-tasks` is pushed; open draft PR manually targeting `cursor/stage-6-whatsapp`.  
 **Do not merge:** prior stacked PRs until reviewed. **Stage 8 CRM not started.**
