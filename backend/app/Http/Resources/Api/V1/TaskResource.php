@@ -36,6 +36,8 @@ class TaskResource extends JsonResource
             'updated_at' => optional($this->updated_at)->toIso8601String(),
             'assignee' => $this->whenLoaded('assignee'),
             'depends_on_tasks' => $this->whenLoaded('dependsOnTasks'),
+            'ticket' => $this->whenLoaded('ticket'),
+            'attachments' => $this->whenLoaded('attachments'),
         ];
     }
 }

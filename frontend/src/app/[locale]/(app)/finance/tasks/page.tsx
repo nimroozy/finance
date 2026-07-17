@@ -3,25 +3,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { ApiError } from "@/lib/api";
+import { getFinanceDashboard, type FinanceDashboard } from "@/lib/operations";
 import {
-  getFinanceDashboard,
-  type FinanceDashboard,
-} from "@/lib/operations";
-import {
-  Alert,
-  LoadingState,
-  PageHeader,
-  Panel,
-} from "@/components/ui/layout";
-
-function Kpi({ label, value }: { label: string; value: number | string }) {
-  return (
-    <Panel className="p-4">
-      <p className="text-sm text-muted">{label}</p>
-      <p className="mt-2 text-3xl font-semibold text-primary">{value}</p>
-    </Panel>
-  );
-}
+  EmptyWorkspace,
+  ErrorWorkspace,
+  MetricCard,
+  WorkspaceHeader,
+} from "@/components/ops";
+import { LoadingState } from "@/components/ui/layout";
 
 export default function FinanceTasksPage() {
   const t = useTranslations("operationsDashboards");
@@ -38,6 +27,7 @@ export default function FinanceTasksPage() {
       setData(res.data);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : tCommon("error"));
+      setData(null);
     } finally {
       setLoading(false);
     }
@@ -48,22 +38,30 @@ export default function FinanceTasksPage() {
   }, [load]);
 
   return (
-    <div>
-      <PageHeader title={t("financeTitle")} subtitle={t("financeSubtitle")} />
-      {error ? (
-        <div className="mb-4">
-          <Alert>{error}</Alert>
+    <div className="space-y-4">
+      <WorkspaceHeader title={t("financeTitle")} subtitle={t("financeSubtitle")} />
+      {error ? <ErrorWorkspace message={error} onRetry={() => void load()} /> : null}
+      {loading ? <LoadingState label={tCommon("loading")} /> : null}
+      {!loading && !error && data ? (
+        <div className="grid gap-4 sm:grid-cols-3">
+          <MetricCard
+            label={t("financeReview")}
+            value={data.finance_review}
+            href="/installations?view=finance_review&status=finance_review"
+          />
+          <MetricCard
+            label={t("equipmentWaiting")}
+            value={data.equipment_waiting}
+            href="/installations?view=equipment_waiting&status=equipment_waiting"
+          />
+          <MetricCard
+            label={t("financeTickets")}
+            value={data.finance_related_tickets}
+            href="/tickets?status=waiting_finance"
+          />
         </div>
       ) : null}
-      {loading || !data ? (
-        <LoadingState label={tCommon("loading")} />
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-3">
-          <Kpi label={t("financeReview")} value={data.finance_review} />
-          <Kpi label={t("equipmentWaiting")} value={data.equipment_waiting} />
-          <Kpi label={t("financeTickets")} value={data.finance_related_tickets} />
-        </div>
-      )}
+      {!loading && !error && !data ? <EmptyWorkspace /> : null}
     </div>
   );
 }

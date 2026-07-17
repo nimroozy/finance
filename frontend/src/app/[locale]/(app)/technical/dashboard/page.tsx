@@ -3,25 +3,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { ApiError } from "@/lib/api";
+import { getTechnicalDashboard, type TechnicalDashboard } from "@/lib/operations";
 import {
-  getTechnicalDashboard,
-  type TechnicalDashboard,
-} from "@/lib/operations";
-import {
-  Alert,
-  LoadingState,
-  PageHeader,
-  Panel,
-} from "@/components/ui/layout";
-
-function Kpi({ label, value }: { label: string; value: number | string }) {
-  return (
-    <Panel className="p-4">
-      <p className="text-sm text-muted">{label}</p>
-      <p className="mt-2 text-3xl font-semibold text-primary">{value}</p>
-    </Panel>
-  );
-}
+  EmptyWorkspace,
+  ErrorWorkspace,
+  MetricCard,
+  WorkspaceHeader,
+} from "@/components/ops";
+import { LoadingState } from "@/components/ui/layout";
 
 export default function TechnicalDashboardPage() {
   const t = useTranslations("operationsDashboards");
@@ -38,6 +27,7 @@ export default function TechnicalDashboardPage() {
       setData(res.data);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : tCommon("error"));
+      setData(null);
     } finally {
       setLoading(false);
     }
@@ -48,24 +38,25 @@ export default function TechnicalDashboardPage() {
   }, [load]);
 
   return (
-    <div>
-      <PageHeader title={t("technicalTitle")} subtitle={t("technicalSubtitle")} />
-      {error ? (
-        <div className="mb-4">
-          <Alert>{error}</Alert>
+    <div className="space-y-4">
+      <WorkspaceHeader title={t("technicalTitle")} subtitle={t("technicalSubtitle")} />
+      {error ? <ErrorWorkspace message={error} onRetry={() => void load()} /> : null}
+      {loading ? <LoadingState label={tCommon("loading")} /> : null}
+      {!loading && !error && data ? (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <MetricCard label={t("openField")} value={data.open_field} href="/tasks?view=field&type=field" />
+          <MetricCard label={t("travelling")} value={data.travelling} href="/tasks?status=travelling" />
+          <MetricCard label={t("inProgress")} value={data.in_progress} href="/tasks?status=in_progress" />
+          <MetricCard label={t("blocked")} value={data.blocked} tone="warning" href="/tasks?status=blocked" />
+          <MetricCard
+            label={t("completedToday")}
+            value={data.completed_today}
+            tone="success"
+            href="/tasks?view=completed&status=completed"
+          />
         </div>
       ) : null}
-      {loading || !data ? (
-        <LoadingState label={tCommon("loading")} />
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          <Kpi label={t("openField")} value={data.open_field} />
-          <Kpi label={t("travelling")} value={data.travelling} />
-          <Kpi label={t("inProgress")} value={data.in_progress} />
-          <Kpi label={t("blocked")} value={data.blocked} />
-          <Kpi label={t("completedToday")} value={data.completed_today} />
-        </div>
-      )}
+      {!loading && !error && !data ? <EmptyWorkspace /> : null}
     </div>
   );
 }

@@ -42,6 +42,12 @@ class TicketResource extends JsonResource
             'sla_state' => $this->whenLoaded('slaState'),
             'watchers' => $this->whenLoaded('watchers'),
             'primary_assignee' => $this->whenLoaded('primaryAssignee'),
+            'customer' => $this->whenLoaded('customer'),
+            'branch' => $this->whenLoaded('branch'),
+            'assigned_department' => $this->whenLoaded('assignedDepartment'),
+            'assigned_team' => $this->whenLoaded('assignedTeam'),
+            'ticket_type' => $this->whenLoaded('ticketType'),
+            'tasks' => $this->whenLoaded('tasks'),
         ];
     }
 }

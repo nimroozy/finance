@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useParams } from "next/navigation";
 import { Link } from "@/i18n/navigation";
@@ -10,24 +10,53 @@ import {
   acceptTask,
   arriveTask,
   blockTask,
+  cancelTask,
   completeTask,
   getTask,
+  listTaskAttachments,
+  rejectTask,
+  reassignTask,
   startTask,
   startTravelTask,
   uploadTaskAttachment,
+  verifyTask,
   type Task,
 } from "@/lib/tasks";
+import type { AttachmentSummary } from "@/lib/tickets";
+import { formatDateTime } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth-store";
+import {
+  ActivityComposer,
+  AssignmentPicker,
+  AttachmentGallery,
+  ErrorWorkspace,
+  RecordSummary,
+  StatusActionMenu,
+  WorkspaceHeader,
+  type AssignmentValue,
+  type AttachmentItem,
+  type StatusTransition,
+} from "@/components/ops";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
-import { Input, TextArea } from "@/components/ui/form";
-import {
-  Alert,
-  EmptyState,
-  LoadingState,
-  PageHeader,
-  Panel,
-} from "@/components/ui/layout";
+import { TextArea } from "@/components/ui/form";
+import { Alert, LoadingState, Panel } from "@/components/ui/layout";
+
+const ACTION_BY_STATUS: Record<
+  string,
+  (id: string, reason?: string) => Promise<unknown>
+> = {
+  accepted: (id, reason) => acceptTask(id, reason),
+  rejected: (id, reason) => rejectTask(id, reason || "Rejected"),
+  travelling: (id, reason) => startTravelTask(id, reason),
+  arrived: (id, reason) => arriveTask(id, reason),
+  in_progress: (id, reason) => startTask(id, reason),
+  completed: (id, reason) => completeTask(id, reason),
+  blocked: (id, reason) => blockTask(id, reason || "Blocked"),
+  approved: (id, reason) => verifyTask(id, reason),
+  verification_pending: (id, reason) => verifyTask(id, reason),
+  cancelled: (id, reason) => cancelTask(id, reason || "Cancelled"),
+};
 
 export default function TaskDetailPage() {
   const t = useTranslations("tasks");
@@ -35,27 +64,35 @@ export default function TaskDetailPage() {
   const params = useParams();
   const id = String(params.id || "");
 
-  const canAccept = useAuthStore((s) => s.hasPermission("tasks.accept"));
-  const canComplete = useAuthStore((s) => s.hasPermission("tasks.complete"));
   const canUpload = useAuthStore((s) => s.hasPermission("attachments.upload"));
+  const canReassign = useAuthStore((s) => s.hasPermission("tasks.reassign") || s.hasPermission("tasks.assign"));
 
   const [task, setTask] = useState<Task | null>(null);
+  const [attachments, setAttachments] = useState<AttachmentSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [note, setNote] = useState("");
-  const [blockReason, setBlockReason] = useState("");
+  const [reassignValue, setReassignValue] = useState<AssignmentValue>(null);
+  const [reassignReason, setReassignReason] = useState("");
 
   const load = useCallback(async () => {
     if (!id) return;
     setLoading(true);
     setError(null);
     try {
-      const res = await getTask(id);
-      setTask(res.data);
+      const [taskRes, attRes] = await Promise.all([
+        getTask(id),
+        listTaskAttachments(id).catch(() => ({ data: [] as AttachmentSummary[] })),
+      ]);
+      setTask(taskRes.data);
+      setAttachments(
+        attRes.data.length ? attRes.data : taskRes.data.attachments_summary ?? [],
+      );
     } catch (err) {
       setError(err instanceof ApiError ? err.message : tCommon("error"));
+      setTask(null);
     } finally {
       setLoading(false);
     }
@@ -80,175 +117,137 @@ export default function TaskDetailPage() {
     }
   }
 
+  const transitions: StatusTransition[] = useMemo(() => {
+    return (task?.allowed_transitions ?? []).map((tr) => ({
+      id: tr.status,
+      label: tr.label,
+      danger: ["cancelled", "rejected", "failed", "blocked"].includes(tr.status),
+      requiresReason: Boolean(tr.requires_reason),
+    }));
+  }, [task?.allowed_transitions]);
+
+  const attachmentItems: AttachmentItem[] = attachments.map((a) => ({
+    id: String(a.id),
+    name: a.original_name,
+    downloadUrl: a.download_url,
+    meta: formatDateTime(a.created_at),
+  }));
+
   if (loading) return <LoadingState label={tCommon("loading")} />;
   if (!task) {
-    return (
-      <div>
-        {error ? <Alert>{error}</Alert> : <EmptyState label={tCommon("empty")} />}
-      </div>
-    );
+    return <ErrorWorkspace message={error ?? tCommon("empty")} onRetry={() => void load()} />;
   }
 
-  const status = task.status;
-  const showAccept = canAccept && (status === "offered" || status === "pending");
-  const showTravel =
-    canComplete && (status === "accepted" || status === "scheduled");
-  const showArrive = canComplete && status === "travelling";
-  const showStart =
-    canComplete && (status === "arrived" || status === "accepted" || status === "scheduled");
-  const showComplete = canComplete && status === "in_progress";
-  const showBlock =
-    canComplete &&
-    !["completed", "approved", "cancelled", "failed"].includes(status);
-
   return (
-    <div className="mx-auto max-w-lg">
-      <PageHeader
+    <div className="mx-auto max-w-lg space-y-4">
+      <WorkspaceHeader
         title={task.task_number}
         subtitle={task.title}
         actions={<StatusBadge status={task.status} />}
       />
 
-      {error ? (
-        <div className="mb-4">
-          <Alert>{error}</Alert>
-        </div>
-      ) : null}
-      {success ? (
-        <div className="mb-4">
-          <Alert tone="success">{success}</Alert>
-        </div>
-      ) : null}
+      {error ? <Alert>{error}</Alert> : null}
+      {success ? <Alert tone="success">{success}</Alert> : null}
 
-      <Panel className="mb-4 space-y-2 p-4 text-sm">
+      <Panel className="space-y-3 p-4 text-sm">
+        <RecordSummary
+          columns={1}
+          items={[
+            { label: t("priority"), value: task.priority },
+            { label: t("type"), value: task.type },
+            { label: t("assignee"), value: task.assignee?.name || "—" },
+            { label: t("dueAt"), value: formatDateTime(task.due_at) },
+          ]}
+        />
         <p className="whitespace-pre-wrap">{task.description || "—"}</p>
-        <p className="text-muted">
-          {t("priority")}: {task.priority}
-        </p>
         {task.ticket_id ? (
-          <p>
-            <Link href={`/tickets/${task.ticket_id}`} className="text-primary hover:underline">
-              {t("linkedTicket")} #{task.ticket_id}
-            </Link>
-          </p>
+          <Link href={`/tickets/${task.ticket_id}`} className="text-primary hover:underline">
+            {t("linkedTicket")} {task.ticket?.ticket_number || `#${task.ticket_id}`}
+          </Link>
         ) : null}
       </Panel>
 
-      <div className="grid gap-3">
-        {showAccept ? (
-          <Button
-            className="h-14 text-base"
-            disabled={busy}
-            onClick={() => void run(() => acceptTask(id), t("accepted"))}
-          >
-            {t("actionAccept")}
-          </Button>
-        ) : null}
-        {showTravel ? (
-          <Button
-            className="h-14 text-base"
-            disabled={busy}
-            onClick={() => void run(() => startTravelTask(id), t("travelStarted"))}
-          >
-            {t("actionStartTravel")}
-          </Button>
-        ) : null}
-        {showArrive ? (
-          <Button
-            className="h-14 text-base"
-            disabled={busy}
-            onClick={() => void run(() => arriveTask(id), t("arrived"))}
-          >
-            {t("actionArrived")}
-          </Button>
-        ) : null}
-        {showStart ? (
-          <Button
-            className="h-14 text-base"
-            disabled={busy}
-            onClick={() => void run(() => startTask(id), t("workStarted"))}
-          >
-            {t("actionStartWork")}
-          </Button>
-        ) : null}
-        {canUpload ? (
-          <label className="block">
-            <span className="sr-only">{t("actionUploadPhoto")}</span>
-            <Input
-              type="file"
-              accept="image/*"
-              capture="environment"
-              className="h-14"
-              disabled={busy}
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (!file) return;
-                void run(
-                  () => uploadTaskAttachment(id, file, "photo"),
-                  t("photoUploaded"),
-                );
-              }}
-            />
-            <p className="mt-1 text-center text-sm text-muted">{t("actionUploadPhoto")}</p>
-          </label>
-        ) : null}
-        <Panel className="space-y-2 p-3">
+      <StatusActionMenu
+        large
+        transitions={transitions}
+        loading={busy}
+        onTransition={(status, reason) =>
+          run(async () => {
+            const fn = ACTION_BY_STATUS[status];
+            if (fn) await fn(id, reason);
+            else throw new Error(t("impossibleAction"));
+          }, t("statusUpdated"))
+        }
+      />
+
+      {canReassign ? (
+        <Panel className="space-y-3 p-4">
+          <p className="text-sm font-medium">{t("reassign")}</p>
+          <AssignmentPicker
+            branchId={task.branch_id}
+            value={reassignValue}
+            onChange={setReassignValue}
+            allowedKinds={["user"]}
+          />
           <TextArea
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder={t("actionAddNote")}
+            value={reassignReason}
+            onChange={(e) => setReassignReason(e.target.value)}
+            placeholder={t("reassignReason")}
             rows={2}
           />
           <Button
             className="h-12 w-full"
             variant="secondary"
-            disabled={busy || !note.trim() || !canComplete}
+            disabled={busy || reassignValue?.kind !== "user" || !reassignReason.trim()}
             onClick={() =>
-              void run(async () => {
-                await createWorkLog({
-                  task_id: Number(id),
-                  internal_note: note.trim(),
-                });
-                setNote("");
-              }, t("noteAdded"))
+              void run(
+                () =>
+                  reassignTask(id, Number(reassignValue!.id), reassignReason.trim()),
+                t("reassigned"),
+              )
             }
           >
-            {t("actionAddNote")}
+            {t("reassign")}
           </Button>
         </Panel>
-        {showBlock ? (
-          <Panel className="space-y-2 p-3">
-            <TextArea
-              value={blockReason}
-              onChange={(e) => setBlockReason(e.target.value)}
-              placeholder={t("blockReason")}
-              rows={2}
-            />
-            <Button
-              className="h-12 w-full"
-              variant="danger"
-              disabled={busy || !blockReason.trim()}
-              onClick={() =>
-                void run(async () => {
-                  await blockTask(id, blockReason.trim());
-                  setBlockReason("");
-                }, t("blocked"))
+      ) : null}
+
+      <Panel className="space-y-3 p-4">
+        <ActivityComposer
+          loading={busy}
+          onSubmit={({ type, body }) =>
+            run(async () => {
+              await createWorkLog({
+                task_id: Number(id),
+                internal_note: type === "internal" ? body : undefined,
+                customer_visible_note: type === "customer_visible" ? body : undefined,
+              });
+            }, t("noteAdded"))
+          }
+        />
+      </Panel>
+
+      <AttachmentGallery
+        items={attachmentItems}
+        uploading={uploading}
+        onRefresh={() => void load()}
+        onUpload={
+          canUpload
+            ? async (file) => {
+                setUploading(true);
+                try {
+                  await uploadTaskAttachment(id, file, "photo");
+                  setSuccess(t("photoUploaded"));
+                  await load();
+                } catch (err) {
+                  setError(err instanceof ApiError ? err.message : tCommon("error"));
+                } finally {
+                  setUploading(false);
+                }
               }
-            >
-              {t("actionMarkBlocked")}
-            </Button>
-          </Panel>
-        ) : null}
-        {showComplete ? (
-          <Button
-            className="h-14 text-base"
-            disabled={busy}
-            onClick={() => void run(() => completeTask(id), t("completed"))}
-          >
-            {t("actionComplete")}
-          </Button>
-        ) : null}
-      </div>
+            : undefined
+        }
+      />
     </div>
   );
 }

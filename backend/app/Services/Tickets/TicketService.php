@@ -95,6 +95,7 @@ class TicketService
                 'assigned_department_id', 'assigned_team_id', 'customer_phone', 'customer_location',
                 'gps_lat', 'gps_lng', 'related_tower', 'related_site', 'related_radius_account',
                 'related_invoice_id', 'related_payment_id', 'related_installation_id',
+                'whatsapp_conversation_id',
                 'tags', 'internal_notes', 'customer_visible_notes', 'resolution_code',
                 'resolution_summary', 'customer_confirmation',
             ];
@@ -205,9 +206,9 @@ class TicketService
         return $this->transitions->transition($ticket, Ticket::STATUS_REOPENED, $actor, $reason, 'reopen');
     }
 
-    public function transition(Ticket $ticket, string $toStatus, ?User $actor = null, ?string $reason = null, ?string $source = null): Ticket
+    public function transition(Ticket $ticket, string $toStatus, ?User $actor = null, ?string $reason = null, ?string $source = null, ?string $comment = null): Ticket
     {
-        return $this->transitions->transition($ticket, $toStatus, $actor, $reason, $source);
+        return $this->transitions->transition($ticket, $toStatus, $actor, $reason, $source, $comment);
     }
 
     /**

@@ -1,28 +1,27 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useParams } from "next/navigation";
 import { Link } from "@/i18n/navigation";
 import { ApiError } from "@/lib/api";
 import {
-  INSTALLATION_STATUSES,
   getInstallation,
   transitionInstallation,
   type Installation,
 } from "@/lib/installations";
 import { formatDateTime } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth-store";
-import { StatusBadge } from "@/components/status-badge";
-import { Button } from "@/components/ui/button";
-import { Select } from "@/components/ui/form";
 import {
-  Alert,
-  EmptyState,
-  LoadingState,
-  PageHeader,
-  Panel,
-} from "@/components/ui/layout";
+  ErrorWorkspace,
+  RecordSummary,
+  StatusActionMenu,
+  WorkspaceHeader,
+  type StatusTransition,
+} from "@/components/ops";
+import { StatusBadge } from "@/components/status-badge";
+import { Badge } from "@/components/ui/badge";
+import { Alert, EmptyState, LoadingState, Panel } from "@/components/ui/layout";
 
 export default function InstallationDetailPage() {
   const t = useTranslations("installations");
@@ -36,7 +35,6 @@ export default function InstallationDetailPage() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [nextStatus, setNextStatus] = useState("");
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -47,6 +45,7 @@ export default function InstallationDetailPage() {
       setRow(res.data);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : tCommon("error"));
+      setRow(null);
     } finally {
       setLoading(false);
     }
@@ -56,65 +55,62 @@ export default function InstallationDetailPage() {
     void load();
   }, [load]);
 
-  async function onTransition() {
-    if (!nextStatus) return;
-    setBusy(true);
-    setError(null);
-    try {
-      await transitionInstallation(id, nextStatus);
-      await load();
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : tCommon("error"));
-    } finally {
-      setBusy(false);
-    }
-  }
+  const transitions: StatusTransition[] = useMemo(() => {
+    return (row?.allowed_transitions ?? []).map((tr) => ({
+      id: tr.status,
+      label: tr.label,
+      danger: tr.status === "cancelled",
+      requiresReason: Boolean(tr.requires_reason),
+    }));
+  }, [row?.allowed_transitions]);
 
   if (loading) return <LoadingState label={tCommon("loading")} />;
   if (!row) {
-    return (
-      <div>
-        {error ? <Alert>{error}</Alert> : <EmptyState label={tCommon("empty")} />}
-      </div>
-    );
+    return <ErrorWorkspace message={error ?? tCommon("empty")} onRetry={() => void load()} />;
   }
 
+  const equipmentConfirmed =
+    row.equipment_confirmed || row.equipment_status === "confirmed";
+  const radiusConfirmed = Boolean(row.radius_confirmed);
+
   return (
-    <div>
-      <PageHeader
+    <div className="space-y-4">
+      <WorkspaceHeader
         title={row.installation_number}
         subtitle={row.contact_name || row.prospect_name || t("detail")}
+        badges={[{
+          label: row.status.replace(/_/g, " "),
+          tone: "info",
+        }]}
         actions={<StatusBadge status={row.status} />}
       />
-      {error ? (
-        <div className="mb-4">
-          <Alert>{error}</Alert>
-        </div>
-      ) : null}
+
+      {error ? <Alert>{error}</Alert> : null}
+
+      <div className="flex flex-wrap gap-2">
+        <Badge tone={equipmentConfirmed ? "success" : "warning"}>
+          {t("equipmentConfirm")}: {equipmentConfirmed ? t("confirmed") : t("pendingConfirm")}
+        </Badge>
+        <Badge tone={radiusConfirmed ? "success" : "warning"}>
+          {t("radiusConfirm")}: {radiusConfirmed ? t("confirmed") : t("pendingConfirm")}
+        </Badge>
+      </div>
+
       <div className="grid gap-4 lg:grid-cols-2">
-        <Panel className="space-y-2 p-4 text-sm">
-          <p>
-            <span className="text-muted">{t("phone")}: </span>
-            {row.phone || "—"}
-          </p>
-          <p>
-            <span className="text-muted">{t("address")}: </span>
-            {row.address || "—"}
-          </p>
-          <p>
-            <span className="text-muted">{t("package")}: </span>
-            {row.requested_package || "—"}
-          </p>
-          <p>
-            <span className="text-muted">{t("requestedDate")}: </span>
-            {row.requested_date || "—"}
-          </p>
-          <p>
-            <span className="text-muted">{t("createdAt")}: </span>
-            {formatDateTime(row.created_at, locale)}
-          </p>
-          <p className="whitespace-pre-wrap">{row.notes || "—"}</p>
+        <Panel className="p-4">
+          <RecordSummary
+            items={[
+              { label: t("phone"), value: row.phone || "—" },
+              { label: t("address"), value: row.address || "—" },
+              { label: t("package"), value: row.requested_package || "—" },
+              { label: t("requestedDate"), value: row.requested_date || "—" },
+              { label: t("createdAt"), value: formatDateTime(row.created_at, locale) },
+              { label: t("technician"), value: row.technician?.name || "—" },
+            ]}
+          />
+          <p className="mt-4 whitespace-pre-wrap text-sm">{row.notes || "—"}</p>
         </Panel>
+
         <Panel className="space-y-3 p-4">
           <h2 className="font-medium">{t("tasks")}</h2>
           {(row.tasks ?? []).length === 0 ? (
@@ -130,19 +126,23 @@ export default function InstallationDetailPage() {
               ))}
             </ul>
           )}
+
           {canUpdate ? (
-            <div className="flex flex-wrap gap-2 pt-2">
-              <Select value={nextStatus} onChange={(e) => setNextStatus(e.target.value)}>
-                <option value="">{t("changeStatus")}</option>
-                {INSTALLATION_STATUSES.map((s) => (
-                  <option key={s} value={s}>
-                    {s.replace(/_/g, " ")}
-                  </option>
-                ))}
-              </Select>
-              <Button disabled={busy || !nextStatus} onClick={() => void onTransition()}>
-                {tCommon("apply")}
-              </Button>
+            <div className="border-t border-border pt-3">
+              <StatusActionMenu
+                transitions={transitions}
+                loading={busy}
+                onTransition={(status, reason) => {
+                  setBusy(true);
+                  setError(null);
+                  void transitionInstallation(id, status, reason)
+                    .then(() => load())
+                    .catch((err) =>
+                      setError(err instanceof ApiError ? err.message : tCommon("error")),
+                    )
+                    .finally(() => setBusy(false));
+                }}
+              />
             </div>
           ) : null}
         </Panel>
