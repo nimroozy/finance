@@ -39,7 +39,13 @@ export async function listEligibleHandoverPayments(branchId: number, currency = 
 }
 
 export async function listCashHandovers(page = 1) {
-  return apiFetch<CashHandover[]>(`/cash-handovers${toQuery({ page, per_page: 20 })}`);
+  const response = await apiFetch<CashHandover[] | { data: CashHandover[] }>(
+    `/cash-handovers${toQuery({ page, per_page: 20 })}`,
+  );
+  return {
+    ...response,
+    data: unwrapListData<CashHandover>(response.data),
+  };
 }
 
 export async function getCashHandover(id: number) {
@@ -83,10 +89,26 @@ export async function rejectCashHandover(id: number, notes: string) {
   });
 }
 
+export function unwrapListData<T>(data: unknown): T[] {
+  if (Array.isArray(data)) return data as T[];
+  if (
+    data &&
+    typeof data === "object" &&
+    Array.isArray((data as { data?: unknown }).data)
+  ) {
+    return (data as { data: T[] }).data;
+  }
+  return [];
+}
+
 export async function listCashboxes(branchId?: number) {
-  return apiFetch<BranchCashbox[]>(
-    `/cashboxes${toQuery({ branch_id: branchId })}`,
+  const response = await apiFetch<BranchCashbox[] | { data: BranchCashbox[] }>(
+    `/cashboxes${toQuery({ branch_id: branchId, per_page: 100 })}`,
   );
+  return {
+    ...response,
+    data: unwrapListData<BranchCashbox>(response.data),
+  };
 }
 
 export type HandoverListResponse = ApiSuccessResponse<CashHandover[]>;
