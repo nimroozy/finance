@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Collection Management System API
-  version: 1.7.0
+  version: 1.8.0
   license:
     name: Proprietary
     url: https://finance.mns.af
@@ -10,7 +10,7 @@ info:
     Zoho sync, customers/invoices/debtors, assignments, visits, routes,
     promises, notes, evidence, notifications, collectors, reports, payments,
     receipts, collector wallets, reversals, Zoho payment sync, cash handovers,
-    and branch cashboxes).
+    branch cashboxes, and the Stage 6 WhatsApp Cloud API foundation).
 
     Stage 5.1 P0 adds Zoho sync health, organization structure (locations/tags/
     accounts/payment modes), circuit breakers, failed-job cleanup, and
@@ -72,6 +72,7 @@ tags:
   - name: Mapping
   - name: Ownership
   - name: Custody
+  - name: WhatsApp
 security:
   - bearerAuth: []
 paths:
@@ -3556,6 +3557,176 @@ paths:
           description: OK
         '401':
           description: Unauthorized
+
+  /whatsapp/webhook:
+    get:
+      tags: [WhatsApp]
+      security: []
+      summary: Verify Meta webhook subscription
+      parameters:
+        - { in: query, name: hub.mode, schema: { type: string } }
+        - { in: query, name: hub.verify_token, schema: { type: string } }
+        - { in: query, name: hub.challenge, schema: { type: string } }
+      responses:
+        '200': { description: Challenge accepted }
+        '403': { description: Verification rejected }
+    post:
+      tags: [WhatsApp]
+      security: []
+      summary: Receive signed WhatsApp webhook events
+      parameters:
+        - { in: header, name: X-Hub-Signature-256, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: true }
+      responses:
+        '200': { description: Event accepted }
+        '401': { description: Invalid signature }
+  /whatsapp/status:
+    get:
+      tags: [WhatsApp]
+      summary: Get connection status
+      responses:
+        '200': { description: Connection status }
+  /whatsapp/test-connection:
+    post:
+      tags: [WhatsApp]
+      summary: Test the configured Graph API connection
+      responses:
+        '200': { description: Connection healthy }
+        '422': { description: Connection failed }
+  /whatsapp/pause:
+    post:
+      tags: [WhatsApp]
+      summary: Pause outbound WhatsApp delivery
+      responses:
+        '200': { description: Delivery paused }
+  /whatsapp/resume:
+    post:
+      tags: [WhatsApp]
+      summary: Resume outbound WhatsApp delivery
+      responses:
+        '200': { description: Delivery resumed }
+  /whatsapp/templates/sync:
+    post:
+      tags: [WhatsApp]
+      summary: Synchronize templates from Meta
+      responses:
+        '200': { description: Templates synchronized }
+  /whatsapp/templates:
+    get:
+      tags: [WhatsApp]
+      summary: List synchronized templates
+      responses:
+        '200': { description: Template list }
+  /whatsapp/messages:
+    get:
+      tags: [WhatsApp]
+      summary: List branch-visible outbound messages
+      responses:
+        '200': { description: Message list }
+  /whatsapp/failures:
+    get:
+      tags: [WhatsApp]
+      summary: List branch-visible delivery failures
+      responses:
+        '200': { description: Failure list }
+  /whatsapp/inbox:
+    get:
+      tags: [WhatsApp]
+      summary: List branch-visible conversations
+      responses:
+        '200': { description: Inbox list }
+  /whatsapp/inbox/{conversation}:
+    get:
+      tags: [WhatsApp]
+      summary: Show conversation with inbound messages and customer link
+      parameters:
+        - name: conversation
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Conversation detail }
+  /whatsapp/inbox/{conversation}/resolve:
+    post:
+      tags: [WhatsApp]
+      summary: Mark a conversation resolved
+      parameters:
+        - name: conversation
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Conversation resolved }
+  /whatsapp/preferences:
+    put:
+      tags: [WhatsApp]
+      summary: Upsert customer WhatsApp contact preferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone_e164]
+              properties:
+                phone_e164: { type: string }
+                customer_id: { type: integer, nullable: true }
+                messaging_allowed: { type: boolean }
+                receipts_enabled: { type: boolean }
+                reminders_enabled: { type: boolean }
+                promotional_enabled: { type: boolean }
+                preferred_language: { type: string, nullable: true }
+      responses:
+        '200': { description: Preferences saved }
+  /whatsapp/rules:
+    get:
+      tags: [WhatsApp]
+      summary: List notification routing rules
+      responses:
+        '200': { description: Rule list }
+    put:
+      tags: [WhatsApp]
+      summary: Create or update a notification rule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [event_type]
+              properties:
+                branch_id: { type: integer, nullable: true }
+                event_type: { type: string }
+                in_app_enabled: { type: boolean }
+                whatsapp_enabled: { type: boolean }
+                template_name: { type: string, nullable: true }
+                language_code: { type: string }
+                is_active: { type: boolean }
+      responses:
+        '200': { description: Rule saved }
+  /whatsapp/send-test:
+    post:
+      tags: [WhatsApp]
+      summary: Queue a test template message
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone, template_name]
+              properties:
+                phone: { type: string }
+                template_name: { type: string }
+                language_code: { type: string }
+                components: { type: array, items: { type: object } }
+                branch_id: { type: integer, nullable: true }
+      responses:
+        '202': { description: Message queued }
 
 components:
   securitySchemes:

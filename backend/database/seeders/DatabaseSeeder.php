@@ -14,6 +14,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             RolePermissionSeeder::class,
             BranchCustomerPrefixSeeder::class,
+            WhatsAppNotificationRuleSeeder::class,
         ]);
     }
 }

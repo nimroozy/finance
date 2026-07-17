@@ -70,7 +70,14 @@
     "mappingCleanup": "Mapping cleanup",
     "branchReceivables": "Branch receivables",
     "permanentCustomers": "Permanent customers",
-    "myDebtors": "Current debtors"
+    "myDebtors": "Current debtors",
+    "whatsapp": "WhatsApp",
+    "whatsappMessages": "Messages",
+    "whatsappTemplates": "Templates",
+    "whatsappInbox": "Inbox",
+    "whatsappFailures": "Failures",
+    "whatsappSettings": "WhatsApp settings",
+    "whatsappRules": "Notification rules"
   },
   "common": {
     "loading": "Loading…",

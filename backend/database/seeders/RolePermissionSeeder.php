@@ -107,6 +107,10 @@ class RolePermissionSeeder extends Seeder
         'ownership_conflicts.view',
         'ownership_conflicts.resolve',
         'receivables_dashboard.view',
+        // Stage 6 — WhatsApp
+        'whatsapp.view',
+        'whatsapp.manage',
+        'whatsapp.send_test',
     ];
 
     public function run(): void
@@ -183,6 +187,7 @@ class RolePermissionSeeder extends Seeder
             'temporary_assignments.view', 'temporary_assignments.create', 'temporary_assignments.cancel',
             'branch_payment_mapping.view', 'branch_payment_mapping.manage', 'branch_payment_mapping.validate',
             'ownership_conflicts.view', 'ownership_conflicts.resolve', 'receivables_dashboard.view',
+            'whatsapp.view', 'whatsapp.manage', 'whatsapp.send_test',
         ]);
 
         $branchManager->syncPermissions([

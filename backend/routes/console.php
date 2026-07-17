@@ -29,3 +29,8 @@ Schedule::command('assignments:expire-temporary')
     ->hourly()
     ->name('expire-temporary-assignments')
     ->withoutOverlapping();
+
+Schedule::command('whatsapp:promise-reminders')
+    ->dailyAt('08:00')
+    ->name('whatsapp-promise-reminders')
+    ->withoutOverlapping();

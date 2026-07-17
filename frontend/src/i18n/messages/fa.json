@@ -70,7 +70,14 @@
     "mappingCleanup": "پاکسازی نگاشت",
     "branchReceivables": "مطالبات شعب",
     "permanentCustomers": "مشتریان دائمی",
-    "myDebtors": "بدهکاران جاری"
+    "myDebtors": "بدهکاران جاری",
+    "whatsapp": "واتساپ",
+    "whatsappMessages": "پیام‌ها",
+    "whatsappTemplates": "قالب‌ها",
+    "whatsappInbox": "صندوق ورودی",
+    "whatsappFailures": "خطاها",
+    "whatsappSettings": "تنظیمات واتساپ",
+    "whatsappRules": "قواعد اعلان"
   },
   "common": {
     "loading": "در حال بارگذاری…",

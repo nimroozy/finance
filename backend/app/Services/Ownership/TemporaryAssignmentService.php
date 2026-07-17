@@ -2,6 +2,7 @@
 
 namespace App\Services\Ownership;
 
+use App\Events\BusinessNotificationRequested;
 use App\Models\Collector;
 use App\Models\Customer;
 use App\Models\TemporaryAssignmentHistory;
@@ -76,6 +77,15 @@ class TemporaryAssignmentService
             ]);
             $this->audit->log('ownership.temporary_created', $row, null, $row->toArray(), $customer->branch_id, $reason);
             $this->queues->recalculate($customer);
+            BusinessNotificationRequested::dispatch('temporary_assignment_created', [
+                'branch_id' => $customer->branch_id,
+                'customer_id' => $customer->id,
+                'user_id' => $temporaryCollector->user_id,
+                'phone' => $temporaryCollector->user?->phone,
+                'title' => 'Temporary assignment created',
+                'assignment_id' => $row->id,
+                'end_date' => $endDate,
+            ]);
 
             return $row;
         });

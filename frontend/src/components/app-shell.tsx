@@ -56,6 +56,14 @@ const NAV_GROUPS: NavGroup[] = [
     { href: "/bank-deposits", labelKey: "bankDeposits", permissions: ["bank_deposits.view"] },
     { href: "/reconciliation", labelKey: "reconciliation", permissions: ["cash_reconciliation.view"] },
   ] },
+  { labelKey: "whatsapp", items: [
+    { href: "/whatsapp/messages", labelKey: "whatsappMessages", permissions: ["whatsapp.view"] },
+    { href: "/whatsapp/templates", labelKey: "whatsappTemplates", permissions: ["whatsapp.view"] },
+    { href: "/whatsapp/inbox", labelKey: "whatsappInbox", permissions: ["whatsapp.view"] },
+    { href: "/whatsapp/failures", labelKey: "whatsappFailures", permissions: ["whatsapp.view"] },
+    { href: "/settings/whatsapp", labelKey: "whatsappSettings", permissions: ["whatsapp.manage"] },
+    { href: "/settings/whatsapp-rules", labelKey: "whatsappRules", permissions: ["whatsapp.manage"] },
+  ] },
   { labelKey: "administration", items: [
     { href: "/branches", labelKey: "branches", permissions: ["branches.view", "branches.manage"] },
     { href: "/zoho", labelKey: "zohoStructure", permissions: ["zoho.view"] },

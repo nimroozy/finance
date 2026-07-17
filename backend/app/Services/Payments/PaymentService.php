@@ -2,6 +2,7 @@
 
 namespace App\Services\Payments;
 
+use App\Events\BusinessNotificationRequested;
 use App\Jobs\SyncPaymentToZohoJob;
 use App\Models\Customer;
 use App\Models\CustomerAssignment;
@@ -237,6 +238,16 @@ class PaymentService
             $this->audit->log('payment.confirmed', $fresh, null, $fresh->toArray(), $fresh->branch_id);
 
             SyncPaymentToZohoJob::dispatch($fresh->id);
+            BusinessNotificationRequested::dispatch('payment_confirmed', [
+                'branch_id' => $fresh->branch_id,
+                'customer_id' => $fresh->customer_id,
+                'user_id' => $actor->id,
+                'phone' => $fresh->customer?->mobile ?: $fresh->customer?->phone,
+                'title' => 'Payment confirmed',
+                'body' => $fresh->receipt ? 'Receipt issued; posting is pending.' : 'Payment recorded; receipt is pending.',
+                'amount' => $fresh->amount,
+                'receipt_status' => $fresh->receipt ? 'issued' : 'pending',
+            ]);
 
             if ($confirmIdempotencyKey) {
                 $record = $this->idempotency->begin(

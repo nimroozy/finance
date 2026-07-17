@@ -41,6 +41,9 @@ const ALL_PERMISSIONS = [
   "settings.manage",
   "audit.view",
   "notifications.view",
+  "whatsapp.view",
+  "whatsapp.manage",
+  "whatsapp.send_test",
 ];
 
 const MOCK_USER = {
@@ -141,6 +144,12 @@ test.describe("mocked authenticated shells", () => {
     "/en/collector/payments/new",
     "/en/settings/customer-prefix-mappings",
     "/en/settings/mapping-cleanup",
+    "/en/settings/whatsapp",
+    "/en/settings/whatsapp-rules",
+    "/en/whatsapp/messages",
+    "/en/whatsapp/templates",
+    "/en/whatsapp/failures",
+    "/en/whatsapp/inbox",
     "/en/branches",
   ]) {
     test(`route ${path} renders without crash`, async ({ page }) => {

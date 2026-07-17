@@ -30,6 +30,8 @@ use App\Http\Controllers\Api\V1\SettingController;
 use App\Http\Controllers\Api\V1\UserController;
 use App\Http\Controllers\Api\V1\VisitController;
 use App\Http\Controllers\Api\V1\WalletController;
+use App\Http\Controllers\Api\V1\WhatsAppController;
+use App\Http\Controllers\Api\V1\WhatsAppWebhookController;
 use App\Http\Controllers\Api\V1\Ownership\BranchPaymentMappingController;
 use App\Http\Controllers\Api\V1\Ownership\BranchReceivablesController;
 use App\Http\Controllers\Api\V1\Ownership\CollectorOwnershipController;
@@ -42,6 +44,11 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->name('api.v1.')->group(function () {
     Route::get('/health', HealthController::class)->name('health');
+
+    Route::get('/whatsapp/webhook', [WhatsAppWebhookController::class, 'verify'])
+        ->middleware('throttle:60,1')->name('whatsapp.webhook.verify');
+    Route::post('/whatsapp/webhook', [WhatsAppWebhookController::class, 'receive'])
+        ->middleware('throttle:120,1')->name('whatsapp.webhook.receive');
 
     Route::get('/verify-receipt/{token}', [ReceiptController::class, 'verify'])
         ->middleware('throttle:30,1')
@@ -462,5 +469,27 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         });
 
         Route::get('/collector/dashboard', [CollectorController::class, 'dashboard'])->name('collector.dashboard');
+
+        // --- Stage 6: WhatsApp Cloud API ---
+        Route::middleware('permission:whatsapp.view')->group(function () {
+            Route::get('/whatsapp/status', [WhatsAppController::class, 'status']);
+            Route::get('/whatsapp/templates', [WhatsAppController::class, 'templates']);
+            Route::get('/whatsapp/messages', [WhatsAppController::class, 'messages']);
+            Route::get('/whatsapp/failures', [WhatsAppController::class, 'failures']);
+            Route::get('/whatsapp/inbox', [WhatsAppController::class, 'inbox']);
+            Route::get('/whatsapp/inbox/{conversation}', [WhatsAppController::class, 'showConversation'])->whereNumber('conversation');
+            Route::get('/whatsapp/rules', [WhatsAppController::class, 'rules']);
+        });
+        Route::middleware('permission:whatsapp.manage')->group(function () {
+            Route::post('/whatsapp/test-connection', [WhatsAppController::class, 'testConnection']);
+            Route::post('/whatsapp/templates/sync', [WhatsAppController::class, 'syncTemplates']);
+            Route::post('/whatsapp/pause', [WhatsAppController::class, 'pause']);
+            Route::post('/whatsapp/resume', [WhatsAppController::class, 'resume']);
+            Route::put('/whatsapp/rules', [WhatsAppController::class, 'saveRules']);
+            Route::post('/whatsapp/inbox/{conversation}/resolve', [WhatsAppController::class, 'resolveConversation'])->whereNumber('conversation');
+            Route::put('/whatsapp/preferences', [WhatsAppController::class, 'upsertPreferences']);
+        });
+        Route::middleware('permission:whatsapp.send_test')
+            ->post('/whatsapp/send-test', [WhatsAppController::class, 'sendTest']);
     });
 });
