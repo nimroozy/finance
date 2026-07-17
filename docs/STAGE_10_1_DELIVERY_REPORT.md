@@ -5,7 +5,7 @@
 **Draft PR:** https://github.com/nimroozy/finance/pull/17  
 **VPS:** `root@209.38.194.184` (`/opt/collection-system`)  
 **Deploy stamp:** `20260717T195940Z`  
-**Tip SHA deployed:** `53f278b31b3267150b36783b37c00a79b29e142d`  
+**Tip SHA deployed:** `2d990ea4b45401897771829e36813e5a18196a54`  
 **Do not merge until human review.** **Stage 11 not started.** **No Radius.**  
 **KEY_KEPT** (`~/.ssh/id_ed25519` preserved — not deleted).
 
@@ -73,7 +73,7 @@ Superseded drafts (preserve for audit — **not closed**):
 
 1. BEFORE `.deployed-sha` = `71ee2d7a371cba353efd4ccffbb33444eb7ab7cb`
 2. Pre backup + counts
-3. `./scripts/sync-to-vps.sh` from tip `53f278b…`
+3. `./scripts/sync-to-vps.sh` from tip (code `53f278b…`, docs tip `2d990ea…`)
 4. VPS `./scripts/deploy.sh` — migrate **Nothing to migrate**; RolePermissionSeeder; admin install skipped
 5. Catalog seeders (all **SEED_OK**): RolePermission, Stage10 types/tech/SLA, Stage9 categories/locations, Stage8 lead sources, Stage7 org/SLA/types/templates/escalation
 6. Wrote host `.deployed-sha` = tip; set `APP_STAGE=10.1-integrated-stable`, `APP_COMMIT_SHA`, `APP_BRANCH`; recreated backend/queue/scheduler; copied `.deployed-sha` into container
@@ -87,7 +87,7 @@ Superseded drafts (preserve for audit — **not closed**):
 |-------|--------|
 | `/api/v1/health` → `deployment.stage` | **`10.1-integrated-stable`** |
 | `/api/v1/system/version` (auth) stage | **`10.1-integrated-stable`** |
-| git_sha / commit_sha | `53f278b31b3267150b36783b37c00a79b29e142d` |
+| git_sha / commit_sha | `2d990ea4b45401897771829e36813e5a18196a54` |
 | branch | `cursor/stage-10-1-integrated-stable` |
 | migration_batch | **18** (ui_preferences latest) |
 | `/en/apps` `/fa/apps` `/en/services/dashboard` | **200** (HTTPS; unauthenticated OK / login redirect OK) |

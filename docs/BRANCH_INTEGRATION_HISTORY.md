@@ -34,6 +34,8 @@ Audit trail of how `cursor/stage-10-1-integrated-stable` was assembled. **Do not
 |-------------|---------|
 | `76df534` | Stage 10.1 version label + integrated stable markers |
 | `a400477` | Playwright mobile/shell Create+Confirm fixes; ConfirmDialog above bottom nav |
+| `53f278b` | Stage 10.1 docs pack + roadmap/architecture |
+| `2d990ea` | VPS deploy results in delivery report |
 
 Exact tip SHA is recorded in [STAGE_10_1_DELIVERY_REPORT.md](STAGE_10_1_DELIVERY_REPORT.md) after each VPS deploy.
 
