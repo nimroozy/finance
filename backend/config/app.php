@@ -26,7 +26,7 @@ return [
     |
     */
 
-    'stage' => env('APP_STAGE', '10.1-integrated-stable'),
+    'stage' => env('APP_STAGE', '10.2-production-recovery'),
 
     /*
     |--------------------------------------------------------------------------
