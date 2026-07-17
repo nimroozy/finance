@@ -56,22 +56,88 @@ class ServiceCancellationService
         });
     }
 
+    public function approve(ServiceCancellation $cancellation, ?User $actor = null): ServiceCancellation
+    {
+        if ($cancellation->status !== ServiceCancellation::STATUS_REQUESTED) {
+            throw new InvalidArgumentException('Only requested cancellations can be approved.');
+        }
+
+        $cancellation->status = ServiceCancellation::STATUS_APPROVED;
+        $cancellation->approved_by = $actor?->id;
+        $cancellation->save();
+
+        if ($cancellation->equipment_return_required) {
+            $cancellation->status = ServiceCancellation::STATUS_EQUIPMENT_RECOVERY;
+            $cancellation->save();
+        }
+
+        $this->audit->log('service.cancellation_approved', $cancellation->service, null, [
+            'cancellation_id' => $cancellation->id,
+        ], $cancellation->service?->branch_id);
+
+        return $cancellation->fresh();
+    }
+
+    /**
+     * Record equipment recovery step (does not mutate inventory ledgers).
+     */
+    public function markEquipmentRecovered(ServiceCancellation $cancellation, ?User $actor = null, ?string $notes = null): ServiceCancellation
+    {
+        if (! in_array($cancellation->status, [
+            ServiceCancellation::STATUS_APPROVED,
+            ServiceCancellation::STATUS_EQUIPMENT_RECOVERY,
+        ], true)) {
+            throw new InvalidArgumentException('Cancellation is not in equipment recovery.');
+        }
+
+        $open = CustomerEquipment::withoutGlobalScopes()
+            ->where('service_id', $cancellation->service_id)
+            ->whereNull('returned_at')
+            ->where('status', '!=', 'returned')
+            ->count();
+
+        if ($open > 0) {
+            // Soft gate: allow marking recovered with note when items remain (field may recover offline).
+            $note = $notes ?: "Equipment recovery recorded with {$open} item(s) still flagged open.";
+            $cancellation->notes = trim(($cancellation->notes ? $cancellation->notes."\n" : '').$note);
+        } elseif ($notes) {
+            $cancellation->notes = trim(($cancellation->notes ? $cancellation->notes."\n" : '').$notes);
+        }
+
+        $cancellation->equipment_recovered_at = now();
+        $cancellation->equipment_recovered_by = $actor?->id;
+        $cancellation->status = ServiceCancellation::STATUS_APPROVED;
+        $cancellation->save();
+
+        $this->audit->log('service.cancellation_equipment_recovered', $cancellation->service, null, [
+            'cancellation_id' => $cancellation->id,
+            'open_equipment' => $open,
+        ], $cancellation->service?->branch_id);
+
+        return $cancellation->fresh();
+    }
+
+    /**
+     * Complete cancellation. Must be called explicitly — defaults false at API.
+     */
     public function complete(ServiceCancellation $cancellation, ?User $actor = null): Service
     {
         return DB::transaction(function () use ($cancellation, $actor) {
-            $service = Service::query()->lockForUpdate()->findOrFail($cancellation->service_id);
-
-            if ($cancellation->equipment_return_required) {
-                $open = CustomerEquipment::withoutGlobalScopes()
-                    ->where('service_id', $service->id)
-                    ->whereNull('returned_at')
-                    ->where('status', '!=', 'returned')
-                    ->count();
-                // Soft requirement: flag in notes when equipment still out; do not invent ledger moves.
-                if ($open > 0 && empty($cancellation->notes)) {
-                    $cancellation->notes = "Equipment return pending ({$open} item(s)).";
-                }
+            if ($cancellation->status === ServiceCancellation::STATUS_REQUESTED) {
+                throw new InvalidArgumentException('Cancellation must be approved before completion.');
             }
+
+            if ($cancellation->equipment_return_required
+                && empty($cancellation->equipment_recovered_at)
+                && $cancellation->status === ServiceCancellation::STATUS_EQUIPMENT_RECOVERY) {
+                throw new InvalidArgumentException('Equipment recovery step required before completing cancellation.');
+            }
+
+            if ($cancellation->equipment_return_required && empty($cancellation->equipment_recovered_at)) {
+                throw new InvalidArgumentException('Equipment recovery step required before completing cancellation.');
+            }
+
+            $service = Service::query()->lockForUpdate()->findOrFail($cancellation->service_id);
 
             if ($service->commercial_status === Service::COMMERCIAL_PENDING_CANCELLATION
                 || $service->canTransitionCommercialTo(Service::COMMERCIAL_CANCELLED)) {
@@ -81,7 +147,6 @@ class ServiceCancellationService
                     'billing' => Service::BILLING_CLOSED,
                 ], $actor, $cancellation->reason, 'cancellation');
             } else {
-                // draft/pending_activation cancel path
                 $this->lifecycle->transition($service, [
                     'commercial' => Service::COMMERCIAL_CANCELLED,
                 ], $actor, $cancellation->reason, 'cancellation');
@@ -98,7 +163,7 @@ class ServiceCancellationService
             $service->save();
 
             $cancellation->status = ServiceCancellation::STATUS_COMPLETED;
-            $cancellation->approved_by = $actor?->id;
+            $cancellation->approved_by = $cancellation->approved_by ?? $actor?->id;
             $cancellation->cancelled_at = now();
             $cancellation->save();
 

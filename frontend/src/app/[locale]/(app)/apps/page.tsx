@@ -20,6 +20,7 @@ import {
   toggleFavoriteApp,
   type UiPreferences,
 } from "@/lib/ui-preferences";
+import { getAppCounts, type AppCounts } from "@/lib/apps";
 import { AppGrid } from "@/components/launcher/app-grid";
 import { Input } from "@/components/ui/form";
 import { LoadingState } from "@/components/ui/layout";
@@ -32,15 +33,20 @@ export default function AppsLauncherPage() {
   const [prefs, setPrefs] = useState<UiPreferences>(() => getCachedUiPreferences());
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
+  const [counts, setCounts] = useState<AppCounts>({});
 
   useEffect(() => {
     let cancelled = false;
-    void fetchUiPreferences()
-      .then((p) => {
-        if (!cancelled) setPrefs(p);
-      })
-      .catch(() => {
-        /* keep cache */
+    void Promise.all([
+      fetchUiPreferences().catch(() => getCachedUiPreferences()),
+      getAppCounts()
+        .then((res) => res.data ?? {})
+        .catch(() => ({} as AppCounts)),
+    ])
+      .then(([p, nextCounts]) => {
+        if (cancelled) return;
+        setPrefs(p);
+        setCounts(nextCounts);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -173,6 +179,7 @@ export default function AppsLauncherPage() {
             favorites={favorites}
             onToggleFavorite={onToggleFavorite}
             onOpen={onOpen}
+            counts={counts}
           />
         </section>
       ) : null}
@@ -187,6 +194,7 @@ export default function AppsLauncherPage() {
             favorites={favorites}
             onToggleFavorite={onToggleFavorite}
             onOpen={onOpen}
+            counts={counts}
           />
         </section>
       ) : null}
@@ -209,6 +217,7 @@ export default function AppsLauncherPage() {
                   favorites={favorites}
                   onToggleFavorite={onToggleFavorite}
                   onOpen={onOpen}
+                  counts={counts}
                 />
               </div>
             ))}

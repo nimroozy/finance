@@ -1303,11 +1303,21 @@
     "emptyWorkspace": "Nothing here yet.",
     "errorWorkspace": "Could not load this workspace.",
     "commandMenuTitle": "Operations search",
-    "commandMenuPlaceholder": "Search tickets, tasks, installations…",
+    "commandMenuPlaceholder": "Search customers, services, tickets, inventory…",
     "commandMenuHint": "Type at least 2 characters",
     "tickets": "Tickets",
     "tasks": "Tasks",
     "installations": "Installations",
+    "customers": "Customers",
+    "services": "Services",
+    "leads": "Leads",
+    "payments": "Payments",
+    "products": "Products",
+    "equipment": "Equipment",
+    "transfers": "Transfers",
+    "sites": "Sites",
+    "towers": "Towers",
+    "users": "Users",
     "attachments": "Attachments",
     "upload": "Upload",
     "refresh": "Refresh",
@@ -1775,7 +1785,19 @@
       "cancel": "Cancel",
       "submitChange": "Apply package change",
       "submitRelocate": "Complete relocation",
-      "placeHold": "Place finance hold"
+      "placeHold": "Place finance hold",
+      "technicalReview": "Technical review",
+      "financeReview": "Finance review",
+      "applyChange": "Apply change",
+      "closeChange": "Close",
+      "startRelocation": "Start",
+      "completeRelocation": "Complete",
+      "releaseHold": "Release hold",
+      "confirmOnline": "NOC confirm online",
+      "requestCancel": "Request cancellation",
+      "newSla": "New SLA template",
+      "deactivateSla": "Deactivate",
+      "saveSla": "Save"
     },
     "metrics": {
       "total": "Total services",
@@ -1797,7 +1819,8 @@
       "name": "Name",
       "speed": "Speed",
       "status": "Status",
-      "contractNumber": "Contract #"
+      "contractNumber": "Contract #",
+      "service": "Service"
     },
     "filters": {
       "allCommercial": "All commercial",
@@ -1866,7 +1889,26 @@
     },
     "customerTab": "Services",
     "customerTabEmpty": "No services for this customer.",
-    "packageSuccess": "Package created."
+    "packageSuccess": "Package created.",
+    "emptyChangeRequests": "No change requests",
+    "emptyRelocations": "No relocations",
+    "emptyFinanceHolds": "No finance holds",
+    "activationChecklistTitle": "Activation checklist (evidence)",
+    "checklistIncomplete": "Checklist incomplete — evidence required",
+    "changeWizardHint": "Package changes require technical → finance → apply steps.",
+    "relocateWizardHint": "Relocation stays requested until started/completed.",
+    "cancelWizardHint": "Cancellation requires approve → equipment recovery → complete.",
+    "nocConfirmHint": "Operational online requires a separate NOC confirmation with reason.",
+    "checklist.zoho_linked": "Zoho linked",
+    "checklist.installation_completed": "Installation completed",
+    "checklist.inventory_reconciled": "Inventory reconciled",
+    "checklist.equipment_assigned": "Equipment assigned",
+    "checklist": {
+      "zoho_linked": "Zoho linked",
+      "installation_completed": "Installation completed",
+      "inventory_reconciled": "Inventory reconciled",
+      "equipment_assigned": "Equipment assigned"
+    }
   },
   "apps": {
     "dashboard": "Dashboard",
@@ -1964,6 +2006,9 @@
     "forbiddenTitle": "Access denied",
     "forbiddenBody": "You do not have permission to open this page.",
     "backToApps": "Back to apps",
-    "errorTitle": "Something went wrong"
+    "errorTitle": "Something went wrong",
+    "expandSidebar": "Expand sidebar",
+    "collapseSidebar": "Collapse sidebar",
+    "navLabel": "Navigation"
   }
 }

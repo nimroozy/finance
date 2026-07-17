@@ -13,12 +13,12 @@ return [
         'infix' => 'CTR',
     ],
 
+    // Evidence-backed activation checklist (evaluated from DB — never client auto-true).
     'activation_checklist' => [
-        'customer_confirmed',
-        'equipment_installed',
-        'link_tested',
-        'documentation_complete',
-        // Radius provisioning intentionally omitted — Stage 10 is service lifecycle only.
+        'zoho_linked',
+        'installation_completed',
+        'inventory_reconciled',
+        'equipment_assigned',
     ],
 
     'auto_draft_on_installation_complete' => env('SERVICE_AUTO_DRAFT_ON_INSTALL_COMPLETE', true),

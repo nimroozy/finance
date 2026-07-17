@@ -3,7 +3,10 @@
 namespace App\Http\Controllers\Api\V1\Services;
 
 use App\Http\Controllers\Controller;
+use App\Models\Services\ServiceChangeRequest;
 use App\Models\Services\ServiceContract;
+use App\Models\Services\ServiceFinanceHold;
+use App\Models\Services\ServiceRelocation;
 use App\Models\Tickets\Installation;
 use App\Services\ServiceLifecycle\InstallationToServiceConverter;
 use App\Services\ServiceLifecycle\NocServiceWorkspaceService;
@@ -83,6 +86,57 @@ class ServiceOpsController extends Controller
         return ApiResponse::success($service, null, 201);
     }
 
+    public function changeRequests(Request $request): JsonResponse
+    {
+        abort_unless(Auth::user()?->can('services.change') || Auth::user()?->can('services.view'), 403);
+
+        $query = ServiceChangeRequest::query()
+            ->with(['service:id,service_number,customer_id,branch_id,commercial_status', 'requestedBy:id,name'])
+            ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))
+            ->when($request->filled('service_id'), fn ($q) => $q->where('service_id', $request->integer('service_id')))
+            ->when($request->filled('branch_id'), function ($q) use ($request) {
+                $q->whereHas('service', fn ($sq) => $sq->where('branch_id', $request->integer('branch_id')));
+            })
+            ->orderByDesc('id');
+
+        return ApiResponse::paginated($query->paginate($request->integer('per_page', 25)));
+    }
+
+    public function relocations(Request $request): JsonResponse
+    {
+        abort_unless(Auth::user()?->can('services.relocate') || Auth::user()?->can('services.view'), 403);
+
+        $query = ServiceRelocation::query()
+            ->with(['service:id,service_number,customer_id,branch_id', 'oldLocation:id,name', 'newLocation:id,name'])
+            ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))
+            ->when($request->filled('service_id'), fn ($q) => $q->where('service_id', $request->integer('service_id')))
+            ->when($request->filled('branch_id'), function ($q) use ($request) {
+                $q->whereHas('service', fn ($sq) => $sq->where('branch_id', $request->integer('branch_id')));
+            })
+            ->orderByDesc('id');
+
+        return ApiResponse::paginated($query->paginate($request->integer('per_page', 25)));
+    }
+
+    public function financeHolds(Request $request): JsonResponse
+    {
+        abort_unless(
+            Auth::user()?->can('services.finance_holds.manage') || Auth::user()?->can('services.view'),
+            403
+        );
+
+        $query = ServiceFinanceHold::query()
+            ->with(['service:id,service_number,customer_id,branch_id,billing_status'])
+            ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))
+            ->when($request->filled('service_id'), fn ($q) => $q->where('service_id', $request->integer('service_id')))
+            ->when($request->filled('branch_id'), function ($q) use ($request) {
+                $q->whereHas('service', fn ($sq) => $sq->where('branch_id', $request->integer('branch_id')));
+            })
+            ->orderByDesc('id');
+
+        return ApiResponse::paginated($query->paginate($request->integer('per_page', 25)));
+    }
+
     public function storeContract(Request $request): JsonResponse
     {
         abort_unless(Auth::user()?->can('services.contracts.manage'), 403);
@@ -95,6 +149,9 @@ class ServiceOpsController extends Controller
             'renewal_type' => ['nullable', 'string'],
             'setup_fee' => ['nullable', 'numeric'],
             'recurring_fee' => ['nullable', 'numeric'],
+            'signed_date' => ['nullable', 'date'],
+            'file_path' => ['nullable', 'string'],
+            'status' => ['nullable', 'string'],
             'zoho_reference' => ['nullable', 'string'],
         ]);
 
@@ -107,12 +164,42 @@ class ServiceOpsController extends Controller
         return ApiResponse::success($contract, null, 201);
     }
 
+    public function updateContract(Request $request, int $id): JsonResponse
+    {
+        abort_unless(Auth::user()?->can('services.contracts.manage'), 403);
+        $contract = ServiceContract::query()->findOrFail($id);
+        $data = $request->validate([
+            'service_id' => ['nullable', 'integer', 'exists:services,id'],
+            'branch_id' => ['nullable', 'integer', 'exists:branches,id'],
+            'start_date' => ['nullable', 'date'],
+            'end_date' => ['nullable', 'date'],
+            'renewal_type' => ['nullable', 'string'],
+            'setup_fee' => ['nullable', 'numeric'],
+            'recurring_fee' => ['nullable', 'numeric'],
+            'signed_date' => ['nullable', 'date'],
+            'file_path' => ['nullable', 'string'],
+            'status' => ['nullable', 'string'],
+            'zoho_reference' => ['nullable', 'string'],
+        ]);
+
+        try {
+            $contract = $this->contracts->update($contract, $data, Auth::user());
+        } catch (InvalidArgumentException $e) {
+            return ApiResponse::error($e->getMessage(), [], 422);
+        }
+
+        return ApiResponse::success($contract);
+    }
+
     public function contracts(Request $request): JsonResponse
     {
         abort_unless(Auth::user()?->can('services.contracts.view') || Auth::user()?->can('services.view'), 403);
-        $query = ServiceContract::query();
-        $query->when($request->filled('customer_id'), fn ($q) => $q->where('customer_id', $request->integer('customer_id')))
-            ->when($request->filled('service_id'), fn ($q) => $q->where('service_id', $request->integer('service_id')));
+        $query = ServiceContract::query()
+            ->with(['customer:id,contact_name,customer_number', 'service:id,service_number'])
+            ->when($request->filled('customer_id'), fn ($q) => $q->where('customer_id', $request->integer('customer_id')))
+            ->when($request->filled('service_id'), fn ($q) => $q->where('service_id', $request->integer('service_id')))
+            ->when($request->filled('branch_id'), fn ($q) => $q->where('branch_id', $request->integer('branch_id')))
+            ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')));
 
         return ApiResponse::paginated($query->orderByDesc('id')->paginate($request->integer('per_page', 25)));
     }

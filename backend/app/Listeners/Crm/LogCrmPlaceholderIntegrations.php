@@ -2,50 +2,20 @@
 
 namespace App\Listeners\Crm;
 
-use App\Events\BusinessNotificationRequested;
 use App\Events\Crm\FollowUpOverdue;
 use App\Events\Crm\InstallationRequestedFromCrm;
 use App\Events\Crm\LeadConverted;
-use App\Events\Crm\PlaceholderRadiusActivationRequested;
-use App\Events\Crm\PlaceholderZohoCustomerRequested;
 use App\Events\Crm\QuotationAccepted;
 use App\Events\Crm\SurveyCompleted;
 use Illuminate\Support\Facades\Log;
 
+/**
+ * CRM domain event logging (name retained for compatibility).
+ * Radius / Zoho-create placeholder handlers were removed in Stage 10.2 —
+ * conversion links existing Zoho-mirrored customers only.
+ */
 class LogCrmPlaceholderIntegrations
 {
-    public function handleRadius(PlaceholderRadiusActivationRequested $event): void
-    {
-        Log::info('crm.placeholder.radius_activation_requested', [
-            'lead_id' => $event->leadId,
-            'customer_id' => $event->customerId,
-            'branch_id' => $event->branchId,
-        ]);
-
-        BusinessNotificationRequested::dispatch('crm_placeholder_radius_activation', [
-            'branch_id' => $event->branchId,
-            'lead_id' => $event->leadId,
-            'customer_id' => $event->customerId,
-            'title' => 'Radius activation queued (placeholder)',
-        ], ['in_app']);
-    }
-
-    public function handleZoho(PlaceholderZohoCustomerRequested $event): void
-    {
-        Log::info('crm.placeholder.zoho_customer_requested', [
-            'lead_id' => $event->leadId,
-            'customer_id' => $event->customerId,
-            'branch_id' => $event->branchId,
-        ]);
-
-        BusinessNotificationRequested::dispatch('crm_placeholder_zoho_customer', [
-            'branch_id' => $event->branchId,
-            'lead_id' => $event->leadId,
-            'customer_id' => $event->customerId,
-            'title' => 'Zoho customer create queued (placeholder)',
-        ], ['in_app']);
-    }
-
     public function handleConverted(LeadConverted $event): void
     {
         Log::info('crm.lead.converted', [

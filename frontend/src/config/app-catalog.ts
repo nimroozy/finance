@@ -287,7 +287,7 @@ export const APP_CATALOG: CatalogApp[] = [
     icon: ShoppingCart,
     group: "inventory",
     permissions: ["inventory.purchasing.view"],
-    featureFlag: "inventory",
+    featureFlag: "purchasing",
     nameKey: "purchasing",
     descriptionKey: "purchasingDesc",
     matchPrefixes: ["/purchasing", "/suppliers"],

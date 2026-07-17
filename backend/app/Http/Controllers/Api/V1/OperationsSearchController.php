@@ -11,16 +11,29 @@ use Illuminate\Support\Facades\Auth;
 
 class OperationsSearchController extends Controller
 {
+    /** @var list<string> */
+    public const SEARCH_PERMISSIONS = [
+        'tickets.view',
+        'tasks.view',
+        'installations.view',
+        'customers.view',
+        'services.view',
+        'crm.leads.view',
+        'payments.view',
+        'inventory.products.view',
+        'inventory.equipment.view',
+        'inventory.transfers.view',
+        'inventory.sites.view',
+        'inventory.towers.view',
+        'users.view',
+    ];
+
     public function __construct(private OperationalSearchService $search) {}
 
     public function __invoke(Request $request): JsonResponse
     {
-        abort_unless(
-            Auth::user()->can('tickets.view')
-            || Auth::user()->can('tasks.view')
-            || Auth::user()->can('installations.view'),
-            403
-        );
+        $user = Auth::user();
+        abort_unless($user->canAny(self::SEARCH_PERMISSIONS), 403);
 
         $data = $request->validate([
             'q' => ['required', 'string', 'min:1'],
@@ -28,7 +41,6 @@ class OperationsSearchController extends Controller
             'limit' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
 
-        $user = Auth::user();
         if ($user->isSuperAdmin() || $user->isCentralFinanceAdmin()) {
             $branchIds = $request->filled('branch_id')
                 ? [$request->integer('branch_id')]
@@ -42,7 +54,6 @@ class OperationsSearchController extends Controller
         }
 
         if ($branchIds === [] && ($user->isSuperAdmin() || $user->isCentralFinanceAdmin()) && ! $request->filled('branch_id')) {
-            // Super admin without branch filter: require explicit branch for isolation safety in multi-tenant search
             $branchIds = $user->branchIds();
         }
 

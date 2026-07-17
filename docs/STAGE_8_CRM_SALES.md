@@ -17,7 +17,8 @@ Base path: `/api/v1/crm/*`
 | Area | Endpoints |
 |------|-----------|
 | Lead sources | `GET /crm/lead-sources` |
-| Leads | `GET/POST /crm/leads`, `GET/PUT /crm/leads/{id}`, `POST .../transition`, `.../assign`, `.../convert`, `.../timeline` |
+| Leads | `GET/POST /crm/leads`, `GET/PUT /crm/leads/{id}`, `POST .../transition`, `.../assign`, `.../link-zoho-customer`, `.../convert`, `.../timeline` |
+| Zoho mirror | `GET /crm/customers/search-zoho-mirror` |
 | Activities | `GET/POST /crm/activities` |
 | Follow-ups | `GET/POST /crm/follow-ups`, `POST .../complete`, `.../cancel` |
 | Coverage | `GET/POST /crm/coverage-checks` |
@@ -58,7 +59,7 @@ E2E: `frontend/e2e/stage8-crm.spec.ts`.
 
 `lead` → `contacted` → `qualified` → `coverage_check` → `site_survey` → `quotation` → `negotiation` → `approved` → `finance_review` → `installation_request` → … → `active_customer` / `after_sales`, plus `lost` / `cancelled`.
 
-Conversion emits installation / customer handoff without inline Zoho invoice creation or live Radius activation (queued / later stages).
+Conversion requires an existing Zoho-linked local customer (`zoho_contact_id`); search/link first. No Zoho contact create or Radius activation from CRM (Stage 10.2).
 
 ## Boundaries
 

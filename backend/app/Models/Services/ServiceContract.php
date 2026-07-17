@@ -2,6 +2,7 @@
 
 namespace App\Models\Services;
 
+use App\Models\Branch;
 use App\Models\Customer;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -20,7 +21,7 @@ class ServiceContract extends Model
     public const STATUS_TERMINATED = 'terminated';
 
     protected $fillable = [
-        'contract_number', 'customer_id', 'service_id', 'start_date', 'end_date',
+        'contract_number', 'customer_id', 'branch_id', 'service_id', 'start_date', 'end_date',
         'renewal_type', 'setup_fee', 'recurring_fee', 'signed_date', 'file_path',
         'status', 'zoho_reference',
     ];
@@ -39,6 +40,11 @@ class ServiceContract extends Model
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
     }
 
     public function service(): BelongsTo

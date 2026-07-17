@@ -4,8 +4,6 @@ namespace App\Services\Crm;
 
 use App\Events\Crm\InstallationRequestedFromCrm;
 use App\Events\Crm\LeadConverted;
-use App\Events\Crm\PlaceholderRadiusActivationRequested;
-use App\Events\Crm\PlaceholderZohoCustomerRequested;
 use App\Models\Collector;
 use App\Models\Crm\Lead;
 use App\Models\Customer;
@@ -14,7 +12,6 @@ use App\Services\AuditLogger;
 use App\Services\Installations\InstallationQueueService;
 use App\Services\Ownership\CustomerOwnershipService;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use InvalidArgumentException;
 
 class CustomerConversionService
@@ -30,8 +27,11 @@ class CustomerConversionService
     }
 
     /**
-     * Convert a won lead into a local Customer + Installation request.
-     * Does not call Zoho/Radius/Inventory — emits placeholder events only.
+     * Convert a won lead into an Installation request against an existing Zoho-linked customer.
+     *
+     * Requires a local customer with zoho_contact_id (synced/mirrored from Zoho).
+     * Does not create Zoho contacts, does not dispatch Radius activation, and does not
+     * invent local-only customers — use CrmZohoCustomerLinkService to search/link first.
      *
      * @param  array<string, mixed>  $options
      * @return array{lead: Lead, customer: Customer, installation_id: int}
@@ -44,6 +44,12 @@ class CustomerConversionService
 
         return DB::transaction(function () use ($lead, $options, $actor) {
             $customer = $this->resolveCustomer($lead, $options);
+
+            if (! $customer->zoho_contact_id) {
+                throw new InvalidArgumentException(
+                    'Conversion requires an existing Zoho-linked customer (zoho_contact_id). Search the Zoho mirror and link the lead before converting.'
+                );
+            }
 
             $installation = $this->installations->create([
                 'branch_id' => $lead->branch_id,
@@ -92,12 +98,11 @@ class CustomerConversionService
             $this->audit->log('crm.lead.converted', $lead, null, [
                 'customer_id' => $customer->id,
                 'installation_id' => $installation->id,
+                'zoho_contact_id' => $customer->zoho_contact_id,
             ], $lead->branch_id);
 
             LeadConverted::dispatch($lead->id, (int) $lead->branch_id, (int) $customer->id, (int) $installation->id);
             InstallationRequestedFromCrm::dispatch($lead->id, (int) $installation->id, (int) $lead->branch_id);
-            PlaceholderRadiusActivationRequested::dispatch($lead->id, (int) $customer->id, (int) $lead->branch_id);
-            PlaceholderZohoCustomerRequested::dispatch($lead->id, (int) $customer->id, (int) $lead->branch_id);
 
             return [
                 'lead' => $lead->fresh(['convertedCustomer', 'installation']),
@@ -120,26 +125,9 @@ class CustomerConversionService
             return Customer::query()->findOrFail($lead->converted_customer_id);
         }
 
-        // Local-only customer — no Zoho contact id so sync adapters stay idle.
-        return Customer::query()->create([
-            'branch_id' => $lead->branch_id,
-            'customer_number' => 'CRM-'.Str::upper(Str::random(8)),
-            'contact_name' => $lead->contact_person ?: ($lead->company ?: 'CRM Lead '.$lead->lead_number),
-            'company_name' => $lead->company,
-            'phone' => $lead->phone,
-            'mobile' => $lead->whatsapp ?: $lead->phone,
-            'whatsapp_number' => $lead->whatsapp,
-            'email' => $lead->email,
-            'billing_address' => $lead->address,
-            'latitude' => $lead->gps_lat,
-            'longitude' => $lead->gps_lng,
-            'currency' => 'AFN',
-            'outstanding_receivable' => 0,
-            'status' => Customer::STATUS_ACTIVE,
-            'sync_status' => 'local_only',
-            'is_unmapped' => false,
-            'zoho_contact_id' => null,
-        ]);
+        throw new InvalidArgumentException(
+            'No Zoho-linked customer on this lead. POST /crm/leads/{id}/link-zoho-customer or pass customer_id after searching GET /crm/customers/search-zoho-mirror.'
+        );
     }
 
     private function advanceToInstallationRequest(Lead $lead, ?User $actor): Lead
@@ -148,7 +136,6 @@ class CustomerConversionService
             return $lead;
         }
 
-        // Walk happy-path hops when possible; otherwise force the conversion stage.
         $path = [
             Lead::STAGE_CONTACTED,
             Lead::STAGE_QUALIFIED,

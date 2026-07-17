@@ -13,7 +13,14 @@ class ServiceSearchService
      */
     public function search(array $filters, ?User $user = null, int $perPage = 15): LengthAwarePaginator
     {
-        $query = Service::query()->with(['customer:id,contact_name,customer_number', 'package:id,code,name', 'location:id,name']);
+        $query = Service::query()->with([
+            'customer:id,contact_name,customer_number,company_name,phone,zoho_contact_id',
+            'package:id,code,name',
+            'packageVersion',
+            'location:id,name,address,city',
+            'installation:id,installation_number,status,address',
+            'slaTemplate:id,code,name',
+        ]);
 
         if ($user && ! $user->isSuperAdmin() && ! $user->isCentralFinanceAdmin()) {
             $query->whereIn('branch_id', $user->branchIds());

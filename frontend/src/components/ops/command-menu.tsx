@@ -22,48 +22,122 @@ function asRecord(v: unknown): Record<string, unknown> | null {
   return v && typeof v === "object" ? (v as Record<string, unknown>) : null;
 }
 
-function mapHits(data: {
-  tickets?: unknown[];
-  tasks?: unknown[];
-  installations?: unknown[];
-}): Hit[] {
+function pushHits(
+  hits: Hit[],
+  rows: unknown[] | undefined,
+  group: string,
+  hrefFor: (r: Record<string, unknown>) => string | null,
+  labelFor: (r: Record<string, unknown>) => string,
+) {
+  for (const row of rows ?? []) {
+    const r = asRecord(row);
+    if (!r) continue;
+    const id = r.id;
+    if (id == null) continue;
+    const href = hrefFor(r);
+    if (!href) continue;
+    hits.push({
+      id: `${group}-${id}`,
+      group,
+      label: labelFor(r),
+      href,
+    });
+  }
+}
+
+function mapHits(data: Record<string, unknown[] | undefined>): Hit[] {
   const hits: Hit[] = [];
-  for (const row of data.tickets ?? []) {
-    const r = asRecord(row);
-    if (!r) continue;
-    const id = r.id;
-    if (id == null) continue;
-    hits.push({
-      id: `ticket-${id}`,
-      group: "tickets",
-      label: String(r.ticket_number || r.subject || id),
-      href: `/tickets/${id}`,
-    });
-  }
-  for (const row of data.tasks ?? []) {
-    const r = asRecord(row);
-    if (!r) continue;
-    const id = r.id;
-    if (id == null) continue;
-    hits.push({
-      id: `task-${id}`,
-      group: "tasks",
-      label: String(r.task_number || r.title || id),
-      href: `/tasks/${id}`,
-    });
-  }
-  for (const row of data.installations ?? []) {
-    const r = asRecord(row);
-    if (!r) continue;
-    const id = r.id;
-    if (id == null) continue;
-    hits.push({
-      id: `inst-${id}`,
-      group: "installations",
-      label: String(r.installation_number || r.contact_name || id),
-      href: `/installations/${id}`,
-    });
-  }
+  pushHits(
+    hits,
+    data.customers,
+    "customers",
+    (r) => `/customers/${r.id}`,
+    (r) => String(r.contact_name || r.customer_number || r.company_name || r.id),
+  );
+  pushHits(
+    hits,
+    data.services,
+    "services",
+    (r) => `/services/${r.id}`,
+    (r) => String(r.service_number || r.circuit_id || r.id),
+  );
+  pushHits(
+    hits,
+    data.leads,
+    "leads",
+    (r) => `/crm/leads/${r.id}`,
+    (r) => String(r.lead_number || r.company || r.contact_person || r.id),
+  );
+  pushHits(
+    hits,
+    data.tickets,
+    "tickets",
+    (r) => `/tickets/${r.id}`,
+    (r) => String(r.ticket_number || r.subject || r.id),
+  );
+  pushHits(
+    hits,
+    data.tasks,
+    "tasks",
+    (r) => `/tasks/${r.id}`,
+    (r) => String(r.task_number || r.title || r.id),
+  );
+  pushHits(
+    hits,
+    data.installations,
+    "installations",
+    (r) => `/installations/${r.id}`,
+    (r) => String(r.installation_number || r.prospect_name || r.contact_name || r.id),
+  );
+  pushHits(
+    hits,
+    data.payments,
+    "payments",
+    (r) => `/payments/${r.id}`,
+    (r) => String(r.payment_reference || r.id),
+  );
+  pushHits(
+    hits,
+    data.products,
+    "products",
+    (r) => `/inventory/products/${r.id}`,
+    (r) => String(r.code || r.name_en || r.id),
+  );
+  pushHits(
+    hits,
+    data.equipment,
+    "equipment",
+    (r) => `/inventory/equipment/${r.id}`,
+    (r) => String(r.equipment_number || r.serial_number || r.mac_address || r.id),
+  );
+  pushHits(
+    hits,
+    data.transfers,
+    "transfers",
+    (r) => `/inventory/transfers/${r.id}`,
+    (r) => String(r.transfer_number || r.id),
+  );
+  pushHits(
+    hits,
+    data.sites,
+    "sites",
+    (r) => `/sites/${r.id}`,
+    (r) => String(r.code || r.name || r.id),
+  );
+  pushHits(
+    hits,
+    data.towers,
+    "towers",
+    (r) => `/sites/towers/${r.id}`,
+    (r) => String(r.code || r.id),
+  );
+  pushHits(
+    hits,
+    data.users,
+    "users",
+    (r) => `/users/${r.id}`,
+    (r) => String(r.name || r.username || r.email || r.id),
+  );
   return hits;
 }
 
@@ -131,12 +205,11 @@ export function CommandMenu({
       setError(null);
       void operationsSearch(q)
         .then((res) => {
-          if (!cancelled) setHits(mapHits(res.data ?? {}));
+          if (!cancelled) setHits(mapHits((res.data ?? {}) as Record<string, unknown[] | undefined>));
         })
         .catch(() => {
           if (!cancelled) {
             setHits([]);
-            // App hits still usable even if ops search fails
             setError(null);
           }
         })

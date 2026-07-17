@@ -47,9 +47,43 @@ class ServiceRelocationService
         return $relocation;
     }
 
+    public function start(ServiceRelocation $relocation, ?User $actor = null, ?string $notes = null): ServiceRelocation
+    {
+        if ($relocation->status !== ServiceRelocation::STATUS_REQUESTED) {
+            throw new InvalidArgumentException('Only requested relocations can be started.');
+        }
+
+        $relocation->status = ServiceRelocation::STATUS_IN_PROGRESS;
+        if ($notes) {
+            $relocation->notes = trim(($relocation->notes ? $relocation->notes."\n" : '').$notes);
+        }
+        $relocation->save();
+
+        $this->audit->log('service.relocation_started', $relocation->service, null, [
+            'relocation_id' => $relocation->id,
+        ], $relocation->service?->branch_id);
+
+        return $relocation->fresh();
+    }
+
+    /**
+     * Complete relocation. Must be called explicitly — never implied by request.
+     */
     public function complete(ServiceRelocation $relocation, ?User $actor = null): Service
     {
+        if (! in_array($relocation->status, [
+            ServiceRelocation::STATUS_REQUESTED,
+            ServiceRelocation::STATUS_IN_PROGRESS,
+        ], true)) {
+            throw new InvalidArgumentException('Relocation cannot be completed from status '.$relocation->status);
+        }
+
         return DB::transaction(function () use ($relocation, $actor) {
+            if ($relocation->status === ServiceRelocation::STATUS_REQUESTED) {
+                $relocation->status = ServiceRelocation::STATUS_IN_PROGRESS;
+                $relocation->save();
+            }
+
             $service = Service::query()->lockForUpdate()->findOrFail($relocation->service_id);
             $old = ['service_location_id' => $service->service_location_id, 'tower_id' => $service->tower_id];
 

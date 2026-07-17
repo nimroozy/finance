@@ -278,6 +278,25 @@ async function mockStage10Api(page: Page, user = MOCK_USER) {
       return;
     }
 
+    if (url.match(/\/services\/\d+\/activation-checklist/)) {
+      await fulfillJson(route, {
+        ready: false,
+        missing: ["zoho_linked", "installation_completed", "inventory_reconciled", "equipment_assigned"],
+        checklist: {
+          zoho_linked: false,
+          installation_completed: false,
+          inventory_reconciled: false,
+          equipment_assigned: false,
+        },
+      });
+      return;
+    }
+
+    if (url.includes("/apps/counts")) {
+      await fulfillJson(route, { tasks: 0, support: 0, installations: 0, services: 1, noc: 0 });
+      return;
+    }
+
     if (url.includes("/services") && method === "POST" && !url.match(/\/services\/\d+/)) {
       const body = req.postDataJSON() as Record<string, unknown>;
       const created = {
@@ -356,11 +375,10 @@ async function mockStage10Api(page: Page, user = MOCK_USER) {
 }
 
 test.describe("Stage 10 service lifecycle", () => {
-  test("dashboard shows lifecycle metrics and radius deferred", async ({ page }) => {
+  test("dashboard shows lifecycle metrics", async ({ page }) => {
     await mockStage10Api(page);
     await page.goto("/en/services/dashboard");
     await expect(page.getByTestId("services-dashboard")).toBeVisible();
-    await expect(page.getByText(/Radius automation is deferred/i)).toBeVisible();
     await expect(page.getByRole("link", { name: /Total services/i })).toContainText("12");
   });
 
@@ -431,7 +449,6 @@ test.describe("Stage 10 service lifecycle", () => {
     await mockStage10Api(page);
     await page.goto("/en/noc/services");
     await expect(page.getByTestId("noc-services")).toBeVisible();
-    await expect(page.getByText(/Radius automation is deferred/i)).toBeVisible();
     await expect(page.getByText("KBL-SVC-000040").first()).toBeVisible();
   });
 

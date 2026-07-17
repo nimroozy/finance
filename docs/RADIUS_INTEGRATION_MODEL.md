@@ -22,6 +22,10 @@ Application (central)
      Per-branch SAS Radius (or local secure agent)
 ```
 
+## Stage 10.2 recovery note
+
+CRM conversion **must not** enqueue Radius activation placeholders. Radius stays disabled (`platform.modules.radius.enabled = false`, `service_lifecycle.radius.enabled = false`) until Stage 12 adapters exist. Staff dashboards no longer surface Radius activation banners.
+
 ## Hard rules
 
 1. **Do not** make normal page loads depend on live Radius DB/API availability.

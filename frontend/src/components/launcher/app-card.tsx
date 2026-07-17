@@ -12,14 +12,17 @@ export function AppCard({
   favorite,
   onToggleFavorite,
   onOpen,
+  count,
 }: {
   app: CatalogApp;
   favorite?: boolean;
   onToggleFavorite?: (appId: string) => void;
   onOpen?: (appId: string) => void;
+  count?: number;
 }) {
   const t = useTranslations("apps");
   const Icon = app.icon;
+  const showCount = typeof count === "number" && count > 0;
 
   return (
     <div
@@ -31,6 +34,15 @@ export function AppCard({
       data-app-id={app.id}
       data-testid={`app-card-${app.id}`}
     >
+      {showCount ? (
+        <span
+          className="absolute start-2 top-2 z-10 inline-flex min-w-5 items-center justify-center rounded-md bg-primary px-1.5 py-0.5 text-[10px] font-semibold text-white"
+          data-testid={`app-count-${app.id}`}
+        >
+          {count > 99 ? "99+" : count}
+        </span>
+      ) : null}
+
       {onToggleFavorite ? (
         <Button
           type="button"

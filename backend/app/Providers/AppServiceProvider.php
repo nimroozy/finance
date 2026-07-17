@@ -6,8 +6,6 @@ use App\Events\AttachmentUploaded;
 use App\Events\Crm\FollowUpOverdue;
 use App\Events\Crm\InstallationRequestedFromCrm;
 use App\Events\Crm\LeadConverted;
-use App\Events\Crm\PlaceholderRadiusActivationRequested;
-use App\Events\Crm\PlaceholderZohoCustomerRequested;
 use App\Events\Crm\QuotationAccepted;
 use App\Events\Crm\SurveyCompleted;
 use App\Events\InstallationStatusChanged;
@@ -63,6 +61,7 @@ use App\Models\Inventory\Supplier;
 use App\Models\Inventory\Tower;
 use App\Models\Inventory\Transfer;
 use App\Models\Services\Service;
+use App\Support\PermissionRegistry;
 use App\Policies\Inventory\CustodyRecordPolicy;
 use App\Policies\Inventory\EquipmentPolicy;
 use App\Policies\Inventory\EquipmentSalePolicy;
@@ -133,6 +132,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        PermissionRegistry::registerGates();
+
         Gate::policy(User::class, UserPolicy::class);
         Gate::policy(Branch::class, BranchPolicy::class);
         Gate::policy(CustomerAssignment::class, CustomerAssignmentPolicy::class);
@@ -199,8 +200,6 @@ class AppServiceProvider extends ServiceProvider
 
     private function registerCrmEventListeners(): void
     {
-        Event::listen(PlaceholderRadiusActivationRequested::class, [LogCrmPlaceholderIntegrations::class, 'handleRadius']);
-        Event::listen(PlaceholderZohoCustomerRequested::class, [LogCrmPlaceholderIntegrations::class, 'handleZoho']);
         Event::listen(LeadConverted::class, [LogCrmPlaceholderIntegrations::class, 'handleConverted']);
         Event::listen(InstallationRequestedFromCrm::class, [LogCrmPlaceholderIntegrations::class, 'handleInstallationRequested']);
         Event::listen(SurveyCompleted::class, [LogCrmPlaceholderIntegrations::class, 'handleSurveyCompleted']);

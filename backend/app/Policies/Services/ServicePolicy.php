@@ -42,6 +42,31 @@ class ServicePolicy
         return $user->can('services.cancel') && $this->sameBranch($user, $service);
     }
 
+    public function change(User $user, Service $service): bool
+    {
+        return $user->can('services.change') && $this->sameBranch($user, $service);
+    }
+
+    public function relocate(User $user, Service $service): bool
+    {
+        return $user->can('services.relocate') && $this->sameBranch($user, $service);
+    }
+
+    public function manageFinanceHold(User $user, Service $service): bool
+    {
+        return $user->can('services.finance_holds.manage') && $this->sameBranch($user, $service);
+    }
+
+    public function renew(User $user, Service $service): bool
+    {
+        return $user->can('services.renew') && $this->sameBranch($user, $service);
+    }
+
+    public function confirmOnline(User $user, Service $service): bool
+    {
+        return ($user->can('services.noc.view') || $user->can('services.activate')) && $this->sameBranch($user, $service);
+    }
+
     private function sameBranch(User $user, Service $service): bool
     {
         if ($user->isSuperAdmin() || $user->isCentralFinanceAdmin()) {

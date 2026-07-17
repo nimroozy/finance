@@ -42,7 +42,7 @@ class ServiceChangeRequestService
             'reason' => $data['reason'] ?? null,
             'finance_status' => 'pending',
             'technical_status' => 'pending',
-            'status' => ServiceChangeRequest::STATUS_PENDING,
+            'status' => ServiceChangeRequest::STATUS_REQUESTED,
             'notes' => $data['notes'] ?? null,
         ]);
 
@@ -51,22 +51,92 @@ class ServiceChangeRequestService
         return $cr;
     }
 
-    public function approve(ServiceChangeRequest $cr, ?User $actor = null, bool $apply = true): ServiceChangeRequest
+    public function submitTechnicalReview(ServiceChangeRequest $cr, ?User $actor = null, bool $approved = true, ?string $notes = null): ServiceChangeRequest
     {
-        $cr->finance_status = 'approved';
-        $cr->technical_status = 'approved';
-        $cr->status = ServiceChangeRequest::STATUS_APPROVED;
+        if (! in_array($cr->status, [ServiceChangeRequest::STATUS_REQUESTED, ServiceChangeRequest::STATUS_PENDING], true)) {
+            throw new InvalidArgumentException('Change request is not awaiting technical review.');
+        }
+
+        $cr->technical_status = $approved ? 'approved' : 'rejected';
+        if (! $approved) {
+            $cr->status = ServiceChangeRequest::STATUS_REJECTED;
+        } else {
+            $cr->status = ServiceChangeRequest::STATUS_TECHNICAL_REVIEW;
+            // Advance into finance review once technical passes.
+            $cr->status = ServiceChangeRequest::STATUS_FINANCE_REVIEW;
+        }
+        if ($notes) {
+            $cr->notes = trim(($cr->notes ? $cr->notes."\n" : '').$notes);
+        }
         $cr->save();
+
+        $this->audit->log('service.change_technical_review', $cr->service, null, [
+            'change_request_id' => $cr->id,
+            'approved' => $approved,
+        ], $cr->service?->branch_id);
+
+        return $cr->fresh();
+    }
+
+    public function submitFinanceReview(ServiceChangeRequest $cr, ?User $actor = null, bool $approved = true, ?string $notes = null): ServiceChangeRequest
+    {
+        if ($cr->status !== ServiceChangeRequest::STATUS_FINANCE_REVIEW) {
+            throw new InvalidArgumentException('Change request is not awaiting finance review.');
+        }
+
+        $cr->finance_status = $approved ? 'approved' : 'rejected';
+        if (! $approved) {
+            $cr->status = ServiceChangeRequest::STATUS_REJECTED;
+        } else {
+            $cr->status = ServiceChangeRequest::STATUS_APPROVED;
+        }
+        if ($notes) {
+            $cr->notes = trim(($cr->notes ? $cr->notes."\n" : '').$notes);
+        }
+        $cr->save();
+
+        $this->audit->log('service.change_finance_review', $cr->service, null, [
+            'change_request_id' => $cr->id,
+            'approved' => $approved,
+        ], $cr->service?->branch_id);
+
+        return $cr->fresh();
+    }
+
+    /**
+     * Mark approved after reviews. Does NOT apply unless $apply is explicitly true.
+     */
+    public function approve(ServiceChangeRequest $cr, ?User $actor = null, bool $apply = false): ServiceChangeRequest
+    {
+        if (in_array($cr->status, [ServiceChangeRequest::STATUS_REQUESTED, ServiceChangeRequest::STATUS_PENDING], true)) {
+            $cr = $this->submitTechnicalReview($cr, $actor, true);
+        }
+        if ($cr->status === ServiceChangeRequest::STATUS_FINANCE_REVIEW) {
+            $cr = $this->submitFinanceReview($cr, $actor, true);
+        }
+
+        if ($cr->status !== ServiceChangeRequest::STATUS_APPROVED && $cr->status !== ServiceChangeRequest::STATUS_APPLIED) {
+            if ($cr->technical_status === 'approved' && $cr->finance_status === 'approved') {
+                $cr->status = ServiceChangeRequest::STATUS_APPROVED;
+                $cr->save();
+            } else {
+                throw new InvalidArgumentException('Change request cannot be approved without technical and finance reviews.');
+            }
+        }
 
         if ($apply) {
             return $this->apply($cr, $actor);
         }
 
-        return $cr;
+        return $cr->fresh();
     }
 
     public function apply(ServiceChangeRequest $cr, ?User $actor = null): ServiceChangeRequest
     {
+        if (! in_array($cr->status, [ServiceChangeRequest::STATUS_APPROVED], true)) {
+            throw new InvalidArgumentException('Only approved change requests can be applied.');
+        }
+
         return DB::transaction(function () use ($cr, $actor) {
             $service = Service::query()->lockForUpdate()->findOrFail($cr->service_id);
             $values = $cr->requested_values ?? [];
@@ -97,5 +167,21 @@ class ServiceChangeRequestService
 
             return $cr->fresh();
         });
+    }
+
+    public function close(ServiceChangeRequest $cr, ?User $actor = null): ServiceChangeRequest
+    {
+        if (! in_array($cr->status, [ServiceChangeRequest::STATUS_APPLIED, ServiceChangeRequest::STATUS_REJECTED], true)) {
+            throw new InvalidArgumentException('Only applied or rejected change requests can be closed.');
+        }
+
+        $cr->status = ServiceChangeRequest::STATUS_CLOSED;
+        $cr->save();
+
+        $this->audit->log('service.change_closed', $cr->service, null, [
+            'change_request_id' => $cr->id,
+        ], $cr->service?->branch_id);
+
+        return $cr->fresh();
     }
 }

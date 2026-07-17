@@ -30,10 +30,10 @@ export const BILLING_STATUSES = [
 ] as const;
 
 export const ACTIVATION_CHECKLIST = [
-  "customer_confirmed",
-  "equipment_installed",
-  "link_tested",
-  "documentation_complete",
+  "zoho_linked",
+  "installation_completed",
+  "inventory_reconciled",
+  "equipment_assigned",
 ] as const;
 
 export type CommercialStatus = (typeof COMMERCIAL_STATUSES)[number];
@@ -100,7 +100,23 @@ export type IspService = {
   site_id?: number | null;
   customer?: ServiceCustomerRef | null;
   package?: ServicePackageRef | null;
+  package_version?: Record<string, unknown> | null;
   location?: ServiceLocationRef | null;
+  installation?: Record<string, unknown> | null;
+  sla?: Record<string, unknown> | null;
+  sla_template?: Record<string, unknown> | null;
+  equipment_summary?: {
+    total: number;
+    installed: number;
+    returned: number;
+    by_status: Record<string, number>;
+  };
+  technical_owner_id?: number | null;
+  sales_owner_id?: number | null;
+  support_owner_id?: number | null;
+  zoho_customer_id?: string | null;
+  start_date?: string | null;
+  reactivation_date?: string | null;
   allowed_commercial_transitions?: string[];
   allowed_operational_transitions?: string[];
   created_at?: string;
@@ -121,6 +137,8 @@ export type ServiceDashboard = {
 export type ServiceNocWorkspace = {
   attention_queue: IspService[];
   pending_activation: IspService[];
+  open_change_requests?: Array<{ id: number; service_id: number; status: string; service?: IspService | null }>;
+  open_relocations?: Array<{ id: number; service_id: number; status: string; service?: IspService | null }>;
   radius_automation: boolean;
   note?: string;
 };
@@ -148,9 +166,46 @@ export type ServiceBillingView = {
 };
 
 export type ServiceTimelineEvent = {
+  id: string;
   type: string;
+  occurred_at?: string | null;
+  actor?: { id: number; name?: string | null } | null;
+  title: string;
+  summary?: string | null;
+  meta?: Record<string, unknown>;
+  /** @deprecated legacy shape */
   at?: string | null;
-  data: Record<string, unknown>;
+  data?: Record<string, unknown>;
+};
+
+export type ServiceChangeRequest = {
+  id: number;
+  service_id: number;
+  type?: string | null;
+  status: string;
+  reason?: string | null;
+  technical_status?: string | null;
+  finance_status?: string | null;
+  requested_values?: Record<string, unknown>;
+  service?: IspService | null;
+  created_at?: string;
+};
+
+export type ServiceRelocation = {
+  id: number;
+  service_id: number;
+  status: string;
+  old_location_id?: number | null;
+  new_location_id?: number | null;
+  notes?: string | null;
+  service?: IspService | null;
+  created_at?: string;
+};
+
+export type ActivationChecklist = {
+  checklist: Record<string, boolean>;
+  missing: string[];
+  evidence: Record<string, Record<string, unknown>>;
 };
 
 export type ServiceType = {
@@ -172,6 +227,7 @@ export type ServiceSlaTemplate = {
   code?: string | null;
   name: string;
   response_minutes?: number | null;
+  resolution_minutes?: number | null;
   resolve_minutes?: number | null;
   is_active?: boolean;
 };
@@ -439,5 +495,98 @@ export async function convertInstallationToService(
   return apiFetch<IspService>(`/installations/${installationId}/convert-to-service`, {
     method: "POST",
     body: JSON.stringify(payload),
+  });
+}
+
+export async function getActivationChecklist(id: number | string) {
+  return apiFetch<ActivationChecklist>(`/services/${id}/activation-checklist`);
+}
+
+export async function confirmServiceOnline(id: number | string, payload: Record<string, unknown>) {
+  return apiFetch<IspService>(`/services/${id}/noc-confirm-online`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function listChangeRequests(params: ListParams = {}) {
+  return apiFetch<ServiceChangeRequest[]>(`/service-change-requests${toQuery(params)}`);
+}
+
+export async function advanceChangeRequest(id: number | string, payload: Record<string, unknown>) {
+  return apiFetch<ServiceChangeRequest>(`/service-change-requests/${id}/advance`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function listRelocations(params: ListParams = {}) {
+  return apiFetch<ServiceRelocation[]>(`/service-relocations${toQuery(params)}`);
+}
+
+export async function startRelocation(id: number | string) {
+  return apiFetch<ServiceRelocation>(`/service-relocations/${id}/start`, {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+}
+
+export async function completeRelocation(id: number | string) {
+  return apiFetch<IspService>(`/service-relocations/${id}/complete`, {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+}
+
+export async function listFinanceHolds(params: ListParams = {}) {
+  return apiFetch<ServiceFinanceHold[]>(`/service-finance-holds${toQuery(params)}`);
+}
+
+export async function approveCancellation(id: number | string) {
+  return apiFetch<Record<string, unknown>>(`/service-cancellations/${id}/approve`, {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+}
+
+export async function recoverCancellationEquipment(id: number | string, payload: Record<string, unknown> = {}) {
+  return apiFetch<Record<string, unknown>>(`/service-cancellations/${id}/recover-equipment`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function completeCancellation(id: number | string) {
+  return apiFetch<IspService>(`/service-cancellations/${id}/complete`, {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+}
+
+export async function updateServiceContract(id: number | string, payload: Record<string, unknown>) {
+  return apiFetch<ServiceContract>(`/service-contracts/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function createServiceSlaTemplate(payload: Record<string, unknown>) {
+  return apiFetch<ServiceSlaTemplate>(`/service-sla-templates`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateServiceSlaTemplate(id: number | string, payload: Record<string, unknown>) {
+  return apiFetch<ServiceSlaTemplate>(`/service-sla-templates/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deactivateServiceSlaTemplate(id: number | string) {
+  return apiFetch<ServiceSlaTemplate>(`/service-sla-templates/${id}/deactivate`, {
+    method: "POST",
+    body: JSON.stringify({}),
   });
 }
