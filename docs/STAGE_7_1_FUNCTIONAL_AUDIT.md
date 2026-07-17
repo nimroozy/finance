@@ -19,7 +19,7 @@
 | `https://finance.mns.af/en/login`, `/fa/login` | **200** |
 | `GET /api/v1/tickets` (unauthenticated) | **401** (expected) |
 | Docker compose | backend/frontend/postgres/redis **healthy**; nginx/queue/scheduler up |
-| Stage 7 row counts | tickets=1, tasks=1, installations=1 (STAGE7 TEST records) |
+| Stage 7 row counts | tickets=2, tasks=2, installations=2 (STAGE7 + STAGE71 TEST records) after Stage 7.1 deploy SHA `bfed7b9` |
 | WhatsApp conversations | **0** rows (inbox empty; customer-column bug not exercised live) |
 
 ### How to login (from seeders / ops docs)
@@ -306,7 +306,7 @@ Eight mocked E2E failures were **selector brittleness** after WorkspaceHeader / 
 - Use `#responsive-tabs-select` only when **visible** (mobile); else tablist
 - Target Customer combobox (not Branch / command-menu Search)
 
-Authenticated live role-matrix on VPS remains **pending** (admin password not in agent environment).
+Post-deploy: `GET /api/v1/health` **200** with DeploymentInfo SHA `bfed7b9…`. Authenticated live role-matrix on VPS remains **pending** (admin password not in agent environment).
 
 ---
 

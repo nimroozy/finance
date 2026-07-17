@@ -2,11 +2,11 @@
 
 **Date (UTC):** 2026-07-17  
 **Branch:** `cursor/stage-7-1-ui-functional-repair`  
+**SHA deployed:** `bfed7b9202d83efb56620ce36d0c4b49897fe428`  
 **Draft PR:** https://github.com/nimroozy/finance/pull/12  
 **VPS:** `root@209.38.194.184` (`/opt/collection-system`)  
+**Deploy stamp:** `20260717T143722Z`  
 **Do not merge.** **Stage 8 CRM not started.**
-
-> Deploy stamp / SHA / backup paths / financial counts are filled in the **Production deploy** section after VPS sync.
 
 ---
 
@@ -30,7 +30,7 @@ Stage 7.1 closes the highest-impact UI ↔ API gaps from `docs/STAGE_7_1_FUNCTIO
 - Does not start Stage 8 CRM
 - Does not modify payment, wallet, handover, cashbox, custody reversal, or Zoho reconciliation calculations
 - Does not send live WhatsApp/Meta messages
-- Does not delete SSH deploy keys
+- Does not delete SSH deploy keys (**KEY_KEPT**)
 
 ---
 
@@ -47,71 +47,99 @@ Finalization repaired brittle selectors (DataTable dual table/card DOM, Responsi
 
 ---
 
-## Production deploy
+## Backups
 
-| Item | Value |
-|------|-------|
-| Deploy stamp | _pending deploy_ |
-| SHA deployed | _pending deploy_ |
-| Pre-backup | _pending_ |
-| Post-backup | _pending_ |
-| `.deployed-sha` | _pending_ |
-
-### Financial / Stage 7 counts
-
-| Metric | Pre | Post | Match |
-|--------|-----|------|-------|
-| payments | _ | _ | _ |
-| cash_handover_requests | _ | _ | _ |
-| collector_wallets | _ | _ | _ |
-| branch_cashboxes | _ | _ | _ |
-| payment_reversals | _ | _ | _ |
-| whatsapp_connections | _ | _ | _ |
-| tickets | _ | _ | _ |
-| tasks | _ | _ | _ |
-| installations | _ | _ | _ |
-
-### Seeders (post-deploy)
-
-| Seeder | Result |
-|--------|--------|
-| `Stage7OrgSeeder` | _pending_ |
-| `Stage7SlaPolicySeeder` | _pending_ |
-| `Stage7TicketTypeSeeder` | _pending_ |
-| `Stage7TaskTemplateSeeder` | _pending_ |
-| `Stage7EscalationRuleSeeder` | _pending_ |
-| `RolePermissionSeeder` | _pending_ (also run by `deploy.sh`) |
-
-### STAGE71 TEST records
-
-| Entity | ID | Label |
-|--------|----|-------|
-| Ticket | _pending_ | STAGE71 TEST ticket - DO NOT USE |
-| Task | _pending_ | STAGE71 TEST task - DO NOT USE |
-| Installation | _pending_ | STAGE71 TEST installation - DO NOT USE |
-
-### Health / DeploymentInfo
-
-| Check | Result |
-|-------|--------|
-| `https://finance.mns.af/up` | _pending_ |
-| Docker compose | _pending_ |
-| DeploymentInfo / system-version | _pending_ |
-| SSH key `~/.ssh/id_ed25519` | **KEY_KEPT** (never deleted) |
+| Phase | Path | Status |
+|-------|------|--------|
+| Pre-deploy (labeled) | `/opt/collection-backups/20260717T143722Z-stage71-predeploy/` | **Done** — `db.sql` (~24.9MB) |
+| Pre-deploy (script) | `/opt/collection-backups/20260717T144005Z` | **Done** — `./scripts/backup.sh` |
+| Post-deploy (labeled) | `/opt/collection-backups/20260717T143722Z-stage71-postdeploy/` | **Done** — `db.sql` (~24.9MB) |
+| Post-deploy (script) | `/opt/collection-backups/20260717T144253Z` | **Done** — `./scripts/backup.sh` |
+| Snapshots | `/opt/collection-backups/snapshots/20260717T143722Z-stage71-*-counts.txt` | pre/post financial+ops counts |
 
 ---
 
-## Checklist
+## Migrations & seeders
 
-- [ ] Pre-deploy backup + financial/ticket counts
-- [ ] `scripts/sync-to-vps.sh` + `scripts/deploy.sh`
-- [ ] Stage 7 seeders re-run
-- [ ] Write `.deployed-sha` (repo root + `backend/` for image)
-- [ ] STAGE71 TEST records via tinker
-- [ ] Post counts MATCH financials; ticket/task/install counts include STAGE71 rows
-- [ ] Health + DeploymentInfo
-- [ ] Post-deploy backup
-- [ ] Docs committed + pushed; PR #12 not merged; Stage 8 not started
+Stage 7 migrations already at batch **14** (`2026_07_17_161000_create_stage7_ticketing_tables`). Deploy re-ran migrate --force (no new migrations).
+
+| Seeder | Result |
+|--------|--------|
+| `Stage7OrgSeeder` | **SEED_OK** |
+| `Stage7SlaPolicySeeder` | **SEED_OK** |
+| `Stage7TicketTypeSeeder` | **SEED_OK** |
+| `Stage7TaskTemplateSeeder` | **SEED_OK** |
+| `Stage7EscalationRuleSeeder` | **SEED_OK** |
+| `RolePermissionSeeder` | **SEED_OK** (also via `deploy.sh`) |
+
+---
+
+## Financial / ops counts (production)
+
+| Metric | Pre | Post (after STAGE71 TEST) | Match |
+|--------|-----|---------------------------|-------|
+| payments | 3 | 3 | **MATCH** |
+| cash_handover_requests | 1 | 1 | **MATCH** |
+| collector_wallets | 3 | 3 | **MATCH** |
+| branch_cashboxes | 2 | 2 | **MATCH** |
+| payment_reversals | 3 | 3 | **MATCH** |
+| whatsapp_connections | 1 | 1 | **MATCH** |
+| tickets | 1 | 2 | +1 STAGE71 TEST |
+| tasks | 1 | 2 | +1 STAGE71 TEST |
+| installations | 1 | 2 | +1 STAGE71 TEST |
+
+---
+
+## STAGE71 TEST records
+
+| Entity | ID | Number | Label |
+|--------|----|--------|-------|
+| Ticket | 3 | `S71-TEST-1784299369` | STAGE71 TEST ticket - DO NOT USE |
+| Task | 2 | `S71-TASK-1784299404` | STAGE71 TEST task - DO NOT USE |
+| Installation | 2 | `S71-INST-1784299404` | STAGE71 TEST installation - DO NOT USE |
+
+Prior STAGE7 TEST rows retained (ticket 2, task 1, installation 1).
+
+---
+
+## Production verification checklist
+
+- [x] Pre-deploy backup + financial counts snapshot
+- [x] Code sync via `scripts/sync-to-vps.sh` + `./scripts/deploy.sh`
+- [x] Stage 7 seeders re-run (all SEED_OK)
+- [x] Financial counts unchanged; ops counts +1 each for STAGE71 TEST
+- [x] Docker compose healthy (backend/frontend/postgres/redis healthy; nginx/queue/scheduler up)
+- [x] Health: `GET https://finance.mns.af/api/v1/health` → **200** with `deployment.commit_sha=bfed7b9…`
+- [x] Login pages: `/en/login` → **200**; Super Admin not reinstalled
+- [x] `.deployed-sha` written (repo root + baked into backend image at `/var/www/html/.deployed-sha`)
+- [x] DeploymentInfo via tinker matches SHA / backend_version **7.1** / migration_batch **14**
+- [x] STAGE71 TEST records created (DO NOT USE)
+- [x] Post-deploy backup
+- [x] SSH key **KEY_KEPT** (never deleted)
+- [x] Stage 8 **not** started; PR **#12 not merged**
+
+### DeploymentInfo (tinker)
+
+```json
+{
+  "app_name": "MNS Collection",
+  "commit_sha": "bfed7b9202d83efb56620ce36d0c4b49897fe428",
+  "build_timestamp": "2026-07-17T14:40:09+00:00",
+  "backend_version": "7.1",
+  "migration_batch": 14,
+  "latest_migration": "2026_07_17_161000_create_stage7_ticketing_tables",
+  "php_version": "8.4.23",
+  "laravel_version": "12.64.0"
+}
+```
+
+---
+
+## Notes
+
+- Public `https://finance.mns.af/up` currently serves the Next frontend HTML (200); use `/api/v1/health` for backend+DB+redis+DeploymentInfo.
+- `GET /api/v1/system/version` remains auth-gated (401 unauthenticated); health endpoint embeds deployment summary for ops probes.
+- Authenticated live role-matrix UI walkthrough still pending (admin password not available to agent).
 
 ---
 
