@@ -242,3 +242,32 @@ export async function uploadAttachment(params: {
   if (params.kind) form.append("kind", params.kind);
   return apiUpload<{ attachment: unknown; download_url?: string }>("/attachments", form);
 }
+
+export type SystemVersionInfo = {
+  app_name?: string;
+  commit_sha?: string | null;
+  build_timestamp?: string | null;
+  backend_version?: string | null;
+  frontend_version?: string | null;
+  migration_batch?: number | null;
+  latest_migration?: string | null;
+  php_version?: string | null;
+  laravel_version?: string | null;
+};
+
+export async function getVersion() {
+  return apiFetch<SystemVersionInfo>("/system/version");
+}
+
+export type WhatsAppConnectionStatus = {
+  connected?: boolean;
+  status?: string;
+  paused?: boolean;
+  phone_number_id?: string | null;
+  business_account_id?: string | null;
+  last_error?: string | null;
+};
+
+export async function getWhatsAppStatus() {
+  return apiFetch<WhatsAppConnectionStatus>("/whatsapp/status");
+}

@@ -1,4 +1,6 @@
 import { apiFetch, toQuery } from "@/lib/api";
+import type { AllowedTransition } from "@/lib/tickets";
+import type { PaginationMeta } from "@/lib/types";
 
 export const INSTALLATION_STATUSES = [
   "request_received",
@@ -37,23 +39,40 @@ export type Installation = {
   technician_id?: number | null;
   salesperson_id?: number | null;
   equipment_status?: string | null;
+  radius_confirmed?: boolean | null;
+  equipment_confirmed?: boolean | null;
   notes?: string | null;
   created_by?: number | null;
   created_at?: string;
   updated_at?: string;
+  customer?: {
+    id: number;
+    customer_number?: string | null;
+    contact_name?: string | null;
+    phone?: string | null;
+  } | null;
+  technician?: { id: number; name: string } | null;
+  salesperson?: { id: number; name: string } | null;
   tasks?: Array<{
     id: number;
     task_number?: string;
     title?: string;
     status?: string;
   }>;
+  allowed_transitions?: AllowedTransition[];
 };
 
 export type InstallationListParams = {
   page?: number;
   per_page?: number;
   status?: string;
+  branch_id?: number | string;
+  salesperson_id?: number | string;
+  technician_id?: number | string;
+  search?: string;
 };
+
+export type InstallationListMeta = PaginationMeta;
 
 export type CreateInstallationPayload = {
   branch_id: number;
@@ -77,6 +96,10 @@ export async function listInstallations(params: InstallationListParams = {}) {
       page: params.page ?? 1,
       per_page: params.per_page ?? 15,
       status: params.status,
+      branch_id: params.branch_id,
+      salesperson_id: params.salesperson_id,
+      technician_id: params.technician_id,
+      search: params.search,
     })}`,
   );
 }

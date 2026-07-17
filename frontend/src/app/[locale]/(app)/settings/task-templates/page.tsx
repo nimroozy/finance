@@ -12,10 +12,13 @@ import { useAuthStore } from "@/store/auth-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/form";
 import {
+  ErrorWorkspace,
+  WorkspaceHeader,
+} from "@/components/ops";
+import {
   Alert,
   EmptyState,
   LoadingState,
-  PageHeader,
   Panel,
 } from "@/components/ui/layout";
 
@@ -67,8 +70,10 @@ export default function TaskTemplatesPage() {
 
   return (
     <div>
-      <PageHeader title={t("templatesTitle")} subtitle={t("templatesSubtitle")} />
-      {error ? (
+      <WorkspaceHeader title={t("templatesTitle")} subtitle={t("templatesSubtitle")} />
+      {error && rows.length === 0 && !loading ? (
+        <ErrorWorkspace message={error} onRetry={() => void load()} />
+      ) : error ? (
         <div className="mb-4">
           <Alert>{error}</Alert>
         </div>

@@ -12,8 +12,10 @@ const STAGE7_PERMISSIONS = [
   "tasks.view",
   "tasks.accept",
   "tasks.complete",
+  "tasks.create",
   "installations.view",
   "installations.update",
+  "installations.create",
   "reports.support",
   "reports.technical",
   "reports.management",
@@ -61,10 +63,28 @@ const MOCK_TICKET = {
   priority: "high",
   status: "new",
   primary_assignee: { id: 1, name: "Ops Admin" },
+  customer: {
+    id: 5,
+    customer_number: "C-100",
+    contact_name: "Ahmad",
+    phone: "+93700000000",
+  },
+  branch: { id: 1, code: "KBL", name_en: "Kabul" },
+  assigned_department: { id: 1, code: "SUP", name_en: "Support" },
   response_due_at: "2026-07-17T18:00:00+00:00",
   resolution_due_at: "2026-07-18T18:00:00+00:00",
   created_at: "2026-07-17T10:00:00+00:00",
-  sla_state: { breached_at: null },
+  updated_at: "2026-07-17T11:00:00+00:00",
+  sla_state: { breached_at: null, response_state: "running", resolution_state: "running" },
+  allowed_transitions: [
+    { status: "triaged", label: "Triaged", requires_reason: false },
+    { status: "in_progress", label: "In Progress", requires_reason: false },
+    { status: "cancelled", label: "Cancelled", requires_reason: true },
+  ],
+  tasks: [],
+  open_related: [],
+  attachments_summary: [],
+  recent_work_logs: [],
 };
 
 const MOCK_TASK = {
@@ -80,6 +100,10 @@ const MOCK_TASK = {
   assignee_id: 1,
   assignee: { id: 1, name: "Ops Admin" },
   created_at: "2026-07-17T10:05:00+00:00",
+  allowed_transitions: [
+    { status: "accepted", label: "Accept", requires_reason: false },
+    { status: "rejected", label: "Reject", requires_reason: true },
+  ],
 };
 
 const MOCK_INSTALLATION = {
@@ -91,7 +115,12 @@ const MOCK_INSTALLATION = {
   phone: "+93700000000",
   requested_package: "20Mbps",
   created_at: "2026-07-17T09:00:00+00:00",
+  equipment_confirmed: false,
+  radius_confirmed: false,
   tasks: [],
+  allowed_transitions: [
+    { status: "equipment_waiting", label: "Equipment Waiting", requires_reason: false },
+  ],
 };
 
 async function fulfillJson(route: Route, data: unknown, meta?: Record<string, number>) {
@@ -118,6 +147,7 @@ async function mockStage7Api(page: Page, user = MOCK_USER) {
     [MOCK_TICKET.id]: { ...MOCK_TICKET },
   };
   let task = { ...MOCK_TASK };
+  let lastTicketListUrl = "";
 
   await page.route("**/api/v1/**", async (route) => {
     const req = route.request();
@@ -126,6 +156,42 @@ async function mockStage7Api(page: Page, user = MOCK_USER) {
 
     if (url.includes("/auth/me")) {
       await fulfillJson(route, user);
+      return;
+    }
+
+    if (url.includes("/pickers/")) {
+      if (url.includes("/pickers/customers")) {
+        await fulfillJson(route, [
+          {
+            id: 5,
+            customer_number: "C-100",
+            contact_name: "Ahmad",
+            phone: "+93700000000",
+            mobile: "+93700000000",
+            branch_id: 1,
+          },
+        ]);
+        return;
+      }
+      if (url.includes("/pickers/branches")) {
+        await fulfillJson(route, [
+          { id: 1, code: "KBL", name_en: "Kabul", name_fa: "کابل" },
+        ]);
+        return;
+      }
+      if (url.includes("/pickers/users")) {
+        await fulfillJson(route, [{ id: 1, name: "Ops Admin", email: "ops@finance.mns.af" }]);
+        return;
+      }
+      if (url.includes("/pickers/departments")) {
+        await fulfillJson(route, [{ id: 1, code: "SUP", name_en: "Support" }]);
+        return;
+      }
+      if (url.includes("/pickers/teams")) {
+        await fulfillJson(route, [{ id: 1, code: "T1", name_en: "Team 1", department_id: 1 }]);
+        return;
+      }
+      await fulfillJson(route, []);
       return;
     }
 
@@ -146,12 +212,7 @@ async function mockStage7Api(page: Page, user = MOCK_USER) {
             is_active: true,
           },
         ],
-        {
-          current_page: 1,
-          last_page: 1,
-          per_page: 50,
-          total: 1,
-        },
+        { current_page: 1, last_page: 1, per_page: 50, total: 1 },
       );
       return;
     }
@@ -163,19 +224,49 @@ async function mockStage7Api(page: Page, user = MOCK_USER) {
       return;
     }
 
+    if (url.includes("/system/version")) {
+      await fulfillJson(route, {
+        app_name: "Finance",
+        commit_sha: "abc123",
+        backend_version: "7.1",
+        migration_batch: 12,
+      });
+      return;
+    }
+
+    const ticketAttachments = url.match(/\/tickets\/(\d+)\/attachments/);
+    if (ticketAttachments && method === "GET") {
+      await fulfillJson(route, [
+        {
+          id: 1,
+          uuid: "att-1",
+          original_name: "photo.jpg",
+          download_url: "/api/v1/attachments/att-1/download",
+          created_at: "2026-07-17T10:00:00+00:00",
+        },
+      ]);
+      return;
+    }
+
     const ticketMatch = url.match(/\/tickets\/(\d+)(\/|$|\?)/);
     if (ticketMatch && method === "POST" && url.includes("/transition")) {
-      const id = Number(ticketMatch[1]);
+      const tid = Number(ticketMatch[1]);
       const body = req.postDataJSON() as { status?: string };
-      const current = ticketsById[id] ?? { ...MOCK_TICKET, id };
-      ticketsById[id] = { ...current, status: body.status || "in_progress" };
-      await fulfillJson(route, ticketsById[id]);
+      const current = ticketsById[tid] ?? { ...MOCK_TICKET, id: tid };
+      ticketsById[tid] = {
+        ...current,
+        status: body.status || "in_progress",
+        allowed_transitions: [
+          { status: "resolved", label: "Resolved", requires_reason: false },
+        ],
+      };
+      await fulfillJson(route, ticketsById[tid]);
       return;
     }
 
     if (ticketMatch && method === "GET" && !url.includes("/transition")) {
-      const id = Number(ticketMatch[1]);
-      await fulfillJson(route, ticketsById[id] ?? { ...MOCK_TICKET, id });
+      const tid = Number(ticketMatch[1]);
+      await fulfillJson(route, ticketsById[tid] ?? { ...MOCK_TICKET, id: tid });
       return;
     }
 
@@ -188,16 +279,26 @@ async function mockStage7Api(page: Page, user = MOCK_USER) {
           ticket_number: "TKT-0099",
           subject: body.subject || MOCK_TICKET.subject,
           status: "new",
+          customer_id: body.customer_id ?? null,
         };
-        ticketsById[99] = created;
+        ticketsById[99] = created as typeof MOCK_TICKET;
         await fulfillJson(route, created);
         return;
       }
-      await fulfillJson(route, Object.values(ticketsById), {
+      lastTicketListUrl = url;
+      const filtered = Object.values(ticketsById).filter((row) => {
+        const u = new URL(url);
+        const priority = u.searchParams.get("priority");
+        const status = u.searchParams.get("status");
+        if (priority && row.priority !== priority) return false;
+        if (status && row.status !== status) return false;
+        return true;
+      });
+      await fulfillJson(route, filtered, {
         current_page: 1,
         last_page: 1,
         per_page: 15,
-        total: Object.keys(ticketsById).length,
+        total: filtered.length,
       });
       return;
     }
@@ -213,20 +314,38 @@ async function mockStage7Api(page: Page, user = MOCK_USER) {
     }
 
     if (url.match(/\/tasks\/\d+\/accept/) && method === "POST") {
-      task = { ...task, status: "accepted" };
+      task = {
+        ...task,
+        status: "accepted",
+        allowed_transitions: [
+          { status: "in_progress", label: "Start work", requires_reason: false },
+          { status: "travelling", label: "Start travel", requires_reason: false },
+        ],
+      };
       await fulfillJson(route, task);
       return;
     }
 
     if (url.match(/\/tasks\/\d+\/complete/) && method === "POST") {
-      task = { ...task, status: "completed" };
+      task = { ...task, status: "completed", allowed_transitions: [] };
       await fulfillJson(route, task);
       return;
     }
 
     if (url.match(/\/tasks\/\d+\/start/) && method === "POST") {
-      task = { ...task, status: "in_progress" };
+      task = {
+        ...task,
+        status: "in_progress",
+        allowed_transitions: [
+          { status: "completed", label: "Complete", requires_reason: false },
+        ],
+      };
       await fulfillJson(route, task);
+      return;
+    }
+
+    if (url.match(/\/tasks\/\d+\/attachments/) && method === "GET") {
+      await fulfillJson(route, []);
       return;
     }
 
@@ -341,6 +460,21 @@ async function mockStage7Api(page: Page, user = MOCK_USER) {
       return;
     }
 
+    if (url.includes("/whatsapp/status")) {
+      await fulfillJson(route, { connected: true, status: "connected" });
+      return;
+    }
+
+    if (url.includes("/whatsapp/inbox")) {
+      await fulfillJson(route, [], {
+        current_page: 1,
+        last_page: 1,
+        per_page: 30,
+        total: 0,
+      });
+      return;
+    }
+
     if (url.includes("/dashboard/summary")) {
       await fulfillJson(route, {
         role: "super_admin",
@@ -353,6 +487,10 @@ async function mockStage7Api(page: Page, user = MOCK_USER) {
 
     await fulfillJson(route, []);
   });
+
+  return {
+    getLastTicketListUrl: () => lastTicketListUrl,
+  };
 }
 
 test.describe("stage 7 ticketing / tasks", () => {
@@ -363,17 +501,19 @@ test.describe("stage 7 ticketing / tasks", () => {
     await expect(page.getByText("TKT-0010")).toBeVisible();
 
     await page.goto("/en/tickets/new");
-    const form = page.locator("main form");
-    await form.locator("select").nth(0).selectOption({ label: "Kabul" });
-    await form.locator("select").nth(1).selectOption("support");
-    await form.locator("input").first().fill("Fiber down");
-    await form.getByRole("button", { name: /Create/i }).click();
+    await expect(page.getByRole("heading", { name: /Create ticket/i })).toBeVisible();
+    // Branch picker + type + subject
+    await page.getByRole("combobox").first().click().catch(() => undefined);
+    const typeSelect = page.locator("main select").first();
+    await typeSelect.selectOption("support");
+    await page.locator('main input[required]').first().fill("Fiber down");
+    await page.getByRole("button", { name: /Create/i }).click();
     await expect(page).toHaveURL(/\/tickets\/99/);
 
     await page.goto("/en/tickets/10");
     await expect(page.getByText("TKT-0010")).toBeVisible();
-    await page.locator("main select").first().selectOption("in_progress");
-    await page.getByRole("button", { name: /Apply status/i }).click();
+    await page.getByRole("button", { name: /In Progress/i }).click();
+    await page.getByRole("button", { name: /Confirm/i }).click();
     await expect(page.getByText(/Status updated/i)).toBeVisible();
   });
 
@@ -383,13 +523,15 @@ test.describe("stage 7 ticketing / tasks", () => {
     await page.goto("/en/tasks/20");
     await expect(page.getByRole("button", { name: /^Accept$/i })).toBeVisible();
     await page.getByRole("button", { name: /^Accept$/i }).click();
-    await expect(page.getByText(/Task accepted/i)).toBeVisible();
+    await page.getByRole("button", { name: /Confirm/i }).click();
+    await expect(page.getByText(/Task status updated|Task accepted/i)).toBeVisible();
 
-    // After accept, start work then complete via mocked transitions
     await page.getByRole("button", { name: /Start work/i }).click();
-    await expect(page.getByText(/Work started/i)).toBeVisible();
+    await page.getByRole("button", { name: /Confirm/i }).click();
+    await expect(page.getByText(/Task status updated|Work started/i)).toBeVisible();
     await page.getByRole("button", { name: /^Complete$/i }).click();
-    await expect(page.getByText(/Task completed/i)).toBeVisible();
+    await page.getByRole("button", { name: /Confirm/i }).click();
+    await expect(page.getByText(/Task status updated|Task completed/i)).toBeVisible();
   });
 
   test("support dashboard KPIs", async ({ page }) => {

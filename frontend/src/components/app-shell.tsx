@@ -303,6 +303,11 @@ const NAV_GROUPS: NavGroup[] = [
             },
           ]
         : []),
+      {
+        href: "/settings/system-version",
+        labelKey: "systemVersion",
+        permissions: ["dashboard.view"],
+      },
       { href: "/audit-logs", labelKey: "auditLogs", permissions: ["audit.view"] },
     ],
   },

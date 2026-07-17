@@ -5,20 +5,12 @@ import { useTranslations } from "next-intl";
 import { ApiError } from "@/lib/api";
 import { getNocDashboard, type NocDashboard } from "@/lib/operations";
 import {
-  Alert,
-  LoadingState,
-  PageHeader,
-  Panel,
-} from "@/components/ui/layout";
-
-function Kpi({ label, value }: { label: string; value: number | string }) {
-  return (
-    <Panel className="p-4">
-      <p className="text-sm text-muted">{label}</p>
-      <p className="mt-2 text-3xl font-semibold text-primary">{value}</p>
-    </Panel>
-  );
-}
+  EmptyWorkspace,
+  ErrorWorkspace,
+  MetricCard,
+  WorkspaceHeader,
+} from "@/components/ops";
+import { LoadingState } from "@/components/ui/layout";
 
 export default function NocDashboardPage() {
   const t = useTranslations("operationsDashboards");
@@ -35,6 +27,7 @@ export default function NocDashboardPage() {
       setData(res.data);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : tCommon("error"));
+      setData(null);
     } finally {
       setLoading(false);
     }
@@ -45,22 +38,23 @@ export default function NocDashboardPage() {
   }, [load]);
 
   return (
-    <div>
-      <PageHeader title={t("nocTitle")} subtitle={t("nocSubtitle")} />
-      {error ? (
-        <div className="mb-4">
-          <Alert>{error}</Alert>
+    <div className="space-y-4">
+      <WorkspaceHeader title={t("nocTitle")} subtitle={t("nocSubtitle")} />
+      {error ? <ErrorWorkspace message={error} onRetry={() => void load()} /> : null}
+      {loading ? <LoadingState label={tCommon("loading")} /> : null}
+      {!loading && !error && data ? (
+        <div className="grid gap-4 sm:grid-cols-3">
+          <MetricCard label={t("openEscalations")} value={data.open_escalations} href="/tickets?status=escalated" />
+          <MetricCard label={t("escalatedTickets")} value={data.escalated_tickets} href="/tickets?status=escalated" />
+          <MetricCard
+            label={t("slaBreached")}
+            value={data.sla_breached}
+            tone="danger"
+            href="/tickets?view=sla_breached&sla_state=breached"
+          />
         </div>
       ) : null}
-      {loading || !data ? (
-        <LoadingState label={tCommon("loading")} />
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-3">
-          <Kpi label={t("openEscalations")} value={data.open_escalations} />
-          <Kpi label={t("escalatedTickets")} value={data.escalated_tickets} />
-          <Kpi label={t("slaBreached")} value={data.sla_breached} />
-        </div>
-      )}
+      {!loading && !error && !data ? <EmptyWorkspace /> : null}
     </div>
   );
 }

@@ -157,6 +157,7 @@ class TicketController extends Controller
             'category' => ['nullable', 'string', 'max:64'],
             'assigned_department_id' => ['nullable', 'integer', 'exists:departments,id'],
             'assigned_team_id' => ['nullable', 'integer', 'exists:teams,id'],
+            'whatsapp_conversation_id' => ['nullable', 'integer', 'exists:whatsapp_conversations,id'],
             'internal_notes' => ['nullable', 'string'],
             'customer_visible_notes' => ['nullable', 'string'],
             'tags' => ['nullable', 'array'],

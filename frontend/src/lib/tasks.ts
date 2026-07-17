@@ -1,4 +1,6 @@
 import { apiFetch, apiUpload, toQuery } from "@/lib/api";
+import type { AllowedTransition, AttachmentSummary, WorkLog } from "@/lib/tickets";
+import type { PaginationMeta } from "@/lib/types";
 
 export const TASK_STATUSES = [
   "pending",
@@ -53,17 +55,32 @@ export type Task = {
   requires_approval?: boolean;
   created_at?: string;
   updated_at?: string;
-  assignee?: { id: number; name: string } | null;
+  assignee?: { id: number; name: string; email?: string } | null;
+  ticket?: { id: number; ticket_number?: string; subject?: string; status?: string } | null;
   depends_on_tasks?: Array<{ id: number; task_number?: string; status?: string }>;
+  allowed_transitions?: AllowedTransition[];
+  work_logs?: WorkLog[];
+  attachments_summary?: AttachmentSummary[];
 };
 
 export type TaskListParams = {
   page?: number;
   per_page?: number;
+  search?: string;
   status?: string;
   ticket_id?: number | string;
+  installation_id?: number | string;
   type?: string;
+  assignee_id?: number | string;
+  branch_id?: number | string;
+  department_id?: number | string;
+  my?: boolean | string | number;
+  unassigned?: boolean | string | number;
+  overdue?: boolean | string | number;
+  today?: boolean | string | number;
 };
+
+export type TaskListMeta = PaginationMeta;
 
 export type CreateTaskPayload = {
   branch_id: number;
@@ -88,14 +105,25 @@ export async function listTasks(params: TaskListParams = {}) {
     `/tasks${toQuery({
       page: params.page ?? 1,
       per_page: params.per_page ?? 15,
+      search: params.search,
       status: params.status,
       ticket_id: params.ticket_id,
+      installation_id: params.installation_id,
       type: params.type,
+      assignee_id: params.assignee_id,
+      branch_id: params.branch_id,
+      department_id: params.department_id,
+      my: params.my,
+      unassigned: params.unassigned,
+      overdue: params.overdue,
+      today: params.today,
     })}`,
   );
 }
 
-export async function listMyTasks(params: { page?: number; per_page?: number } = {}) {
+export async function listMyTasks(
+  params: { page?: number; per_page?: number } = {},
+) {
   return apiFetch<Task[]>(
     `/tasks/my${toQuery({
       page: params.page ?? 1,
@@ -189,6 +217,10 @@ export async function cancelTask(id: number | string, reason: string) {
   });
 }
 
+export async function listTaskAttachments(taskId: number | string) {
+  return apiFetch<AttachmentSummary[]>(`/tasks/${taskId}/attachments`);
+}
+
 export async function uploadTaskAttachment(
   taskId: number | string,
   file: File,
@@ -199,5 +231,8 @@ export async function uploadTaskAttachment(
   form.append("attachable_type", "task");
   form.append("attachable_id", String(taskId));
   if (kind) form.append("kind", kind);
-  return apiUpload<{ attachment: unknown; download_url?: string }>("/attachments", form);
+  return apiUpload<{ attachment: AttachmentSummary; download_url?: string }>(
+    "/attachments",
+    form,
+  );
 }
