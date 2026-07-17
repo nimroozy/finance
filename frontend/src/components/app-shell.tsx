@@ -15,12 +15,8 @@ import {
   resolveAppFromPath,
   type AppNavItem,
 } from "@/config/app-catalog";
-import {
-  applyThemeClass,
-  fetchUiPreferences,
-  getCachedUiPreferences,
-  updateUiPreferences,
-} from "@/lib/ui-preferences";
+import { fetchUiPreferences, updateUiPreferences } from "@/lib/ui-preferences";
+import { useTheme } from "@/components/theme-provider";
 import { cn } from "@/lib/utils";
 
 const SIDEBAR_KEY = "ops-sidebar-collapsed";
@@ -52,6 +48,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const { hydrateTheme } = useTheme();
 
   const forcePassword = Boolean(user?.force_password_change);
   const isChangePassword = pathname.includes("/change-password");
@@ -60,12 +57,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setSidebarCollapsed(loadSidebarCollapsed());
-    const cached = getCachedUiPreferences();
-    applyThemeClass(cached.theme);
     void fetchUiPreferences()
-      .then((p) => applyThemeClass(p.theme))
+      .then((p) => hydrateTheme(p.theme))
       .catch(() => undefined);
-  }, []);
+  }, [hydrateTheme]);
 
   useEffect(() => {
     if (!hydrated) return;

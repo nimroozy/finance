@@ -20,6 +20,7 @@ Unified multi-branch ISP operations so branch staff can work without daily login
 | **7** | **Ticketing, tasks, installation queue** | **Complete / delivered on branch** |
 | **8** | **CRM, sales pipeline, installations handoff** | **In progress / delivered on branch** |
 | **9** | **Inventory, assets, sites, towers** | **In progress / delivered on branch** |
+| **9.1** | **Unified app launcher, bilingual UI, UX shell** | **In progress / delivered on branch** |
 
 ## Stage 6 — WhatsApp & notifications (complete / foundation)
 
@@ -101,6 +102,25 @@ Model: [CRM_INSTALLATION_MODEL.md](CRM_INSTALLATION_MODEL.md).
 **Hard rule:** Immutable inventory transactions only. No direct stock quantity editing.
 
 Models: [INVENTORY_MODEL.md](INVENTORY_MODEL.md), [INVENTORY_LEDGER_MODEL.md](INVENTORY_LEDGER_MODEL.md).
+
+---
+
+## Stage 9.1 — Unified app launcher & UX stabilization
+
+**Delivered on branch** `cursor/stage-9-1-unified-app-ui` (PR stacks on stage-9). Overview: [STAGE_9_1_UI_UX.md](STAGE_9_1_UI_UX.md).
+
+**Delivered / in scope**
+
+- `/apps` permission-aware launcher (favorites, recent, search, groups)
+- Server-backed UI preferences (theme, favorites, recent, default app)
+- Shared app shell: header, context sidebar, mobile drawer, bottom nav
+- EN/FA + RTL shell polish, dark/light/system theme, design tokens
+- i18n key parity check (`npm run i18n:check`)
+- Playwright launcher + matrix smoke; backend Stage91 preference tests
+
+**Hard rule:** UI/navigation/localization only. No accounting, inventory ledger, CRM, or Zoho behavior changes.
+
+Docs: [APP_LAUNCHER_ARCHITECTURE.md](APP_LAUNCHER_ARCHITECTURE.md), [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md), [EN_FA_LOCALIZATION.md](EN_FA_LOCALIZATION.md), [UI_TEST_MATRIX.md](UI_TEST_MATRIX.md).
 
 ---
 
