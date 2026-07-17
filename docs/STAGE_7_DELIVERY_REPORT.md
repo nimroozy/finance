@@ -2,9 +2,9 @@
 
 **Date (UTC):** 2026-07-17  
 **Branch:** `cursor/stage-7-ticketing-tasks`  
-**SHA:** `5350d39 (includes delivery report commits)`  
+**SHA:** `bb9e408f20a9e730e0b09731b08a007f6e933489`  
 **Base:** `cursor/stage-6-whatsapp` @ `af147c44870a07952fc8300d3eaf0a6ebca4c600`  
-**Draft PR:** not created — `gh pr create` failed: GraphQL Resource not accessible by integration (createPullRequest). Head `cursor/stage-7-ticketing-tasks` is pushed; open draft PR manually targeting `cursor/stage-6-whatsapp`.  
+**Draft PR:** https://github.com/nimroozy/finance/pull/11  
 **Do not merge:** prior stacked PRs until reviewed. **Stage 8 CRM not started.**
 
 ---
@@ -46,6 +46,21 @@ Stage 7 multi-branch ticketing and task management foundation delivered on branc
 | `2026_07_17_160000_create_stage7_org_tables.php` | Departments, teams, membership pivots |
 | `2026_07_17_161000_create_stage7_ticketing_tables.php` | Tickets, tasks, SLA, escalations, installations, attachments, work logs |
 | Seeders | `Stage7OrgSeeder`, `Stage7TicketTypeSeeder`, `Stage7SlaPolicySeeder`, `Stage7EscalationRuleSeeder`, `Stage7TaskTemplateSeeder` |
+
+### Tables created
+
+| Migration | Tables |
+|-----------|--------|
+| Org | `departments`, `teams`, `department_user`, `team_user` |
+| Ticketing | `ticket_types`, `sla_policies`, `ticket_sequences`, `task_sequences`, `installation_sequences`, `tickets`, `ticket_watchers`, `ticket_status_transitions`, `ticket_sla_states`, `sla_breach_events`, `major_incidents`, `major_incident_ticket`, `escalation_rules`, `escalations`, `task_templates`, `tasks`, `task_dependencies`, `task_status_transitions`, `work_logs`, `work_log_amendments`, `operational_attachments`, `installations`, `ticket_intake_suggestions`, `staff_action_tokens` |
+
+### Permissions summary
+
+Stage 7 permissions are defined in `RolePermissionSeeder` (`tickets.*`, `tasks.*`, `sla.manage`, `installations.*`, `attachments.*`, `reports.support|technical|management`, `whatsapp.ticket_intake`, `whatsapp.staff_actions`, `departments.manage`, `ticket_types.manage`, `task_templates.manage`). Super Admin receives all; Central Finance / Branch Manager / Collector / Auditor get scoped subsets (view-heavy for auditor; field task accept/complete for collector).
+
+### Ticket types / SLA seeded
+
+`Stage7SlaPolicySeeder` seeds default Critical/High/Normal/Medium/Low SLA policies (Asia/Kabul business hours). `Stage7TicketTypeSeeder` seeds 22 ticket types (e.g. connectivity_outage, slow_speed, installation_request, billing_inquiry, major_incident, whatsapp_general) linked to matching default SLA by priority.
 
 **Production migrate/seed:** **Pending** — run on production host under `/opt/collection-system` after backup.
 
