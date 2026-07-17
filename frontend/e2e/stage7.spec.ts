@@ -498,7 +498,8 @@ test.describe("stage 7 ticketing / tasks", () => {
     await mockStage7Api(page);
     await page.goto("/en/tickets");
     await expect(page.getByRole("heading", { name: /Tickets/i })).toBeVisible();
-    await expect(page.getByText("TKT-0010")).toBeVisible();
+    // DataTable renders table + mobile cards; assert via link (present in both layouts).
+    await expect(page.getByRole("link", { name: /TKT-0010/ }).first()).toBeVisible();
 
     await page.goto("/en/tickets/new");
     await expect(page.getByRole("heading", { name: /Create ticket/i })).toBeVisible();
@@ -507,11 +508,11 @@ test.describe("stage 7 ticketing / tasks", () => {
     const typeSelect = page.locator("main select").first();
     await typeSelect.selectOption("support");
     await page.locator('main input[required]').first().fill("Fiber down");
-    await page.getByRole("button", { name: /Create/i }).click();
+    await page.getByRole("button", { name: "Create", exact: true }).click();
     await expect(page).toHaveURL(/\/tickets\/99/);
 
     await page.goto("/en/tickets/10");
-    await expect(page.getByText("TKT-0010")).toBeVisible();
+    await expect(page.getByRole("heading", { name: /TKT-0010/ })).toBeVisible();
     await page.getByRole("button", { name: /In Progress/i }).click();
     await page.getByRole("button", { name: /Confirm/i }).click();
     await expect(page.getByText(/Status updated/i)).toBeVisible();
@@ -562,7 +563,7 @@ test.describe("stage 7 ticketing / tasks", () => {
     await mockStage7Api(page);
     await page.goto("/en/installations");
     await expect(page.getByRole("heading", { name: /Installations/i })).toBeVisible();
-    await expect(page.getByText("INS-0030")).toBeVisible();
-    await expect(page.getByText("Ahmad")).toBeVisible();
+    await expect(page.getByRole("link", { name: /INS-0030/ }).first()).toBeVisible();
+    await expect(page.getByText("Ahmad").filter({ visible: true })).toBeVisible();
   });
 });

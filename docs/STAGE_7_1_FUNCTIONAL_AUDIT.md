@@ -272,6 +272,44 @@ Re-run after P0/P1 with authenticated Playwright or manual checklist against `ht
 
 ---
 
+## Stage 7.1 fix status (2026-07-17 finalization)
+
+**Branch:** `cursor/stage-7-1-ui-functional-repair` · **PR:** [#12](https://github.com/nimroozy/finance/pull/12) · **Do not merge.**
+
+### Automated verification
+
+| Suite | Result |
+|-------|--------|
+| Playwright `e2e/stage7.spec.ts` + `e2e/stage71-functional.spec.ts` | **22/22 passed** (desktop + mobile Chromium) |
+| PHPUnit `--filter='Stage7|Stage71'` | **28/28 passed** (154 assertions) |
+
+### P0/P1 repairs delivered in this branch
+
+| Priority | Item | Status |
+|----------|------|--------|
+| P0 | WhatsApp conversation customer eager-load (`contact_name`) | **Fixed** (backend) |
+| P0 | Server-side ticket `priority` (+ related list filters) | **Fixed** — `TicketController` + Stage71 filters tests |
+| P0 | `allowed_transitions` on ticket/installation show; UI constrained | **Fixed** — resource + StatusActionMenu / confirm buttons |
+| P0 | Attachment list + download wiring on ticket/task detail | **Fixed** — gallery + API list endpoints |
+| P1 | Customer / user / branch / department pickers | **Fixed** — `PickerController` + SearchablePicker UI |
+| P1 | Create installation / create task from ticket | **Fixed** (UI surfaces present) |
+| P1 | Task reject / verify / reassign / cancel | **Partial** — workflow endpoints remain; UI covers primary field loop + confirm transitions |
+| P1 | WhatsApp “link ticket” semantics | **Partial / deferred** — not re-verified live (0 conversations on prod at audit) |
+| P1 | Collector nav My Tasks | **Fixed** (nav includes My Tasks under Service Operations) |
+| P1 | Stage 7 escalations queue page | **Deferred** (domain collision with visit escalations remains) |
+
+### Playwright finalization notes
+
+Eight mocked E2E failures were **selector brittleness** after WorkspaceHeader / DataTable (table+mobile card) / ResponsiveTabs / Quick-create button — not product regressions. Tests updated to:
+
+- Prefer `getByRole('link'|'heading'|'combobox'|'button', { exact })` over ambiguous `getByText`
+- Use `#responsive-tabs-select` only when **visible** (mobile); else tablist
+- Target Customer combobox (not Branch / command-menu Search)
+
+Authenticated live role-matrix on VPS remains **pending** (admin password not in agent environment).
+
+---
+
 ## References
 
 - `docs/STAGE_7_TICKETING_TASKS.md`, `TICKET_WORKFLOW.md`, `TASK_WORKFLOW.md`, `FIELD_MOBILE_WORKFLOW.md`, `INSTALLATION_QUEUE.md`

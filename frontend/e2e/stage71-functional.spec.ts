@@ -236,23 +236,20 @@ test.describe("stage 7.1 functional (mocked)", () => {
   test("customer search create flow uses picker not raw IDs", async ({ page }) => {
     await mockStage71(page);
     await page.goto("/en/tickets/new");
+    await expect(page.getByRole("heading", { name: /Create ticket/i })).toBeVisible();
     await expect(page.getByText(/Customer ID/i)).toHaveCount(0);
 
-    // Customer searchable picker
-    const customerInput = page.getByPlaceholder(/Type to search|Search/i).first();
+    // Target Customer combobox (not Branch / command-menu search).
+    const customerInput = page.getByRole("combobox", { name: /^Customer$/i });
+    await customerInput.click();
     await customerInput.fill("Ahmad");
-    await page.getByRole("option", { name: /Ahmad/i }).click().catch(async () => {
-      // Fallback: click listbox item text
-      await page.getByText(/Ahmad Karimi/i).click();
-    });
+    await expect(page.getByRole("option", { name: /Ahmad Karimi/i })).toBeVisible();
+    await page.getByRole("option", { name: /Ahmad Karimi/i }).click();
 
-    await page.locator("main select").filter({ hasText: /Support|Type/i }).first().selectOption("support").catch(async () => {
-      await page.locator("main select").first().selectOption("support");
-    });
+    await page.getByRole("combobox", { name: /^Type$/i }).selectOption("support");
+    await page.getByRole("textbox", { name: /^Subject$/i }).fill("Fiber cut");
 
-    await page.locator("main form input[required]").last().fill("Fiber cut");
-
-    await page.getByRole("button", { name: /Create/i }).click();
+    await page.getByRole("button", { name: "Create", exact: true }).click();
     await expect(page).toHaveURL(/\/tickets\/99/);
   });
 
@@ -272,9 +269,11 @@ test.describe("stage 7.1 functional (mocked)", () => {
   test("attachments gallery loads from API and refresh after upload", async ({ page }) => {
     const ctx = await mockStage71(page);
     await page.goto("/en/tickets/10");
-    // Open attachments tab (desktop tabs or mobile select)
+    await expect(page.getByRole("heading", { name: /TKT-0010/ })).toBeVisible();
+
+    // Mobile: visible select; desktop: tablist (select exists but CSS-hidden).
     const tabsSelect = page.locator("#responsive-tabs-select");
-    if (await tabsSelect.count()) {
+    if (await tabsSelect.isVisible()) {
       await tabsSelect.selectOption("attachments");
     } else {
       await page.getByRole("tab", { name: /Attachments/i }).click();
@@ -288,6 +287,7 @@ test.describe("stage 7.1 functional (mocked)", () => {
       buffer: Buffer.from("hello"),
     });
     await expect.poll(() => ctx.getAttachments().length).toBeGreaterThan(1);
-    await expect(page.getByText(/upload\.bin|Attachment uploaded/i)).toBeVisible();
+    await expect(page.getByText("upload.bin")).toBeVisible();
+    await expect(page.getByRole("alert").filter({ hasText: /Attachment uploaded/i })).toBeVisible();
   });
 });
