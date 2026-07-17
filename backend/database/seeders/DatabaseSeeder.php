@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             Stage7TicketTypeSeeder::class,
             Stage7TaskTemplateSeeder::class,
             Stage7EscalationRuleSeeder::class,
+            Stage8LeadSourceSeeder::class,
         ]);
     }
 }

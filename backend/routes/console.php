@@ -1,5 +1,6 @@
 <?php
 
+use App\Jobs\EvaluateCrmFollowUpsJob;
 use App\Jobs\EvaluateEscalationsJob;
 use App\Jobs\EvaluateSlaBreachesJob;
 use App\Jobs\RunPaymentReconciliationJob;
@@ -45,4 +46,9 @@ Schedule::job(new EvaluateSlaBreachesJob)
 Schedule::job(new EvaluateEscalationsJob)
     ->everyFiveMinutes()
     ->name('evaluate-escalations')
+    ->withoutOverlapping();
+
+Schedule::job(new EvaluateCrmFollowUpsJob)
+    ->everyFifteenMinutes()
+    ->name('evaluate-crm-follow-ups')
     ->withoutOverlapping();

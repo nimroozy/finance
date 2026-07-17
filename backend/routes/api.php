@@ -605,5 +605,60 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::post('/escalation-rules', [\App\Http\Controllers\Api\V1\EscalationRuleController::class, 'store'])->name('escalation-rules.store');
             Route::put('/escalation-rules/{id}', [\App\Http\Controllers\Api\V1\EscalationRuleController::class, 'update'])->whereNumber('id')->name('escalation-rules.update');
         });
+
+        // Stage 8 — CRM / sales pipeline
+        Route::middleware('permission:crm.leads.view|crm.leads.create')->get('/crm/lead-sources', [\App\Http\Controllers\Api\V1\Crm\LeadSourceController::class, 'index'])->name('crm.lead-sources.index');
+
+        Route::middleware('permission:crm.leads.view')->group(function () {
+            Route::get('/crm/leads', [\App\Http\Controllers\Api\V1\Crm\LeadController::class, 'index'])->name('crm.leads.index');
+            Route::get('/crm/leads/{id}', [\App\Http\Controllers\Api\V1\Crm\LeadController::class, 'show'])->whereNumber('id')->name('crm.leads.show');
+            Route::get('/crm/leads/{id}/timeline', [\App\Http\Controllers\Api\V1\Crm\CrmTimelineController::class, 'show'])->whereNumber('id')->name('crm.leads.timeline');
+        });
+        Route::middleware('permission:crm.leads.create')->post('/crm/leads', [\App\Http\Controllers\Api\V1\Crm\LeadController::class, 'store'])->name('crm.leads.store');
+        Route::middleware('permission:crm.leads.update')->group(function () {
+            Route::put('/crm/leads/{id}', [\App\Http\Controllers\Api\V1\Crm\LeadController::class, 'update'])->whereNumber('id')->name('crm.leads.update');
+            Route::post('/crm/leads/{id}/transition', [\App\Http\Controllers\Api\V1\Crm\LeadController::class, 'transition'])->whereNumber('id')->name('crm.leads.transition');
+        });
+        Route::middleware('permission:crm.leads.assign')->post('/crm/leads/{id}/assign', [\App\Http\Controllers\Api\V1\Crm\LeadController::class, 'assign'])->whereNumber('id')->name('crm.leads.assign');
+        Route::middleware('permission:crm.leads.convert')->post('/crm/leads/{id}/convert', [\App\Http\Controllers\Api\V1\Crm\LeadController::class, 'convert'])->whereNumber('id')->name('crm.leads.convert');
+
+        Route::middleware('permission:crm.activities.manage|crm.leads.view')->get('/crm/activities', [\App\Http\Controllers\Api\V1\Crm\ActivityController::class, 'index'])->name('crm.activities.index');
+        Route::middleware('permission:crm.activities.manage')->post('/crm/activities', [\App\Http\Controllers\Api\V1\Crm\ActivityController::class, 'store'])->name('crm.activities.store');
+
+        Route::middleware('permission:crm.follow_ups.manage|crm.leads.view')->get('/crm/follow-ups', [\App\Http\Controllers\Api\V1\Crm\FollowUpController::class, 'index'])->name('crm.follow-ups.index');
+        Route::middleware('permission:crm.follow_ups.manage')->group(function () {
+            Route::post('/crm/follow-ups', [\App\Http\Controllers\Api\V1\Crm\FollowUpController::class, 'store'])->name('crm.follow-ups.store');
+            Route::post('/crm/follow-ups/{id}/complete', [\App\Http\Controllers\Api\V1\Crm\FollowUpController::class, 'complete'])->whereNumber('id')->name('crm.follow-ups.complete');
+            Route::post('/crm/follow-ups/{id}/cancel', [\App\Http\Controllers\Api\V1\Crm\FollowUpController::class, 'cancel'])->whereNumber('id')->name('crm.follow-ups.cancel');
+        });
+
+        Route::middleware('permission:crm.coverage.manage|crm.leads.view')->get('/crm/coverage-checks', [\App\Http\Controllers\Api\V1\Crm\CoverageCheckController::class, 'index'])->name('crm.coverage-checks.index');
+        Route::middleware('permission:crm.coverage.manage')->post('/crm/coverage-checks', [\App\Http\Controllers\Api\V1\Crm\CoverageCheckController::class, 'store'])->name('crm.coverage-checks.store');
+
+        Route::middleware('permission:crm.surveys.view|crm.surveys.manage')->get('/crm/site-surveys', [\App\Http\Controllers\Api\V1\Crm\SiteSurveyController::class, 'index'])->name('crm.site-surveys.index');
+        Route::middleware('permission:crm.surveys.manage')->group(function () {
+            Route::post('/crm/site-surveys', [\App\Http\Controllers\Api\V1\Crm\SiteSurveyController::class, 'store'])->name('crm.site-surveys.store');
+            Route::post('/crm/site-surveys/{id}/complete', [\App\Http\Controllers\Api\V1\Crm\SiteSurveyController::class, 'complete'])->whereNumber('id')->name('crm.site-surveys.complete');
+        });
+
+        Route::middleware('permission:crm.quotations.view')->get('/crm/quotations', [\App\Http\Controllers\Api\V1\Crm\QuotationController::class, 'index'])->name('crm.quotations.index');
+        Route::middleware('permission:crm.quotations.create')->group(function () {
+            Route::post('/crm/quotations', [\App\Http\Controllers\Api\V1\Crm\QuotationController::class, 'store'])->name('crm.quotations.store');
+            Route::post('/crm/quotations/{id}/send', [\App\Http\Controllers\Api\V1\Crm\QuotationController::class, 'send'])->whereNumber('id')->name('crm.quotations.send');
+        });
+        Route::middleware('permission:crm.quotations.approve')->post('/crm/quotations/{id}/accept', [\App\Http\Controllers\Api\V1\Crm\QuotationController::class, 'accept'])->whereNumber('id')->name('crm.quotations.accept');
+        Route::middleware('permission:crm.quotations.approve|crm.quotations.create')->post('/crm/quotations/{id}/reject', [\App\Http\Controllers\Api\V1\Crm\QuotationController::class, 'reject'])->whereNumber('id')->name('crm.quotations.reject');
+
+        Route::middleware('permission:crm.pipeline.manage|crm.leads.view')->get('/crm/opportunities', [\App\Http\Controllers\Api\V1\Crm\OpportunityController::class, 'index'])->name('crm.opportunities.index');
+        Route::middleware('permission:crm.pipeline.manage')->group(function () {
+            Route::post('/crm/opportunities', [\App\Http\Controllers\Api\V1\Crm\OpportunityController::class, 'store'])->name('crm.opportunities.store');
+            Route::put('/crm/opportunities/{id}', [\App\Http\Controllers\Api\V1\Crm\OpportunityController::class, 'update'])->whereNumber('id')->name('crm.opportunities.update');
+        });
+
+        Route::middleware('permission:crm.targets.view|crm.targets.manage')->get('/crm/sales-targets', [\App\Http\Controllers\Api\V1\Crm\SalesTargetController::class, 'index'])->name('crm.sales-targets.index');
+        Route::middleware('permission:crm.targets.manage')->post('/crm/sales-targets', [\App\Http\Controllers\Api\V1\Crm\SalesTargetController::class, 'store'])->name('crm.sales-targets.store');
+
+        Route::middleware('permission:crm.reports.view|crm.leads.view|dashboard.view')->get('/crm/dashboard', \App\Http\Controllers\Api\V1\Crm\CrmDashboardController::class)->name('crm.dashboard');
+        Route::middleware('permission:crm.reports.view')->get('/crm/reports/leads', [\App\Http\Controllers\Api\V1\Crm\CrmReportController::class, 'leads'])->name('crm.reports.leads');
     });
 });

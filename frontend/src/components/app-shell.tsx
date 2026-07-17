@@ -210,6 +210,56 @@ const NAV_GROUPS: NavGroup[] = [
       },
     ],
   },
+  ...(isModuleEnabled("crm")
+    ? [
+        {
+          id: "crm",
+          labelKey: "groupCrm",
+          items: [
+            {
+              href: "/crm/dashboard",
+              labelKey: "crmDashboard",
+              permissions: ["crm.reports.view", "crm.leads.view", "dashboard.view"],
+            },
+            {
+              href: "/crm/pipeline",
+              labelKey: "crmPipeline",
+              permissions: ["crm.leads.view", "crm.pipeline.manage"],
+            },
+            {
+              href: "/crm/leads",
+              labelKey: "crmLeads",
+              permissions: ["crm.leads.view"],
+            },
+            {
+              href: "/crm/follow-ups",
+              labelKey: "crmFollowUps",
+              permissions: ["crm.follow_ups.manage", "crm.leads.view"],
+            },
+            {
+              href: "/crm/quotations",
+              labelKey: "crmQuotations",
+              permissions: ["crm.quotations.view"],
+            },
+            {
+              href: "/crm/surveys",
+              labelKey: "crmSurveys",
+              permissions: ["crm.surveys.view", "crm.surveys.manage"],
+            },
+            {
+              href: "/crm/targets",
+              labelKey: "crmTargets",
+              permissions: ["crm.targets.view", "crm.targets.manage"],
+            },
+            {
+              href: "/crm/reports",
+              labelKey: "crmReports",
+              permissions: ["crm.reports.view"],
+            },
+          ],
+        } satisfies NavGroup,
+      ]
+    : []),
   {
     id: "management",
     labelKey: "groupManagement",
