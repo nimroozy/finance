@@ -260,6 +260,140 @@ const NAV_GROUPS: NavGroup[] = [
         } satisfies NavGroup,
       ]
     : []),
+  ...(isModuleEnabled("inventory")
+    ? [
+        {
+          id: "inventory",
+          labelKey: "groupInventory",
+          items: [
+            {
+              href: "/inventory/dashboard",
+              labelKey: "inventoryDashboard",
+              permissions: ["inventory.dashboard.view", "inventory.reports.view", "dashboard.view"],
+            },
+            {
+              href: "/inventory/products",
+              labelKey: "inventoryProducts",
+              permissions: ["inventory.products.view", "inventory.products.manage"],
+            },
+            {
+              href: "/inventory/stock",
+              labelKey: "inventoryStock",
+              permissions: ["inventory.stock.view"],
+            },
+            {
+              href: "/inventory/equipment",
+              labelKey: "inventoryEquipment",
+              permissions: ["inventory.equipment.view", "inventory.equipment.manage"],
+            },
+            {
+              href: "/inventory/reservations",
+              labelKey: "inventoryReservations",
+              permissions: ["inventory.reservations.view", "inventory.reservations.manage"],
+            },
+            {
+              href: "/inventory/transfers",
+              labelKey: "inventoryTransfers",
+              permissions: ["inventory.transfers.view", "inventory.transfers.manage"],
+            },
+            {
+              href: "/inventory/receiving",
+              labelKey: "inventoryReceiving",
+              permissions: ["inventory.receiving.manage"],
+            },
+            {
+              href: "/inventory/counts",
+              labelKey: "inventoryCounts",
+              permissions: ["inventory.stock.count", "inventory.stock.view"],
+            },
+          ],
+        } satisfies NavGroup,
+      ]
+    : []),
+  ...(isModuleEnabled("assets") || isModuleEnabled("sites")
+    ? [
+        {
+          id: "assetsSites",
+          labelKey: "groupAssetsSites",
+          items: [
+            ...(isModuleEnabled("sites")
+              ? [
+                  {
+                    href: "/sites",
+                    labelKey: "inventorySites",
+                    permissions: ["inventory.sites.view", "inventory.sites.manage"],
+                  },
+                ]
+              : []),
+            ...(isModuleEnabled("assets")
+              ? [
+                  {
+                    href: "/assets",
+                    labelKey: "inventoryAssets",
+                    permissions: ["inventory.assets.view", "inventory.assets.manage"],
+                  },
+                  {
+                    href: "/customer-equipment",
+                    labelKey: "inventoryCustomerEquipment",
+                    permissions: ["inventory.equipment.view"],
+                  },
+                  {
+                    href: "/custody",
+                    labelKey: "inventoryCustody",
+                    permissions: ["inventory.custody.manage", "inventory.equipment.view"],
+                  },
+                  {
+                    href: "/repairs",
+                    labelKey: "inventoryRepairs",
+                    permissions: ["inventory.repairs.manage", "inventory.equipment.view"],
+                  },
+                  {
+                    href: "/maintenance",
+                    labelKey: "inventoryMaintenance",
+                    permissions: ["inventory.maintenance.manage", "inventory.assets.view"],
+                  },
+                ]
+              : []),
+          ],
+        } satisfies NavGroup,
+      ]
+    : []),
+  ...(isModuleEnabled("inventory")
+    ? [
+        {
+          id: "purchasing",
+          labelKey: "groupPurchasing",
+          items: [
+            {
+              href: "/purchasing/requests",
+              labelKey: "purchaseRequests",
+              permissions: ["inventory.purchasing.view", "inventory.purchasing.manage"],
+            },
+            {
+              href: "/purchasing/orders",
+              labelKey: "purchaseOrders",
+              permissions: ["inventory.purchasing.view", "inventory.purchasing.manage"],
+            },
+            {
+              href: "/suppliers",
+              labelKey: "inventorySuppliers",
+              permissions: ["inventory.suppliers.view", "inventory.suppliers.manage"],
+            },
+          ],
+        } satisfies NavGroup,
+        {
+          id: "inventoryReports",
+          labelKey: "groupInventoryReports",
+          items: [
+            {
+              href: "/reports/inventory",
+              labelKey: "inventoryReports",
+              permissions: ["inventory.reports.view"],
+            },
+          ],
+        } satisfies NavGroup,
+      ]
+    : []),
   {
     id: "management",
     labelKey: "groupManagement",

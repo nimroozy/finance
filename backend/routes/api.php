@@ -721,7 +721,10 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::post('/inventory/reservations/{id}/release', [\App\Http\Controllers\Api\V1\Inventory\ReservationController::class, 'release'])->whereNumber('id')->name('inventory.reservations.release');
         });
 
-        Route::middleware('permission:inventory.transfers.view|inventory.transfers.manage')->get('/inventory/transfers', [\App\Http\Controllers\Api\V1\Inventory\TransferController::class, 'index'])->name('inventory.transfers.index');
+        Route::middleware('permission:inventory.transfers.view|inventory.transfers.manage')->group(function () {
+            Route::get('/inventory/transfers', [\App\Http\Controllers\Api\V1\Inventory\TransferController::class, 'index'])->name('inventory.transfers.index');
+            Route::get('/inventory/transfers/{id}', [\App\Http\Controllers\Api\V1\Inventory\TransferController::class, 'show'])->whereNumber('id')->name('inventory.transfers.show');
+        });
         Route::middleware('permission:inventory.transfers.manage|inventory.stock.transfer')->group(function () {
             Route::post('/inventory/transfers', [\App\Http\Controllers\Api\V1\Inventory\TransferController::class, 'store'])->name('inventory.transfers.store');
             Route::post('/inventory/transfers/{id}/submit', [\App\Http\Controllers\Api\V1\Inventory\TransferController::class, 'submit'])->whereNumber('id')->name('inventory.transfers.submit');

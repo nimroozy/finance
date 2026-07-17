@@ -89,6 +89,8 @@ tags:
   - name: Departments
   - name: TaskTemplates
   - name: CRM
+  - name: Inventory
+    description: Stage 9 inventory, assets, sites
 security:
   - bearerAuth: []
 paths:
@@ -5016,6 +5018,359 @@ paths:
           content:
             text/csv:
               schema: { type: string }
+
+  # --- Stage 9 Inventory ---
+  /inventory/dashboard:
+    get:
+      tags: [Inventory]
+      summary: Inventory ops dashboard summary
+      parameters:
+        - in: query
+          name: branch_id
+          schema: { type: integer }
+      responses:
+        "200": { description: Dashboard metrics }
+  /inventory/products:
+    get:
+      tags: [Inventory]
+      summary: List products
+      responses:
+        "200": { description: Paginated products }
+    post:
+      tags: [Inventory]
+      summary: Create product
+      responses:
+        "201": { description: Created }
+  /inventory/products/{id}:
+    get:
+      tags: [Inventory]
+      summary: Get product
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: Product }
+    put:
+      tags: [Inventory]
+      summary: Update product
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: Updated }
+  /inventory/stock/balances:
+    get:
+      tags: [Inventory]
+      summary: Stock balances
+      responses:
+        "200": { description: Paginated balances }
+  /inventory/stock/transactions:
+    get:
+      tags: [Inventory]
+      summary: Stock ledger transactions
+      responses:
+        "200": { description: Paginated transactions }
+  /inventory/stock/adjust:
+    post:
+      tags: [Inventory]
+      summary: Post stock adjustment transaction
+      responses:
+        "201": { description: Adjustment posted }
+  /inventory/reservations:
+    get:
+      tags: [Inventory]
+      summary: List reservations
+      responses:
+        "200": { description: Paginated reservations }
+    post:
+      tags: [Inventory]
+      summary: Create reservation
+      responses:
+        "201": { description: Created }
+  /inventory/reservations/{id}:
+    get:
+      tags: [Inventory]
+      summary: Get reservation
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: Reservation }
+  /inventory/reservations/{id}/reserve:
+    post:
+      tags: [Inventory]
+      summary: Reserve stock for reservation
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: Reserved }
+  /inventory/reservations/{id}/fulfill:
+    post:
+      tags: [Inventory]
+      summary: Fulfill reservation
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: Fulfilled }
+  /inventory/reservations/{id}/release:
+    post:
+      tags: [Inventory]
+      summary: Release reservation
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: Released }
+  /inventory/transfers:
+    get:
+      tags: [Inventory]
+      summary: List transfers
+      responses:
+        "200": { description: Paginated transfers }
+    post:
+      tags: [Inventory]
+      summary: Create transfer
+      responses:
+        "201": { description: Created }
+  /inventory/transfers/{id}:
+    get:
+      tags: [Inventory]
+      summary: Get transfer
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: Transfer }
+  /inventory/transfers/{id}/submit:
+    post:
+      tags: [Inventory]
+      summary: Submit transfer
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: Submitted }
+  /inventory/transfers/{id}/approve:
+    post:
+      tags: [Inventory]
+      summary: Approve transfer
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: Approved }
+  /inventory/transfers/{id}/dispatch:
+    post:
+      tags: [Inventory]
+      summary: Dispatch transfer
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: Dispatched }
+  /inventory/transfers/{id}/receive:
+    post:
+      tags: [Inventory]
+      summary: Receive transfer
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: Received }
+  /inventory/transfers/{id}/close:
+    post:
+      tags: [Inventory]
+      summary: Close transfer
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: Closed }
+  /inventory/equipment:
+    get:
+      tags: [Inventory]
+      summary: List serialized equipment
+      responses:
+        "200": { description: Paginated equipment }
+  /inventory/equipment/receive:
+    post:
+      tags: [Inventory]
+      summary: Receive serialized equipment
+      responses:
+        "201": { description: Received }
+  /inventory/equipment/{id}:
+    get:
+      tags: [Inventory]
+      summary: Get equipment
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: Equipment }
+  /inventory/equipment/{id}/move:
+    post:
+      tags: [Inventory]
+      summary: Move equipment location
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: Moved }
+  /inventory/goods-receipts:
+    post:
+      tags: [Inventory]
+      summary: Create and post goods receipt
+      responses:
+        "201": { description: Posted }
+  /inventory/purchase-requests:
+    get:
+      tags: [Inventory]
+      summary: List purchase requests
+      responses:
+        "200": { description: Paginated requests }
+    post:
+      tags: [Inventory]
+      summary: Create purchase request
+      responses:
+        "201": { description: Created }
+  /inventory/purchase-orders:
+    get:
+      tags: [Inventory]
+      summary: List purchase orders
+      responses:
+        "200": { description: Paginated orders }
+    post:
+      tags: [Inventory]
+      summary: Create purchase order
+      responses:
+        "201": { description: Created }
+  /inventory/sites:
+    get:
+      tags: [Inventory]
+      summary: List sites
+      responses:
+        "200": { description: Paginated sites }
+    post:
+      tags: [Inventory]
+      summary: Create site
+      responses:
+        "201": { description: Created }
+  /inventory/sites/{id}:
+    get:
+      tags: [Inventory]
+      summary: Get site with towers
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: Site }
+  /inventory/towers:
+    get:
+      tags: [Inventory]
+      summary: List towers
+      responses:
+        "200": { description: Paginated towers }
+    post:
+      tags: [Inventory]
+      summary: Create tower
+      responses:
+        "201": { description: Created }
+  /inventory/fixed-assets:
+    get:
+      tags: [Inventory]
+      summary: List fixed assets
+      responses:
+        "200": { description: Paginated assets }
+    post:
+      tags: [Inventory]
+      summary: Create fixed asset
+      responses:
+        "201": { description: Created }
+  /inventory/customer-equipment:
+    get:
+      tags: [Inventory]
+      summary: List customer equipment
+      responses:
+        "200": { description: Paginated rows }
+  /inventory/custody:
+    get:
+      tags: [Inventory]
+      summary: List custody records
+      responses:
+        "200": { description: Paginated custody }
+  /inventory/repairs:
+    get:
+      tags: [Inventory]
+      summary: List repairs
+      responses:
+        "200": { description: Paginated repairs }
+  /inventory/maintenance-plans:
+    get:
+      tags: [Inventory]
+      summary: List maintenance plans
+      responses:
+        "200": { description: Paginated plans }
+  /inventory/stock-counts:
+    get:
+      tags: [Inventory]
+      summary: List stock counts
+      responses:
+        "200": { description: Paginated counts }
+    post:
+      tags: [Inventory]
+      summary: Create stock count
+      responses:
+        "201": { description: Created }
+  /inventory/reports/balances:
+    get:
+      tags: [Inventory]
+      summary: Export stock balances CSV
+      responses:
+        "200":
+          description: CSV
+          content:
+            text/csv: {}
+  /inventory/reports/transactions:
+    get:
+      tags: [Inventory]
+      summary: Export stock transactions CSV
+      responses:
+        "200":
+          description: CSV
+          content:
+            text/csv: {}
 
 components:
   securitySchemes:

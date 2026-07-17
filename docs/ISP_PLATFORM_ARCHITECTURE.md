@@ -37,15 +37,15 @@ Do **not** create a second independent general ledger.
 | Branches | Branch master data, HQ flags, isolation rules | Delivered |
 | Customers | Local customer operational profile, mapping, ownership | Delivered |
 | CRM | Leads, opportunities, follow-ups | Stage 8 (not started) |
-| Sales | Quotes, ownership, targets, lost reasons | Stage 8 (not started) |
+| Sales | Quotes, ownership, targets, lost reasons | Stage 8 delivered on branch |
 | Installations | Queue pipeline (Stage 7); CRM-grade install (Stage 8) | **Stage 7 queue delivered**; Stage 8 deferred |
 | Tickets | Customer/internal tickets, SLA, escalation, intake | **Stage 7 delivered** |
 | Tasks | Multi-department work items (separate from tickets) | **Stage 7 delivered** |
-| Inventory | Products, serials, warehouses, immutable stock txns | Stage 9 |
-| Assets | Fixed assets, custodians, maintenance | Stage 9 |
-| Sites | Customer and network site records | Stage 9 |
-| Towers | Tower/site infrastructure | Stage 9 |
-| Purchasing | Suppliers, POs, receipts (Zoho-backed accounting) | After 9 |
+| Inventory | Products, serials, warehouses, immutable stock txns | **Stage 9 delivered on branch** |
+| Assets | Fixed assets, custodians, maintenance | **Stage 9 delivered on branch** |
+| Sites | Customer and network site records | **Stage 9 delivered on branch** |
+| Towers | Tower/site infrastructure | **Stage 9 delivered on branch** |
+| Purchasing | Suppliers, POs, receipts (Zoho-backed accounting) | Stage 9 operational; Zoho depth later |
 | Finance | Local finance workflows that sync to Zoho | Partial (collections) |
 | Collections | Assignments, visits, payments, wallets, handovers | Delivered |
 | Zoho Integration | OAuth, sync, mapping, payment push, reconciliation | Delivered |

@@ -50,6 +50,14 @@ class TransferController extends Controller
         }
     }
 
+    public function show(int $id): JsonResponse
+    {
+        $t = Transfer::with(['items.product', 'fromLocation', 'toLocation'])->findOrFail($id);
+        $this->authorize('view', $t);
+
+        return ApiResponse::success($t);
+    }
+
     public function submit(Request $request, int $id): JsonResponse
     {
         $t = Transfer::query()->findOrFail($id);
