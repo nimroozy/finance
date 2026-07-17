@@ -11,7 +11,7 @@ export type PlatformModule =
   | "inventory"
   | "assets"
   | "sites"
-  | "serviceLifecycle"
+  | "services"
   | "radius"
   | "purchasing"
   | "unifiedDashboards";
@@ -27,7 +27,8 @@ export type ModuleFlag = {
 };
 
 /**
- * Stage 6–10 modules are enabled (WhatsApp, ticketing/tasks/install queue, CRM, inventory/assets/sites, service lifecycle).
+ * Stage 6–10 modules are enabled (WhatsApp, ticketing/tasks/install queue, CRM,
+ * inventory/assets/sites, service lifecycle).
  * Radius remains a deferred placeholder (Stage 12).
  */
 export const FEATURE_FLAGS: Record<PlatformModule, ModuleFlag> = {
@@ -79,8 +80,8 @@ export const FEATURE_FLAGS: Record<PlatformModule, ModuleFlag> = {
     stage: 9,
     showRoadmapPlaceholder: false,
   },
-  serviceLifecycle: {
-    id: "serviceLifecycle",
+  services: {
+    id: "services",
     enabled: true,
     stage: 10,
     showRoadmapPlaceholder: false,

@@ -95,7 +95,7 @@ Each domain owns its tables, services, permissions, API resources, domain events
 
 **Events:** `InstallationRequested`, `InstallationApproved`, `InstallationCompleted` (plus CRM conversion handoff events).
 
-**Downstream:** Inventory reservation job (Stage 9); Radius activation command (Stage 10); Zoho customer/invoice job.
+**Downstream:** Inventory reservation job (Stage 9); Service draft/activation (Stage 10); Radius activation command (Stage 12); Zoho customer/invoice job.
 
 See [STAGE_8_CRM_SALES.md](STAGE_8_CRM_SALES.md).
 
@@ -173,11 +173,23 @@ Docs: [TOWER_SITE_ASSET_MODEL.md](TOWER_SITE_ASSET_MODEL.md), [CUSTOMER_SERVICE_
 
 ---
 
-## Radius Integration (Stage 10)
+## Service Lifecycle (Stage 10)
+
+**Owns:** service packages/locations/contracts, commercial/operational/billing status machines, activations, suspensions, cancellations, change requests, relocations, renewals, finance holds, read-only Zoho billing views, NOC lifecycle workspace.
+
+**Must not:** connect to SAS Radius or provision network; invent local invoice/payment balances; mutate payment calculation paths.
+
+**Emits:** lifecycle events for notifications / future Radius queue (Stage 12).
+
+---
+
+## Radius Integration (Stage 12 — deferred)
 
 **Owns:** branch adapter configs, cached subscriber views, command queue, package/customer mappings, health checks.
 
 **Must not:** block page loads on live Radius DB connectivity — use cache + async commands.
+
+> Older docs labeled Radius as Stage 10; product brief clarifies Stage 10 = Service Lifecycle.
 
 ---
 

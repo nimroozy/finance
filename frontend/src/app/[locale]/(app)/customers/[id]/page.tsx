@@ -6,7 +6,11 @@ import { useParams } from "next/navigation";
 import { Link } from "@/i18n/navigation";
 import { ApiError } from "@/lib/api";
 import { getCustomer, listInvoices } from "@/lib/customers";
+import { listServices, type IspService } from "@/lib/services";
+import { isModuleEnabled } from "@/config/feature-flags";
+import { useAuthStore } from "@/store/auth-store";
 import type { Customer, Invoice } from "@/lib/types";
+import { StatusBadge } from "@/components/status-badge";
 import { formatDate, formatDateTime, formatMoney } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -24,8 +28,13 @@ export default function CustomerDetailPage() {
   const params = useParams<{ id: string }>();
   const id = Number(params.id);
 
+  const tServices = useTranslations("services");
+  const canViewServices = useAuthStore((s) => s.hasPermission("services.view"));
+  const showServices = isModuleEnabled("services") && canViewServices;
+
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [services, setServices] = useState<IspService[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,20 +47,26 @@ export default function CustomerDetailPage() {
     setLoading(true);
     setError(null);
     try {
-      const [customerRes, invoicesRes] = await Promise.all([
+      const [customerRes, invoicesRes, servicesRes] = await Promise.all([
         getCustomer(id),
         listInvoices({ customer_id: id, per_page: 50 }).catch(() => ({
           data: [] as Invoice[],
         })),
+        showServices
+          ? listServices({ customer_id: id, per_page: 20 }).catch(() => ({
+              data: [] as IspService[],
+            }))
+          : Promise.resolve({ data: [] as IspService[] }),
       ]);
       setCustomer(customerRes.data);
       setInvoices(invoicesRes.data);
+      setServices(servicesRes.data);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : tCommon("error"));
     } finally {
       setLoading(false);
     }
-  }, [id, tCommon]);
+  }, [id, showServices, tCommon]);
 
   useEffect(() => {
     void load();
@@ -166,6 +181,34 @@ export default function CustomerDetailPage() {
           </div>
         </div>
       </Panel>
+
+      {showServices ? (
+        <>
+          <PageHeader title={tServices("customerTab")} />
+          <Panel className="mb-6" data-testid="customer-services">
+            {services.length === 0 ? (
+              <EmptyState label={tServices("customerTabEmpty")} />
+            ) : (
+              <ul className="divide-y divide-border">
+                {services.map((svc) => (
+                  <li key={svc.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+                    <Link
+                      href={`/services/${svc.id}`}
+                      className="font-medium text-primary hover:underline"
+                    >
+                      {svc.service_number}
+                    </Link>
+                    <div className="flex items-center gap-2">
+                      <StatusBadge status={svc.commercial_status} />
+                      <span className="text-muted">{svc.package?.name || "—"}</span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Panel>
+        </>
+      ) : null}
 
       <PageHeader title={t("invoices")} />
       <Panel>

@@ -106,14 +106,19 @@ Models: [INVENTORY_MODEL.md](INVENTORY_MODEL.md), [INVENTORY_LEDGER_MODEL.md](IN
 
 ## Stage 10 — ISP Service Lifecycle
 
+**Delivered on branch** `cursor/stage-10-service-lifecycle` (backend + frontend ops workspace).
+
 Commercial/operational service lifecycle after installation: packages, locations, activation, suspension, reactivation, cancellation, change requests, relocation, renewals, contracts, finance holds, and Zoho-synced read-only billing views.
+
+Docs: [STAGE_10_SERVICE_LIFECYCLE.md](STAGE_10_SERVICE_LIFECYCLE.md).
 
 **Hard rules**
 
 - Do **not** connect to SAS Radius or any Radius DB in this stage.
 - Do **not** begin automated network provisioning.
 - Zoho remains source of truth for customers / invoices / payments — billing views are read-only from synced data.
-- Radius feature flag stays **false** (deferred to a later stage).
+- Radius feature flag stays **false** (deferred to Stage 12).
+- Stage 10 = **Service Lifecycle**; Radius is **not** Stage 10.
 
 ---
 
