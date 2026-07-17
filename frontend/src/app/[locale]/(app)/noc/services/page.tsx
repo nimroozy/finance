@@ -13,7 +13,7 @@ import {
   WorkspaceHeader,
 } from "@/components/ops";
 import { StatusBadge } from "@/components/status-badge";
-import { Alert, LoadingState, Panel } from "@/components/ui/layout";
+import { LoadingState, Panel } from "@/components/ui/layout";
 
 export default function NocServicesPage() {
   const t = useTranslations("services");
@@ -55,7 +55,6 @@ export default function NocServicesPage() {
           }}
         />
       </div>
-      <Alert tone="success">{t("radiusDeferred")}</Alert>
       {loading ? <LoadingState label={tCommon("loading")} /> : null}
       {error ? <ErrorWorkspace message={error} onRetry={() => void load()} /> : null}
       {data ? (

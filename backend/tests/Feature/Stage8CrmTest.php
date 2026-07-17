@@ -198,11 +198,37 @@ class Stage8CrmTest extends TestCase
         $this->assertSame(Lead::STAGE_APPROVED, Lead::query()->find($leadId)?->pipeline_stage);
     }
 
-    public function test_conversion_creates_installation(): void
+    public function test_conversion_requires_zoho_linked_customer(): void
+    {
+        $branch = $this->makeBranch(['code' => 'CNV']);
+        $manager = $this->makeManager($branch);
+
+        $this->actingAsUser($manager);
+        $leadId = $this->postJson('/api/v1/crm/leads', [
+            'branch_id' => $branch->id,
+            'contact_person' => 'Convert Me',
+            'company' => 'Acme ISP',
+            'phone' => '0700999000',
+            'source_code' => 'referral',
+            'pipeline_stage' => Lead::STAGE_APPROVED,
+        ])->json('data.id');
+
+        $this->postJson("/api/v1/crm/leads/{$leadId}/convert", [
+            'win_reason' => 'signed',
+        ])->assertStatus(422);
+    }
+
+    public function test_conversion_creates_installation_with_zoho_link(): void
     {
         $branch = $this->makeBranch(['code' => 'CNV']);
         $manager = $this->makeManager($branch);
         $paymentCountBefore = Payment::query()->count();
+        $customer = $this->makeCustomer($branch, [
+            'zoho_contact_id' => 'ZOHO-CNV-1',
+            'contact_name' => 'Convert Me',
+            'phone' => '0700999000',
+            'sync_status' => 'synced',
+        ]);
 
         $this->actingAsUser($manager);
         $leadId = $this->postJson('/api/v1/crm/leads', [
@@ -218,6 +244,15 @@ class Stage8CrmTest extends TestCase
             'pipeline_stage' => Lead::STAGE_APPROVED,
         ])->json('data.id');
 
+        $this->getJson('/api/v1/crm/customers/search-zoho-mirror?phone=0700999000')
+            ->assertOk()
+            ->assertJsonFragment(['zoho_contact_id' => 'ZOHO-CNV-1']);
+
+        $this->postJson("/api/v1/crm/leads/{$leadId}/link-zoho-customer", [
+            'customer_id' => $customer->id,
+        ])->assertOk()
+            ->assertJsonPath('data.converted_customer_id', $customer->id);
+
         $response = $this->postJson("/api/v1/crm/leads/{$leadId}/convert", [
             'win_reason' => 'signed',
         ])->assertOk();
@@ -227,7 +262,7 @@ class Stage8CrmTest extends TestCase
         $this->assertTrue(Installation::query()->whereKey($installationId)->exists());
 
         $lead = Lead::query()->findOrFail($leadId);
-        $this->assertNotNull($lead->converted_customer_id);
+        $this->assertSame($customer->id, $lead->converted_customer_id);
         $this->assertSame(Lead::STAGE_INSTALLATION_REQUEST, $lead->pipeline_stage);
 
         $this->assertSame($paymentCountBefore, Payment::query()->count());

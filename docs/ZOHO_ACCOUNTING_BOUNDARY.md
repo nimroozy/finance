@@ -22,6 +22,10 @@
 - Notifications / WhatsApp (Stage 6)
 - Operational reporting (Stage 11)
 
+## Stage 10.2 CRM note
+
+Lead conversion **links** an existing Zoho-mirrored local customer (`zoho_contact_id`) — it does **not** create Zoho contacts inline or via placeholder events. Create/sync contacts through Zoho sync jobs, then use `search-zoho-mirror` + `link-zoho-customer`.
+
 ## Forbidden
 
 - Creating a second independent general ledger

@@ -12,7 +12,7 @@ import {
   WorkspaceHeader,
 } from "@/components/ops";
 import { Button } from "@/components/ui/button";
-import { Alert, LoadingState } from "@/components/ui/layout";
+import { LoadingState } from "@/components/ui/layout";
 
 export default function ServicesDashboardPage() {
   const t = useTranslations("services");
@@ -71,11 +71,6 @@ export default function ServicesDashboardPage() {
       {error ? <ErrorWorkspace message={error} onRetry={() => void load()} /> : null}
       {data ? (
         <>
-          {data.radius_enabled ? (
-            <Alert tone="danger">{t("radiusShouldBeOff")}</Alert>
-          ) : (
-            <Alert tone="success">{t("radiusDeferred")}</Alert>
-          )}
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <MetricCard label={t("metrics.total")} value={data.total} href="/services" tone="primary" />
             <MetricCard

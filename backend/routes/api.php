@@ -631,6 +631,8 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         });
         Route::middleware('permission:crm.leads.assign')->post('/crm/leads/{id}/assign', [\App\Http\Controllers\Api\V1\Crm\LeadController::class, 'assign'])->whereNumber('id')->name('crm.leads.assign');
         Route::middleware('permission:crm.leads.convert')->post('/crm/leads/{id}/convert', [\App\Http\Controllers\Api\V1\Crm\LeadController::class, 'convert'])->whereNumber('id')->name('crm.leads.convert');
+        Route::middleware('permission:crm.leads.update')->post('/crm/leads/{id}/link-zoho-customer', [\App\Http\Controllers\Api\V1\Crm\ZohoCustomerLinkController::class, 'link'])->whereNumber('id')->name('crm.leads.link-zoho-customer');
+        Route::middleware('permission:crm.leads.view|customers.view')->get('/crm/customers/search-zoho-mirror', [\App\Http\Controllers\Api\V1\Crm\ZohoCustomerLinkController::class, 'search'])->name('crm.customers.search-zoho-mirror');
 
         Route::middleware('permission:crm.activities.manage|crm.leads.view')->get('/crm/activities', [\App\Http\Controllers\Api\V1\Crm\ActivityController::class, 'index'])->name('crm.activities.index');
         Route::middleware('permission:crm.activities.manage')->post('/crm/activities', [\App\Http\Controllers\Api\V1\Crm\ActivityController::class, 'store'])->name('crm.activities.store');

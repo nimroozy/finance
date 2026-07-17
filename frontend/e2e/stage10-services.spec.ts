@@ -356,11 +356,10 @@ async function mockStage10Api(page: Page, user = MOCK_USER) {
 }
 
 test.describe("Stage 10 service lifecycle", () => {
-  test("dashboard shows lifecycle metrics and radius deferred", async ({ page }) => {
+  test("dashboard shows lifecycle metrics", async ({ page }) => {
     await mockStage10Api(page);
     await page.goto("/en/services/dashboard");
     await expect(page.getByTestId("services-dashboard")).toBeVisible();
-    await expect(page.getByText(/Radius automation is deferred/i)).toBeVisible();
     await expect(page.getByRole("link", { name: /Total services/i })).toContainText("12");
   });
 
@@ -431,7 +430,6 @@ test.describe("Stage 10 service lifecycle", () => {
     await mockStage10Api(page);
     await page.goto("/en/noc/services");
     await expect(page.getByTestId("noc-services")).toBeVisible();
-    await expect(page.getByText(/Radius automation is deferred/i)).toBeVisible();
     await expect(page.getByText("KBL-SVC-000040").first()).toBeVisible();
   });
 

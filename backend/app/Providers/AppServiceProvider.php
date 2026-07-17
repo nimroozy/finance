@@ -6,8 +6,6 @@ use App\Events\AttachmentUploaded;
 use App\Events\Crm\FollowUpOverdue;
 use App\Events\Crm\InstallationRequestedFromCrm;
 use App\Events\Crm\LeadConverted;
-use App\Events\Crm\PlaceholderRadiusActivationRequested;
-use App\Events\Crm\PlaceholderZohoCustomerRequested;
 use App\Events\Crm\QuotationAccepted;
 use App\Events\Crm\SurveyCompleted;
 use App\Events\InstallationStatusChanged;
@@ -199,8 +197,6 @@ class AppServiceProvider extends ServiceProvider
 
     private function registerCrmEventListeners(): void
     {
-        Event::listen(PlaceholderRadiusActivationRequested::class, [LogCrmPlaceholderIntegrations::class, 'handleRadius']);
-        Event::listen(PlaceholderZohoCustomerRequested::class, [LogCrmPlaceholderIntegrations::class, 'handleZoho']);
         Event::listen(LeadConverted::class, [LogCrmPlaceholderIntegrations::class, 'handleConverted']);
         Event::listen(InstallationRequestedFromCrm::class, [LogCrmPlaceholderIntegrations::class, 'handleInstallationRequested']);
         Event::listen(SurveyCompleted::class, [LogCrmPlaceholderIntegrations::class, 'handleSurveyCompleted']);
