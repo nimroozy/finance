@@ -25,82 +25,150 @@ class Ticket extends Model
 {
     use SoftDeletes;
 
-    public const STATUS_OPEN = 'open';
+    public const STATUS_NEW = 'new';
+
+    public const STATUS_TRIAGED = 'triaged';
+
+    public const STATUS_ASSIGNED = 'assigned';
 
     public const STATUS_IN_PROGRESS = 'in_progress';
 
     public const STATUS_WAITING_CUSTOMER = 'waiting_customer';
 
-    public const STATUS_WAITING_INTERNAL = 'waiting_internal';
+    public const STATUS_WAITING_FINANCE = 'waiting_finance';
+
+    public const STATUS_WAITING_NOC = 'waiting_noc';
+
+    public const STATUS_WAITING_TECHNICAL = 'waiting_technical';
+
+    public const STATUS_WAITING_EQUIPMENT = 'waiting_equipment';
+
+    public const STATUS_SCHEDULED = 'scheduled';
 
     public const STATUS_ESCALATED = 'escalated';
 
     public const STATUS_RESOLVED = 'resolved';
 
+    public const STATUS_VERIFICATION_PENDING = 'verification_pending';
+
     public const STATUS_CLOSED = 'closed';
 
     public const STATUS_CANCELLED = 'cancelled';
 
+    public const STATUS_REOPENED = 'reopened';
+
     public const STATUSES = [
-        self::STATUS_OPEN,
+        self::STATUS_NEW,
+        self::STATUS_TRIAGED,
+        self::STATUS_ASSIGNED,
         self::STATUS_IN_PROGRESS,
         self::STATUS_WAITING_CUSTOMER,
-        self::STATUS_WAITING_INTERNAL,
+        self::STATUS_WAITING_FINANCE,
+        self::STATUS_WAITING_NOC,
+        self::STATUS_WAITING_TECHNICAL,
+        self::STATUS_WAITING_EQUIPMENT,
+        self::STATUS_SCHEDULED,
         self::STATUS_ESCALATED,
         self::STATUS_RESOLVED,
+        self::STATUS_VERIFICATION_PENDING,
         self::STATUS_CLOSED,
         self::STATUS_CANCELLED,
+        self::STATUS_REOPENED,
     ];
 
-    public const PRIORITY_CRITICAL = 'critical';
-
-    public const PRIORITY_HIGH = 'high';
-
-    public const PRIORITY_MEDIUM = 'medium';
+    public const WAITING_STATUSES = [
+        self::STATUS_WAITING_CUSTOMER,
+        self::STATUS_WAITING_FINANCE,
+        self::STATUS_WAITING_NOC,
+        self::STATUS_WAITING_TECHNICAL,
+        self::STATUS_WAITING_EQUIPMENT,
+    ];
 
     public const PRIORITY_LOW = 'low';
 
+    public const PRIORITY_NORMAL = 'normal';
+
+    public const PRIORITY_MEDIUM = 'medium';
+
+    public const PRIORITY_HIGH = 'high';
+
+    public const PRIORITY_URGENT = 'urgent';
+
+    public const PRIORITY_CRITICAL = 'critical';
+
     public const PRIORITIES = [
-        self::PRIORITY_CRITICAL,
-        self::PRIORITY_HIGH,
-        self::PRIORITY_MEDIUM,
         self::PRIORITY_LOW,
+        self::PRIORITY_NORMAL,
+        self::PRIORITY_MEDIUM,
+        self::PRIORITY_HIGH,
+        self::PRIORITY_URGENT,
+        self::PRIORITY_CRITICAL,
     ];
 
-    public const SEVERITY_CRITICAL = 'critical';
+    public const SEVERITY_INDIVIDUAL_CUSTOMER = 'individual_customer';
 
-    public const SEVERITY_HIGH = 'high';
+    public const SEVERITY_MULTIPLE_CUSTOMERS = 'multiple_customers';
 
-    public const SEVERITY_MEDIUM = 'medium';
+    public const SEVERITY_NEIGHBORHOOD = 'neighborhood';
 
-    public const SEVERITY_LOW = 'low';
+    public const SEVERITY_TOWER = 'tower';
+
+    public const SEVERITY_BRANCH = 'branch';
+
+    public const SEVERITY_NETWORK_WIDE = 'network_wide';
 
     public const SEVERITIES = [
-        self::SEVERITY_CRITICAL,
-        self::SEVERITY_HIGH,
-        self::SEVERITY_MEDIUM,
-        self::SEVERITY_LOW,
+        self::SEVERITY_INDIVIDUAL_CUSTOMER,
+        self::SEVERITY_MULTIPLE_CUSTOMERS,
+        self::SEVERITY_NEIGHBORHOOD,
+        self::SEVERITY_TOWER,
+        self::SEVERITY_BRANCH,
+        self::SEVERITY_NETWORK_WIDE,
     ];
+
+    public const SOURCE_MANUAL = 'manual';
 
     public const SOURCE_WHATSAPP = 'whatsapp';
 
-    public const SOURCE_PHONE = 'phone';
+    public const SOURCE_PHONE_CALL = 'phone_call';
 
-    public const SOURCE_WALK_IN = 'walk_in';
+    public const SOURCE_CUSTOMER_PORTAL = 'customer_portal';
+
+    public const SOURCE_SALES = 'sales';
+
+    public const SOURCE_FINANCE = 'finance';
+
+    public const SOURCE_NOC = 'noc';
+
+    public const SOURCE_TECHNICAL = 'technical';
+
+    public const SOURCE_MONITORING = 'monitoring';
+
+    public const SOURCE_INSTALLATION = 'installation';
+
+    public const SOURCE_RADIUS = 'radius';
+
+    public const SOURCE_EMAIL_FUTURE = 'email_future';
+
+    public const SOURCE_API = 'api';
 
     public const SOURCE_INTERNAL = 'internal';
 
-    public const SOURCE_SYSTEM = 'system';
-
-    public const SOURCE_EMAIL = 'email';
-
     public const SOURCES = [
+        self::SOURCE_MANUAL,
         self::SOURCE_WHATSAPP,
-        self::SOURCE_PHONE,
-        self::SOURCE_WALK_IN,
+        self::SOURCE_PHONE_CALL,
+        self::SOURCE_CUSTOMER_PORTAL,
+        self::SOURCE_SALES,
+        self::SOURCE_FINANCE,
+        self::SOURCE_NOC,
+        self::SOURCE_TECHNICAL,
+        self::SOURCE_MONITORING,
+        self::SOURCE_INSTALLATION,
+        self::SOURCE_RADIUS,
+        self::SOURCE_EMAIL_FUTURE,
+        self::SOURCE_API,
         self::SOURCE_INTERNAL,
-        self::SOURCE_SYSTEM,
-        self::SOURCE_EMAIL,
     ];
 
     protected $fillable = [
@@ -174,51 +242,79 @@ class Ticket extends Model
      */
     public static function allowedTransitions(): array
     {
-        return [
-            self::STATUS_OPEN => [
+        $waiting = self::WAITING_STATUSES;
+
+        $fromInProgress = array_merge($waiting, [
+            self::STATUS_SCHEDULED,
+            self::STATUS_ESCALATED,
+            self::STATUS_RESOLVED,
+            self::STATUS_CANCELLED,
+        ]);
+
+        $fromWaiting = [
+            self::STATUS_IN_PROGRESS,
+            self::STATUS_ASSIGNED,
+            self::STATUS_ESCALATED,
+            self::STATUS_RESOLVED,
+            self::STATUS_CANCELLED,
+        ];
+
+        $map = [
+            self::STATUS_NEW => [
+                self::STATUS_TRIAGED,
+                self::STATUS_CANCELLED,
+            ],
+            self::STATUS_TRIAGED => [
+                self::STATUS_ASSIGNED,
                 self::STATUS_IN_PROGRESS,
-                self::STATUS_WAITING_CUSTOMER,
-                self::STATUS_WAITING_INTERNAL,
                 self::STATUS_ESCALATED,
-                self::STATUS_RESOLVED,
                 self::STATUS_CANCELLED,
             ],
-            self::STATUS_IN_PROGRESS => [
-                self::STATUS_WAITING_CUSTOMER,
-                self::STATUS_WAITING_INTERNAL,
-                self::STATUS_ESCALATED,
-                self::STATUS_RESOLVED,
-                self::STATUS_CANCELLED,
-            ],
-            self::STATUS_WAITING_CUSTOMER => [
+            self::STATUS_ASSIGNED => array_merge([
                 self::STATUS_IN_PROGRESS,
+                self::STATUS_SCHEDULED,
                 self::STATUS_ESCALATED,
-                self::STATUS_RESOLVED,
                 self::STATUS_CANCELLED,
-            ],
-            self::STATUS_WAITING_INTERNAL => [
+            ], $waiting),
+            self::STATUS_IN_PROGRESS => $fromInProgress,
+            self::STATUS_SCHEDULED => array_merge([
                 self::STATUS_IN_PROGRESS,
+                self::STATUS_ASSIGNED,
                 self::STATUS_ESCALATED,
-                self::STATUS_RESOLVED,
                 self::STATUS_CANCELLED,
-            ],
-            self::STATUS_ESCALATED => [
+            ], $waiting),
+            self::STATUS_ESCALATED => array_merge([
                 self::STATUS_IN_PROGRESS,
-                self::STATUS_WAITING_CUSTOMER,
-                self::STATUS_WAITING_INTERNAL,
+                self::STATUS_ASSIGNED,
                 self::STATUS_RESOLVED,
                 self::STATUS_CANCELLED,
-            ],
+            ], $waiting),
             self::STATUS_RESOLVED => [
+                self::STATUS_VERIFICATION_PENDING,
                 self::STATUS_CLOSED,
-                self::STATUS_OPEN,
+                self::STATUS_REOPENED,
+            ],
+            self::STATUS_VERIFICATION_PENDING => [
+                self::STATUS_CLOSED,
                 self::STATUS_IN_PROGRESS,
+                self::STATUS_REOPENED,
             ],
             self::STATUS_CLOSED => [
-                self::STATUS_OPEN,
+                self::STATUS_REOPENED,
+            ],
+            self::STATUS_REOPENED => [
+                self::STATUS_TRIAGED,
+                self::STATUS_ASSIGNED,
+                self::STATUS_IN_PROGRESS,
             ],
             self::STATUS_CANCELLED => [],
         ];
+
+        foreach ($waiting as $status) {
+            $map[$status] = $fromWaiting;
+        }
+
+        return $map;
     }
 
     public function canTransitionTo(string $toStatus): bool
@@ -226,6 +322,14 @@ class Ticket extends Model
         $allowed = self::allowedTransitions()[$this->status] ?? [];
 
         return in_array($toStatus, $allowed, true);
+    }
+
+    public function isOpen(): bool
+    {
+        return ! in_array($this->status, [
+            self::STATUS_CLOSED,
+            self::STATUS_CANCELLED,
+        ], true);
     }
 
     public function branch(): BelongsTo
@@ -236,6 +340,11 @@ class Ticket extends Model
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
+    }
+
+    public function ticketType(): BelongsTo
+    {
+        return $this->belongsTo(TicketType::class, 'type_code', 'code');
     }
 
     public function assignedDepartment(): BelongsTo
@@ -302,6 +411,11 @@ class Ticket extends Model
     public function statusTransitions(): HasMany
     {
         return $this->hasMany(TicketStatusTransition::class);
+    }
+
+    public function transitions(): HasMany
+    {
+        return $this->statusTransitions();
     }
 
     public function slaState(): HasOne

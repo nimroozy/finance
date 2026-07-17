@@ -2,17 +2,15 @@
 
 namespace App\Services\Search;
 
-use App\Models\Installation;
-use App\Models\Task;
-use App\Models\Ticket;
+use App\Models\Tickets\Installation;
+use App\Models\Tickets\Task;
+use App\Models\Tickets\Ticket;
 use App\Models\User;
 use Illuminate\Support\Collection;
 
 class OperationalSearchService
 {
     /**
-     * Branch-scoped operational search across tickets, tasks, installations.
-     *
      * @param  list<int>  $branchIds
      * @return array{tickets: Collection, tasks: Collection, installations: Collection}
      */
@@ -38,7 +36,7 @@ class OperationalSearchService
             'tickets' => Ticket::query()
                 ->whereIn('branch_id', $branchIds)
                 ->where(function ($qq) use ($like, $q) {
-                    $qq->where('number', 'like', $like)
+                    $qq->where('ticket_number', 'like', $like)
                         ->orWhere('subject', 'like', $like)
                         ->orWhere('description', 'like', $like);
                     if (ctype_digit($q)) {
@@ -51,7 +49,7 @@ class OperationalSearchService
             'tasks' => Task::query()
                 ->whereIn('branch_id', $branchIds)
                 ->where(function ($qq) use ($like, $q) {
-                    $qq->where('number', 'like', $like)
+                    $qq->where('task_number', 'like', $like)
                         ->orWhere('title', 'like', $like)
                         ->orWhere('description', 'like', $like);
                     if (ctype_digit($q)) {
@@ -64,9 +62,11 @@ class OperationalSearchService
             'installations' => Installation::query()
                 ->whereIn('branch_id', $branchIds)
                 ->where(function ($qq) use ($like, $q) {
-                    $qq->where('number', 'like', $like)
+                    $qq->where('installation_number', 'like', $like)
                         ->orWhere('address', 'like', $like)
-                        ->orWhere('notes', 'like', $like);
+                        ->orWhere('notes', 'like', $like)
+                        ->orWhere('prospect_name', 'like', $like)
+                        ->orWhere('phone', 'like', $like);
                     if (ctype_digit($q)) {
                         $qq->orWhere('id', (int) $q);
                     }

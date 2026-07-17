@@ -3,7 +3,7 @@
 namespace App\Services\WhatsApp;
 
 use App\Models\Customer;
-use App\Models\Ticket;
+use App\Models\Tickets\Ticket;
 use App\Services\Tickets\TicketIntakeService;
 
 class CustomerBotService
@@ -11,8 +11,6 @@ class CustomerBotService
     public function __construct(private TicketIntakeService $intake) {}
 
     /**
-     * FA/EN interactive menu options for customer WhatsApp bot.
-     *
      * @return array{fa: list<array{id: string, title: string}>, en: list<array{id: string, title: string}>}
      */
     public function menuOptions(): array

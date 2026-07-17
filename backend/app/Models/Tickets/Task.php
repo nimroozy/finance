@@ -11,6 +11,7 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Attributes\ScopedBy;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -20,34 +21,56 @@ class Task extends Model
 {
     use SoftDeletes;
 
+    public const TYPE_FIELD = 'field';
+
+    public const TYPE_OFFICE = 'office';
+
     public const STATUS_PENDING = 'pending';
 
-    public const STATUS_ASSIGNED = 'assigned';
+    public const STATUS_OFFERED = 'offered';
 
     public const STATUS_ACCEPTED = 'accepted';
+
+    public const STATUS_REJECTED = 'rejected';
+
+    public const STATUS_SCHEDULED = 'scheduled';
+
+    public const STATUS_TRAVELLING = 'travelling';
+
+    public const STATUS_ARRIVED = 'arrived';
 
     public const STATUS_IN_PROGRESS = 'in_progress';
 
     public const STATUS_BLOCKED = 'blocked';
 
-    public const STATUS_AWAITING_APPROVAL = 'awaiting_approval';
+    public const STATUS_WAITING = 'waiting';
 
     public const STATUS_COMPLETED = 'completed';
 
+    public const STATUS_VERIFICATION_PENDING = 'verification_pending';
+
+    public const STATUS_APPROVED = 'approved';
+
     public const STATUS_CANCELLED = 'cancelled';
 
-    public const STATUS_REASSIGNED = 'reassigned';
+    public const STATUS_FAILED = 'failed';
 
     public const STATUSES = [
         self::STATUS_PENDING,
-        self::STATUS_ASSIGNED,
+        self::STATUS_OFFERED,
         self::STATUS_ACCEPTED,
+        self::STATUS_REJECTED,
+        self::STATUS_SCHEDULED,
+        self::STATUS_TRAVELLING,
+        self::STATUS_ARRIVED,
         self::STATUS_IN_PROGRESS,
         self::STATUS_BLOCKED,
-        self::STATUS_AWAITING_APPROVAL,
+        self::STATUS_WAITING,
         self::STATUS_COMPLETED,
+        self::STATUS_VERIFICATION_PENDING,
+        self::STATUS_APPROVED,
         self::STATUS_CANCELLED,
-        self::STATUS_REASSIGNED,
+        self::STATUS_FAILED,
     ];
 
     public const PRIORITY_CRITICAL = 'critical';
@@ -56,23 +79,28 @@ class Task extends Model
 
     public const PRIORITY_MEDIUM = 'medium';
 
+    public const PRIORITY_NORMAL = 'normal';
+
     public const PRIORITY_LOW = 'low';
 
-    public const FIELD_STATUSES = [
-        self::STATUS_ASSIGNED,
-        self::STATUS_ACCEPTED,
-        self::STATUS_IN_PROGRESS,
-        self::STATUS_COMPLETED,
+    public const PRIORITIES = [
+        self::PRIORITY_CRITICAL,
+        self::PRIORITY_HIGH,
+        self::PRIORITY_MEDIUM,
+        self::PRIORITY_NORMAL,
+        self::PRIORITY_LOW,
     ];
 
-    public const OFFICE_STATUSES = [
-        self::STATUS_PENDING,
-        self::STATUS_ASSIGNED,
-        self::STATUS_IN_PROGRESS,
-        self::STATUS_BLOCKED,
-        self::STATUS_AWAITING_APPROVAL,
-        self::STATUS_COMPLETED,
+    public const TERMINAL_STATUSES = [
+        self::STATUS_APPROVED,
         self::STATUS_CANCELLED,
+        self::STATUS_FAILED,
+    ];
+
+    public const COMPLETE_FOR_DEPENDENCY = [
+        self::STATUS_COMPLETED,
+        self::STATUS_VERIFICATION_PENDING,
+        self::STATUS_APPROVED,
     ];
 
     protected $fillable = [
@@ -130,60 +158,99 @@ class Task extends Model
     {
         return [
             self::STATUS_PENDING => [
-                self::STATUS_ASSIGNED,
+                self::STATUS_OFFERED,
+                self::STATUS_SCHEDULED,
+                self::STATUS_IN_PROGRESS,
                 self::STATUS_CANCELLED,
             ],
-            self::STATUS_ASSIGNED => [
+            self::STATUS_OFFERED => [
                 self::STATUS_ACCEPTED,
-                self::STATUS_IN_PROGRESS,
-                self::STATUS_REASSIGNED,
+                self::STATUS_REJECTED,
                 self::STATUS_CANCELLED,
-                self::STATUS_BLOCKED,
             ],
             self::STATUS_ACCEPTED => [
+                self::STATUS_SCHEDULED,
+                self::STATUS_TRAVELLING,
+                self::STATUS_ARRIVED,
                 self::STATUS_IN_PROGRESS,
                 self::STATUS_BLOCKED,
-                self::STATUS_REASSIGNED,
+                self::STATUS_CANCELLED,
+            ],
+            self::STATUS_REJECTED => [
+                self::STATUS_OFFERED,
+                self::STATUS_PENDING,
+                self::STATUS_CANCELLED,
+            ],
+            self::STATUS_SCHEDULED => [
+                self::STATUS_TRAVELLING,
+                self::STATUS_ARRIVED,
+                self::STATUS_IN_PROGRESS,
+                self::STATUS_OFFERED,
+                self::STATUS_CANCELLED,
+            ],
+            self::STATUS_TRAVELLING => [
+                self::STATUS_ARRIVED,
+                self::STATUS_BLOCKED,
+                self::STATUS_CANCELLED,
+            ],
+            self::STATUS_ARRIVED => [
+                self::STATUS_IN_PROGRESS,
+                self::STATUS_BLOCKED,
                 self::STATUS_CANCELLED,
             ],
             self::STATUS_IN_PROGRESS => [
                 self::STATUS_BLOCKED,
-                self::STATUS_AWAITING_APPROVAL,
+                self::STATUS_WAITING,
                 self::STATUS_COMPLETED,
-                self::STATUS_REASSIGNED,
                 self::STATUS_CANCELLED,
+                self::STATUS_FAILED,
             ],
             self::STATUS_BLOCKED => [
                 self::STATUS_IN_PROGRESS,
-                self::STATUS_REASSIGNED,
+                self::STATUS_WAITING,
                 self::STATUS_CANCELLED,
             ],
-            self::STATUS_AWAITING_APPROVAL => [
-                self::STATUS_COMPLETED,
+            self::STATUS_WAITING => [
                 self::STATUS_IN_PROGRESS,
+                self::STATUS_BLOCKED,
                 self::STATUS_CANCELLED,
             ],
-            self::STATUS_REASSIGNED => [
-                self::STATUS_ASSIGNED,
-                self::STATUS_CANCELLED,
+            self::STATUS_COMPLETED => [
+                self::STATUS_VERIFICATION_PENDING,
+                self::STATUS_APPROVED,
             ],
-            self::STATUS_COMPLETED => [],
+            self::STATUS_VERIFICATION_PENDING => [
+                self::STATUS_APPROVED,
+                self::STATUS_IN_PROGRESS,
+                self::STATUS_FAILED,
+            ],
+            self::STATUS_APPROVED => [],
             self::STATUS_CANCELLED => [],
+            self::STATUS_FAILED => [
+                self::STATUS_OFFERED,
+                self::STATUS_PENDING,
+                self::STATUS_CANCELLED,
+            ],
         ];
     }
 
     /**
-     * Field-worker oriented transitions (accept → start → complete).
+     * Field-worker oriented transitions.
      *
      * @return array<string, list<string>>
      */
     public static function fieldAllowedTransitions(): array
     {
         return [
-            self::STATUS_ASSIGNED => [self::STATUS_ACCEPTED, self::STATUS_IN_PROGRESS],
-            self::STATUS_ACCEPTED => [self::STATUS_IN_PROGRESS],
-            self::STATUS_IN_PROGRESS => [self::STATUS_COMPLETED, self::STATUS_BLOCKED],
+            self::STATUS_OFFERED => [self::STATUS_ACCEPTED, self::STATUS_REJECTED],
+            self::STATUS_ACCEPTED => [self::STATUS_TRAVELLING, self::STATUS_ARRIVED, self::STATUS_IN_PROGRESS],
+            self::STATUS_TRAVELLING => [self::STATUS_ARRIVED, self::STATUS_BLOCKED],
+            self::STATUS_ARRIVED => [self::STATUS_IN_PROGRESS, self::STATUS_BLOCKED],
+            self::STATUS_IN_PROGRESS => [self::STATUS_COMPLETED, self::STATUS_BLOCKED, self::STATUS_WAITING],
             self::STATUS_BLOCKED => [self::STATUS_IN_PROGRESS],
+            self::STATUS_WAITING => [self::STATUS_IN_PROGRESS],
+            self::STATUS_COMPLETED => [self::STATUS_VERIFICATION_PENDING],
+            self::STATUS_VERIFICATION_PENDING => [self::STATUS_APPROVED],
         ];
     }
 
@@ -195,12 +262,12 @@ class Task extends Model
     public static function officeAllowedTransitions(): array
     {
         return [
-            self::STATUS_PENDING => [self::STATUS_ASSIGNED, self::STATUS_CANCELLED],
-            self::STATUS_ASSIGNED => [self::STATUS_REASSIGNED, self::STATUS_CANCELLED, self::STATUS_IN_PROGRESS],
-            self::STATUS_IN_PROGRESS => [self::STATUS_AWAITING_APPROVAL, self::STATUS_COMPLETED, self::STATUS_BLOCKED, self::STATUS_REASSIGNED, self::STATUS_CANCELLED],
-            self::STATUS_BLOCKED => [self::STATUS_IN_PROGRESS, self::STATUS_REASSIGNED, self::STATUS_CANCELLED],
-            self::STATUS_AWAITING_APPROVAL => [self::STATUS_COMPLETED, self::STATUS_IN_PROGRESS, self::STATUS_CANCELLED],
-            self::STATUS_REASSIGNED => [self::STATUS_ASSIGNED, self::STATUS_CANCELLED],
+            self::STATUS_PENDING => [self::STATUS_IN_PROGRESS, self::STATUS_OFFERED, self::STATUS_CANCELLED],
+            self::STATUS_IN_PROGRESS => [self::STATUS_COMPLETED, self::STATUS_BLOCKED, self::STATUS_WAITING, self::STATUS_CANCELLED],
+            self::STATUS_BLOCKED => [self::STATUS_IN_PROGRESS, self::STATUS_CANCELLED],
+            self::STATUS_WAITING => [self::STATUS_IN_PROGRESS, self::STATUS_CANCELLED],
+            self::STATUS_COMPLETED => [self::STATUS_VERIFICATION_PENDING, self::STATUS_APPROVED],
+            self::STATUS_VERIFICATION_PENDING => [self::STATUS_APPROVED, self::STATUS_IN_PROGRESS],
         ];
     }
 
@@ -215,6 +282,21 @@ class Task extends Model
         $allowed = $map[$this->status] ?? [];
 
         return in_array($toStatus, $allowed, true);
+    }
+
+    public function isTerminal(): bool
+    {
+        return in_array($this->status, self::TERMINAL_STATUSES, true);
+    }
+
+    public function isCompleteForDependency(): bool
+    {
+        return in_array($this->status, self::COMPLETE_FOR_DEPENDENCY, true);
+    }
+
+    public function isField(): bool
+    {
+        return $this->type === self::TYPE_FIELD;
     }
 
     public function branch(): BelongsTo
@@ -275,6 +357,16 @@ class Task extends Model
     public function dependencies(): HasMany
     {
         return $this->hasMany(TaskDependency::class);
+    }
+
+    public function dependsOnTasks(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            self::class,
+            'task_dependencies',
+            'task_id',
+            'depends_on_task_id'
+        )->withPivot('type')->withTimestamps();
     }
 
     public function dependents(): HasMany

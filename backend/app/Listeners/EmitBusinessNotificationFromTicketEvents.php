@@ -105,7 +105,7 @@ class EmitBusinessNotificationFromTicketEvents implements ShouldQueueAfterCommit
     private function ticketPayload(string $type, int $ticketId, int $branchId, string $title, ?int $userId = null): array
     {
         $ticket = Ticket::query()->find($ticketId);
-        $userId ??= $ticket?->assignee_id;
+        $userId ??= $ticket?->primary_assignee_id;
         $phone = $userId ? User::query()->find($userId)?->phone : null;
 
         return [
@@ -113,7 +113,7 @@ class EmitBusinessNotificationFromTicketEvents implements ShouldQueueAfterCommit
             'payload' => [
                 'branch_id' => $branchId,
                 'ticket_id' => $ticketId,
-                'ticket_number' => $ticket?->number,
+                'ticket_number' => $ticket?->ticket_number,
                 'user_id' => $userId,
                 'phone' => $phone,
                 'customer_id' => $ticket?->customer_id,
@@ -130,7 +130,7 @@ class EmitBusinessNotificationFromTicketEvents implements ShouldQueueAfterCommit
     private function taskPayload(string $type, int $taskId, int $branchId, string $title, ?int $userId = null): array
     {
         $task = Task::query()->find($taskId);
-        $userId ??= $task?->assignee_id ?? $task?->offered_to_id;
+        $userId ??= $task?->assignee_id;
         $phone = $userId ? User::query()->find($userId)?->phone : null;
 
         return [
@@ -138,7 +138,7 @@ class EmitBusinessNotificationFromTicketEvents implements ShouldQueueAfterCommit
             'payload' => [
                 'branch_id' => $branchId,
                 'task_id' => $taskId,
-                'task_number' => $task?->number,
+                'task_number' => $task?->task_number,
                 'ticket_id' => $task?->ticket_id,
                 'user_id' => $userId,
                 'phone' => $phone,

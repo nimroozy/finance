@@ -24,7 +24,8 @@ class Stage7SlaPolicySeeder extends Seeder
 
         $pauseStatuses = [
             Ticket::STATUS_WAITING_CUSTOMER,
-            Ticket::STATUS_WAITING_INTERNAL,
+            Ticket::STATUS_WAITING_EQUIPMENT,
+            Ticket::STATUS_SCHEDULED,
             Ticket::STATUS_RESOLVED,
             Ticket::STATUS_CLOSED,
             Ticket::STATUS_CANCELLED,
@@ -44,6 +45,13 @@ class Stage7SlaPolicySeeder extends Seeder
                 'response_minutes' => 30,
                 'resolution_minutes' => 480,
                 'escalation_intervals' => [30, 60, 120],
+            ],
+            [
+                'name' => 'Default Normal',
+                'priority' => Ticket::PRIORITY_NORMAL,
+                'response_minutes' => 60,
+                'resolution_minutes' => 1440,
+                'escalation_intervals' => [60, 240, 480],
             ],
             [
                 'name' => 'Default Medium',

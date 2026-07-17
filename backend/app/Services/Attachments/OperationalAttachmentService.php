@@ -4,7 +4,7 @@ namespace App\Services\Attachments;
 
 use App\Events\AttachmentUploaded;
 use App\Jobs\GenerateAttachmentThumbnailJob;
-use App\Models\OperationalAttachment;
+use App\Models\Tickets\OperationalAttachment;
 use App\Models\User;
 use App\Services\AuditLogger;
 use Illuminate\Database\Eloquent\Model;
@@ -17,7 +17,7 @@ class OperationalAttachmentService
 {
     public function __construct(private AuditLogger $audit) {}
 
-    public function store(Model $attachable, UploadedFile $file, User $actor, int $branchId): OperationalAttachment
+    public function store(Model $attachable, UploadedFile $file, User $actor, int $branchId, ?string $kind = null): OperationalAttachment
     {
         $this->validateFile($file);
 
@@ -35,15 +35,15 @@ class OperationalAttachmentService
             'disk' => $disk,
             'path' => $path,
             'original_name' => $file->getClientOriginalName(),
-            'mime_type' => $file->getClientMimeType() ?: $file->getMimeType(),
+            'mime' => $file->getClientMimeType() ?: $file->getMimeType(),
             'size' => $file->getSize() ?: 0,
+            'kind' => $kind,
             'virus_scan_status' => 'pending',
-            'thumbnail_status' => 'pending',
         ]);
 
         $this->audit->log('attachment.uploaded', $attachment, null, [
             'path' => $path,
-            'mime' => $attachment->mime_type,
+            'mime' => $attachment->mime,
             'size' => $attachment->size,
         ], $branchId);
 

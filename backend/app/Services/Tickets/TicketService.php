@@ -4,12 +4,12 @@ namespace App\Services\Tickets;
 
 use App\Events\TicketAssigned;
 use App\Events\TicketOpened;
-use App\Models\Ticket;
+use App\Models\Tickets\Ticket;
+use App\Models\Tickets\TicketType;
 use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\Sla\SlaClockService;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use InvalidArgumentException;
 
 class TicketService
@@ -26,29 +26,48 @@ class TicketService
      */
     public function create(array $data, ?User $actor = null): Ticket
     {
-        $this->validateRequired($data);
+        $type = $this->validateCreate($data);
 
-        return DB::transaction(function () use ($data, $actor) {
+        return DB::transaction(function () use ($data, $actor, $type) {
             $branchId = (int) $data['branch_id'];
+            $priority = $data['priority'] ?? $type->default_priority ?? Ticket::PRIORITY_NORMAL;
+
             $ticket = Ticket::query()->create([
-                'uuid' => (string) Str::uuid(),
+                'ticket_number' => $this->numbers->nextNumber($branchId),
                 'branch_id' => $branchId,
-                'number' => $this->numbers->nextNumber($branchId),
-                'type' => $data['type'],
-                'channel' => $data['channel'] ?? ($data['type'] === Ticket::TYPE_WHATSAPP ? 'whatsapp' : 'internal'),
-                'status' => Ticket::STATUS_OPEN,
-                'priority' => $data['priority'] ?? 'normal',
+                'customer_id' => $data['customer_id'] ?? null,
+                'customer_number' => $data['customer_number'] ?? null,
+                'source' => $data['source'] ?? Ticket::SOURCE_INTERNAL,
+                'type_code' => $type->code,
                 'category' => $data['category'] ?? null,
-                'subcategory' => $data['subcategory'] ?? null,
                 'subject' => $data['subject'],
                 'description' => $data['description'] ?? null,
-                'customer_id' => $data['customer_id'] ?? null,
-                'conversation_id' => $data['conversation_id'] ?? null,
-                'department_id' => $data['department_id'] ?? null,
-                'team_id' => $data['team_id'] ?? null,
-                'reporter_id' => $data['reporter_id'] ?? $actor?->id,
-                'assignee_id' => $data['assignee_id'] ?? null,
-                'meta' => $data['meta'] ?? null,
+                'priority' => $priority,
+                'severity' => $data['severity'] ?? null,
+                'impact' => $data['impact'] ?? null,
+                'urgency' => $data['urgency'] ?? null,
+                'status' => Ticket::STATUS_NEW,
+                'assigned_department_id' => $data['assigned_department_id'] ?? null,
+                'assigned_team_id' => $data['assigned_team_id'] ?? null,
+                'primary_assignee_id' => $data['primary_assignee_id'] ?? null,
+                'sla_policy_id' => $data['sla_policy_id'] ?? $type->sla_policy_id,
+                'customer_phone' => $data['customer_phone'] ?? null,
+                'customer_location' => $data['customer_location'] ?? null,
+                'gps_lat' => $data['gps_lat'] ?? null,
+                'gps_lng' => $data['gps_lng'] ?? null,
+                'related_tower' => $data['related_tower'] ?? null,
+                'related_site' => $data['related_site'] ?? null,
+                'related_radius_account' => $data['related_radius_account'] ?? null,
+                'related_invoice_id' => $data['related_invoice_id'] ?? null,
+                'related_payment_id' => $data['related_payment_id'] ?? null,
+                'related_installation_id' => $data['related_installation_id'] ?? null,
+                'whatsapp_conversation_id' => $data['whatsapp_conversation_id'] ?? null,
+                'external_reference' => $data['external_reference'] ?? null,
+                'tags' => $data['tags'] ?? null,
+                'internal_notes' => $data['internal_notes'] ?? null,
+                'customer_visible_notes' => $data['customer_visible_notes'] ?? null,
+                'created_by' => $actor?->id ?? ($data['created_by'] ?? null),
+                'updated_by' => $actor?->id ?? ($data['updated_by'] ?? null),
             ]);
 
             $this->sla->applyOnCreate($ticket);
@@ -57,11 +76,11 @@ class TicketService
 
             TicketOpened::dispatch($ticket->id, $branchId);
 
-            if (! empty($data['assignee_id'])) {
-                TicketAssigned::dispatch($ticket->id, $branchId, (int) $data['assignee_id']);
+            if (! empty($data['primary_assignee_id'])) {
+                TicketAssigned::dispatch($ticket->id, $branchId, (int) $data['primary_assignee_id']);
             }
 
-            return $ticket->fresh();
+            return $ticket->fresh(['slaState']);
         });
     }
 
@@ -71,15 +90,18 @@ class TicketService
     public function update(Ticket $ticket, array $data, ?User $actor = null): Ticket
     {
         return DB::transaction(function () use ($ticket, $data, $actor) {
-            $old = $ticket->only([
-                'priority', 'category', 'subcategory', 'subject', 'description',
-                'department_id', 'team_id', 'meta',
-            ]);
+            $fields = [
+                'priority', 'severity', 'impact', 'urgency', 'category', 'subject', 'description',
+                'assigned_department_id', 'assigned_team_id', 'customer_phone', 'customer_location',
+                'gps_lat', 'gps_lng', 'related_tower', 'related_site', 'related_radius_account',
+                'related_invoice_id', 'related_payment_id', 'related_installation_id',
+                'tags', 'internal_notes', 'customer_visible_notes', 'resolution_code',
+                'resolution_summary', 'customer_confirmation',
+            ];
 
-            $ticket->fill(collect($data)->only([
-                'priority', 'category', 'subcategory', 'subject', 'description',
-                'department_id', 'team_id', 'meta',
-            ])->all());
+            $old = $ticket->only($fields);
+            $ticket->fill(collect($data)->only($fields)->all());
+            $ticket->updated_by = $actor?->id;
             $ticket->save();
 
             $this->audit->log('ticket.updated', $ticket, $old, $ticket->only(array_keys($old)), $ticket->branch_id);
@@ -91,22 +113,28 @@ class TicketService
     public function assign(Ticket $ticket, User $assignee, ?User $actor = null, ?string $reason = null): Ticket
     {
         return DB::transaction(function () use ($ticket, $assignee, $actor, $reason) {
-            $old = $ticket->assignee_id;
-            $ticket->assignee_id = $assignee->id;
-            if ($ticket->status === Ticket::STATUS_OPEN) {
-                $ticket->status = Ticket::STATUS_IN_PROGRESS;
-            }
-            if ($ticket->first_responded_at === null) {
-                $ticket->first_responded_at = now();
-            }
-            $ticket->save();
+            $old = $ticket->primary_assignee_id;
+            $ticket->primary_assignee_id = $assignee->id;
+            $ticket->updated_by = $actor?->id;
 
-            if ($old !== $assignee->id && $ticket->wasChanged('status')) {
-                // status already updated inline for open→in_progress without full transition when assign
+            if ($ticket->status === Ticket::STATUS_NEW) {
+                $ticket->status = Ticket::STATUS_TRIAGED;
+                $ticket->save();
+                $this->transitions->transition($ticket, Ticket::STATUS_ASSIGNED, $actor, $reason, 'assign');
+            } elseif ($ticket->status === Ticket::STATUS_TRIAGED) {
+                $ticket->save();
+                $this->transitions->transition($ticket, Ticket::STATUS_ASSIGNED, $actor, $reason, 'assign');
+            } else {
+                $ticket->save();
             }
 
-            $this->audit->log('ticket.assigned', $ticket, ['assignee_id' => $old], [
-                'assignee_id' => $assignee->id,
+            if ($ticket->first_response_at === null) {
+                $ticket->first_response_at = now();
+                $ticket->save();
+            }
+
+            $this->audit->log('ticket.assigned', $ticket, ['primary_assignee_id' => $old], [
+                'primary_assignee_id' => $assignee->id,
                 'reason' => $reason,
                 'actor_id' => $actor?->id,
             ], $ticket->branch_id, $reason);
@@ -128,72 +156,96 @@ class TicketService
         return $ticket->load('watchers');
     }
 
-    public function resolve(Ticket $ticket, ?User $actor = null, ?string $notes = null, bool $customerConfirmed = false): Ticket
+    public function removeWatcher(Ticket $ticket, User $watcher, ?User $actor = null): Ticket
     {
-        return DB::transaction(function () use ($ticket, $actor, $notes, $customerConfirmed) {
-            if ($notes) {
-                $ticket->resolution_notes = $notes;
+        $ticket->watchers()->detach($watcher->id);
+        $this->audit->log('ticket.watcher_removed', $ticket, null, [
+            'watcher_id' => $watcher->id,
+            'actor_id' => $actor?->id,
+        ], $ticket->branch_id);
+
+        return $ticket->load('watchers');
+    }
+
+    public function resolve(Ticket $ticket, ?User $actor = null, ?string $summary = null, bool $customerConfirmed = false): Ticket
+    {
+        return DB::transaction(function () use ($ticket, $actor, $summary, $customerConfirmed) {
+            if ($summary) {
+                $ticket->resolution_summary = $summary;
             }
-            $ticket->customer_confirmed = $customerConfirmed;
+            $ticket->customer_confirmation = $customerConfirmed;
+            if ($customerConfirmed) {
+                $ticket->customer_confirmed_at = now();
+            }
+            $ticket->updated_by = $actor?->id;
             $ticket->save();
 
-            return $this->transitions->transition($ticket, Ticket::STATUS_RESOLVED, $actor, $notes);
+            return $this->transitions->transition($ticket, Ticket::STATUS_RESOLVED, $actor, $summary, 'resolve');
         });
     }
 
     public function close(Ticket $ticket, ?User $actor = null, ?string $reason = null): Ticket
     {
-        if ($ticket->status !== Ticket::STATUS_RESOLVED) {
+        if (! in_array($ticket->status, [Ticket::STATUS_RESOLVED, Ticket::STATUS_VERIFICATION_PENDING], true)) {
             $ticket = $this->resolve($ticket, $actor, $reason);
+            if ($ticket->canTransitionTo(Ticket::STATUS_VERIFICATION_PENDING)) {
+                $ticket = $this->transitions->transition($ticket, Ticket::STATUS_VERIFICATION_PENDING, $actor, $reason, 'close');
+            }
         }
 
-        return $this->transitions->transition($ticket, Ticket::STATUS_CLOSED, $actor, $reason);
+        if ($ticket->status === Ticket::STATUS_RESOLVED && $ticket->canTransitionTo(Ticket::STATUS_VERIFICATION_PENDING)) {
+            $ticket = $this->transitions->transition($ticket, Ticket::STATUS_VERIFICATION_PENDING, $actor, $reason, 'close');
+        }
+
+        return $this->transitions->transition($ticket, Ticket::STATUS_CLOSED, $actor, $reason, 'close');
     }
 
     public function reopen(Ticket $ticket, ?User $actor = null, ?string $reason = null): Ticket
     {
-        return $this->transitions->transition($ticket, Ticket::STATUS_OPEN, $actor, $reason);
+        return $this->transitions->transition($ticket, Ticket::STATUS_REOPENED, $actor, $reason, 'reopen');
     }
 
-    public function linkMajorIncident(Ticket $ticket, Ticket $majorIncident, ?User $actor = null): Ticket
+    public function transition(Ticket $ticket, string $toStatus, ?User $actor = null, ?string $reason = null, ?string $source = null): Ticket
     {
-        if ($ticket->id === $majorIncident->id) {
-            throw new InvalidArgumentException('A ticket cannot be linked to itself as a major incident.');
-        }
-
-        $ticket->major_incident_id = $majorIncident->id;
-        $ticket->save();
-
-        $this->audit->log('ticket.major_incident_linked', $ticket, null, [
-            'major_incident_id' => $majorIncident->id,
-            'actor_id' => $actor?->id,
-        ], $ticket->branch_id);
-
-        return $ticket->fresh();
+        return $this->transitions->transition($ticket, $toStatus, $actor, $reason, $source);
     }
 
     /**
      * @param  array<string, mixed>  $data
      */
-    private function validateRequired(array $data): void
+    private function validateCreate(array $data): TicketType
     {
-        foreach (['branch_id', 'type', 'subject'] as $field) {
+        foreach (['branch_id', 'type_code', 'subject'] as $field) {
             if (empty($data[$field])) {
                 throw new InvalidArgumentException("Ticket field [{$field}] is required.");
             }
         }
 
-        $type = $data['type'];
-        if (! in_array($type, [Ticket::TYPE_CUSTOMER, Ticket::TYPE_INTERNAL, Ticket::TYPE_WHATSAPP], true)) {
-            throw new InvalidArgumentException("Invalid ticket type [{$type}].");
+        if (! empty($data['source']) && ! in_array($data['source'], Ticket::SOURCES, true)) {
+            throw new InvalidArgumentException("Invalid ticket source [{$data['source']}].");
         }
 
-        if ($type === Ticket::TYPE_CUSTOMER && empty($data['customer_id'])) {
-            throw new InvalidArgumentException('Customer tickets require customer_id.');
+        if (! empty($data['priority']) && ! in_array($data['priority'], Ticket::PRIORITIES, true)) {
+            throw new InvalidArgumentException("Invalid ticket priority [{$data['priority']}].");
         }
 
-        if ($type === Ticket::TYPE_WHATSAPP && empty($data['customer_id']) && empty($data['conversation_id'])) {
-            throw new InvalidArgumentException('WhatsApp tickets require customer_id or conversation_id.');
+        if (! empty($data['severity']) && ! in_array($data['severity'], Ticket::SEVERITIES, true)) {
+            throw new InvalidArgumentException("Invalid ticket severity [{$data['severity']}].");
         }
+
+        $type = TicketType::query()
+            ->where('code', $data['type_code'])
+            ->where('is_active', true)
+            ->first();
+
+        if (! $type) {
+            throw new InvalidArgumentException("Unknown or inactive ticket type_code [{$data['type_code']}].");
+        }
+
+        if ($type->requires_customer && empty($data['customer_id'])) {
+            throw new InvalidArgumentException("Ticket type [{$type->code}] requires customer_id.");
+        }
+
+        return $type;
     }
 }

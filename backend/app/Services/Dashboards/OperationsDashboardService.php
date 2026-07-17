@@ -2,16 +2,16 @@
 
 namespace App\Services\Dashboards;
 
-use App\Models\Escalation;
-use App\Models\Installation;
-use App\Models\Task;
-use App\Models\Ticket;
+use App\Models\Tickets\Escalation;
+use App\Models\Tickets\Installation;
+use App\Models\Tickets\Task;
+use App\Models\Tickets\Ticket;
 use Illuminate\Support\Facades\DB;
 
 class OperationsDashboardService
 {
     /**
-     * @param  list<int>|null  $branchIds  null = all branches
+     * @param  list<int>|null  $branchIds
      * @return array<string, mixed>
      */
     public function supportSummary(?array $branchIds = null): array
@@ -19,9 +19,12 @@ class OperationsDashboardService
         $tickets = $this->ticketQuery($branchIds);
 
         return [
-            'open' => (clone $tickets)->whereNotIn('status', [Ticket::STATUS_CLOSED, Ticket::STATUS_CANCELLED, Ticket::STATUS_RESOLVED])->count(),
+            'open' => (clone $tickets)->whereNotIn('status', [
+                Ticket::STATUS_CLOSED, Ticket::STATUS_CANCELLED, Ticket::STATUS_RESOLVED, Ticket::STATUS_VERIFICATION_PENDING,
+            ])->count(),
             'waiting_customer' => (clone $tickets)->where('status', Ticket::STATUS_WAITING_CUSTOMER)->count(),
-            'breached' => (clone $tickets)->whereNotNull('breached_at')->whereNotIn('status', [Ticket::STATUS_CLOSED, Ticket::STATUS_CANCELLED])->count(),
+            'breached' => (clone $tickets)->whereHas('slaState', fn ($q) => $q->whereNotNull('breached_at'))
+                ->whereNotIn('status', [Ticket::STATUS_CLOSED, Ticket::STATUS_CANCELLED])->count(),
             'resolved_today' => (clone $tickets)->whereDate('resolved_at', today())->count(),
             'by_priority' => (clone $tickets)
                 ->whereNotIn('status', [Ticket::STATUS_CLOSED, Ticket::STATUS_CANCELLED])
@@ -38,11 +41,11 @@ class OperationsDashboardService
      */
     public function technicalSummary(?array $branchIds = null): array
     {
-        $tasks = $this->taskQuery($branchIds)->where('work_type', Task::WORK_FIELD);
+        $tasks = $this->taskQuery($branchIds)->where('type', Task::TYPE_FIELD);
 
         return [
-            'open_field' => (clone $tasks)->whereNotIn('status', [Task::STATUS_VERIFIED, Task::STATUS_CANCELLED, Task::STATUS_COMPLETED])->count(),
-            'traveling' => (clone $tasks)->where('status', Task::STATUS_TRAVELING)->count(),
+            'open_field' => (clone $tasks)->whereNotIn('status', array_merge(Task::TERMINAL_STATUSES, [Task::STATUS_COMPLETED]))->count(),
+            'travelling' => (clone $tasks)->where('status', Task::STATUS_TRAVELLING)->count(),
             'in_progress' => (clone $tasks)->where('status', Task::STATUS_IN_PROGRESS)->count(),
             'blocked' => (clone $tasks)->where('status', Task::STATUS_BLOCKED)->count(),
             'completed_today' => (clone $tasks)->whereDate('completed_at', today())->count(),
@@ -58,13 +61,14 @@ class OperationsDashboardService
         $escalations = Escalation::query()->where('status', 'open');
         $tickets = $this->ticketQuery($branchIds);
         if ($branchIds !== null) {
-            $escalations->whereIn('branch_id', $branchIds);
+            $escalations->whereHas('ticket', fn ($q) => $q->whereIn('branch_id', $branchIds));
         }
 
         return [
             'open_escalations' => $escalations->count(),
             'escalated_tickets' => (clone $tickets)->where('status', Ticket::STATUS_ESCALATED)->count(),
-            'sla_breached' => (clone $tickets)->whereNotNull('breached_at')->whereNotIn('status', [Ticket::STATUS_CLOSED, Ticket::STATUS_CANCELLED])->count(),
+            'sla_breached' => (clone $tickets)->whereHas('slaState', fn ($q) => $q->whereNotNull('breached_at'))
+                ->whereNotIn('status', [Ticket::STATUS_CLOSED, Ticket::STATUS_CANCELLED])->count(),
         ];
     }
 
@@ -80,11 +84,13 @@ class OperationsDashboardService
         }
 
         return [
-            'awaiting_finance' => (clone $installs)->where('status', Installation::STATUS_AWAITING_FINANCE)->count(),
-            'approved' => (clone $installs)->where('status', Installation::STATUS_APPROVED)->count(),
+            'finance_review' => (clone $installs)->where('status', Installation::STATUS_FINANCE_REVIEW)->count(),
+            'equipment_waiting' => (clone $installs)->where('status', Installation::STATUS_EQUIPMENT_WAITING)->count(),
             'finance_related_tickets' => $this->ticketQuery($branchIds)
                 ->where(function ($q) {
-                    $q->where('category', 'finance')->orWhere('category', 'billing');
+                    $q->where('category', 'finance')
+                        ->orWhere('category', 'billing')
+                        ->orWhere('status', Ticket::STATUS_WAITING_FINANCE);
                 })
                 ->whereNotIn('status', [Ticket::STATUS_CLOSED, Ticket::STATUS_CANCELLED])
                 ->count(),
@@ -104,17 +110,15 @@ class OperationsDashboardService
             'finance' => $this->financeSummary($branchIds),
             'installations_in_flight' => Installation::query()
                 ->when($branchIds !== null, fn ($q) => $q->whereIn('branch_id', $branchIds))
-                ->whereNotIn('status', [Installation::STATUS_ACCEPTED, Installation::STATUS_CANCELLED])
+                ->whereNotIn('status', [Installation::STATUS_COMPLETED, Installation::STATUS_CANCELLED])
                 ->count(),
             'task_backlog' => $this->taskQuery($branchIds)
-                ->whereNotIn('status', [Task::STATUS_VERIFIED, Task::STATUS_CANCELLED, Task::STATUS_COMPLETED])
+                ->whereNotIn('status', array_merge(Task::TERMINAL_STATUSES, [Task::STATUS_COMPLETED]))
                 ->count(),
         ];
     }
 
-    /**
-     * @param  list<int>|null  $branchIds
-     */
+    /** @param  list<int>|null  $branchIds */
     private function ticketQuery(?array $branchIds)
     {
         $q = Ticket::query();
@@ -125,9 +129,7 @@ class OperationsDashboardService
         return $q;
     }
 
-    /**
-     * @param  list<int>|null  $branchIds
-     */
+    /** @param  list<int>|null  $branchIds */
     private function taskQuery(?array $branchIds)
     {
         $q = Task::query();

@@ -3,16 +3,14 @@
 namespace App\Services\Timeline;
 
 use App\Models\Customer;
-use App\Models\Task;
-use App\Models\Ticket;
+use App\Models\Tickets\Task;
+use App\Models\Tickets\Ticket;
+use App\Models\Tickets\WorkLog;
 use App\Models\User;
-use App\Models\WorkLog;
 
 class CustomerTimelineService
 {
     /**
-     * Aggregate customer operational timeline with permission redaction.
-     *
      * @return list<array{at: string, type: string, title: string, summary: ?string, meta: array}>
      */
     public function aggregate(Customer $customer, User $viewer, int $limit = 100): array
@@ -37,7 +35,7 @@ class CustomerTimelineService
                 $events->push([
                     'at' => optional($ticket->created_at)->toIso8601String(),
                     'type' => 'ticket',
-                    'title' => $ticket->number,
+                    'title' => $ticket->ticket_number,
                     'summary' => $ticket->subject,
                     'meta' => [
                         'ticket_id' => $ticket->id,
@@ -48,7 +46,10 @@ class CustomerTimelineService
             });
 
         Task::query()
-            ->whereHas('ticket', fn ($q) => $q->where('customer_id', $customer->id))
+            ->where(function ($q) use ($customer) {
+                $q->where('customer_id', $customer->id)
+                    ->orWhereHas('ticket', fn ($qq) => $qq->where('customer_id', $customer->id));
+            })
             ->orderByDesc('id')
             ->limit($limit)
             ->get()
@@ -56,19 +57,19 @@ class CustomerTimelineService
                 $events->push([
                     'at' => optional($task->created_at)->toIso8601String(),
                     'type' => 'task',
-                    'title' => $task->number,
+                    'title' => $task->task_number,
                     'summary' => $canSeeInternal ? $task->title : 'Task update',
                     'meta' => [
                         'task_id' => $task->id,
                         'status' => $task->status,
-                        'work_type' => $canSeeInternal ? $task->work_type : null,
+                        'type' => $canSeeInternal ? $task->type : null,
                     ],
                 ]);
             });
 
         WorkLog::query()
             ->whereHas('ticket', fn ($q) => $q->where('customer_id', $customer->id))
-            ->when(! $canSeeInternal, fn ($q) => $q->where('visibility', 'customer'))
+            ->when(! $canSeeInternal, fn ($q) => $q->whereNotNull('customer_visible_note'))
             ->orderByDesc('id')
             ->limit($limit)
             ->get()
@@ -77,12 +78,11 @@ class CustomerTimelineService
                     'at' => optional($log->created_at)->toIso8601String(),
                     'type' => 'work_log',
                     'title' => 'Work log',
-                    'summary' => $canSeeInternal || $log->visibility === 'customer'
-                        ? $log->body
-                        : null,
+                    'summary' => $canSeeInternal
+                        ? ($log->internal_note ?: $log->customer_visible_note)
+                        : $log->customer_visible_note,
                     'meta' => [
                         'work_log_id' => $log->id,
-                        'visibility' => $log->visibility,
                     ],
                 ]);
             });

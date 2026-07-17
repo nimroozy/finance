@@ -2,8 +2,8 @@
 
 namespace App\Services\Reports;
 
-use App\Models\Task;
-use App\Models\Ticket;
+use App\Models\Tickets\Task;
+use App\Models\Tickets\Ticket;
 use Illuminate\Support\Collection;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -30,13 +30,12 @@ class OperationsReportService
         }
 
         return $this->streamCsv('tickets-export.csv', [
-            'id', 'number', 'branch_id', 'type', 'status', 'priority', 'subject',
-            'customer_id', 'assignee_id', 'breached_at', 'created_at', 'resolved_at',
+            'id', 'ticket_number', 'branch_id', 'type_code', 'status', 'priority', 'subject',
+            'customer_id', 'primary_assignee_id', 'created_at', 'resolved_at',
         ], $query->cursor(), function (Ticket $t) {
             return [
-                $t->id, $t->number, $t->branch_id, $t->type, $t->status, $t->priority, $t->subject,
-                $t->customer_id, $t->assignee_id,
-                optional($t->breached_at)->toDateTimeString(),
+                $t->id, $t->ticket_number, $t->branch_id, $t->type_code, $t->status, $t->priority, $t->subject,
+                $t->customer_id, $t->primary_assignee_id,
                 optional($t->created_at)->toDateTimeString(),
                 optional($t->resolved_at)->toDateTimeString(),
             ];
@@ -58,11 +57,11 @@ class OperationsReportService
         }
 
         return $this->streamCsv('tasks-export.csv', [
-            'id', 'number', 'branch_id', 'ticket_id', 'status', 'work_type', 'title',
+            'id', 'task_number', 'branch_id', 'ticket_id', 'status', 'type', 'title',
             'assignee_id', 'started_at', 'completed_at', 'created_at',
         ], $query->cursor(), function (Task $t) {
             return [
-                $t->id, $t->number, $t->branch_id, $t->ticket_id, $t->status, $t->work_type, $t->title,
+                $t->id, $t->task_number, $t->branch_id, $t->ticket_id, $t->status, $t->type, $t->title,
                 $t->assignee_id,
                 optional($t->started_at)->toDateTimeString(),
                 optional($t->completed_at)->toDateTimeString(),

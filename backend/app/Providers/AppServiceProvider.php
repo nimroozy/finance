@@ -31,6 +31,10 @@ use App\Models\Payment;
 use App\Models\PaymentReversal;
 use App\Models\PromiseToPay;
 use App\Models\Receipt;
+use App\Models\Tickets\Installation;
+use App\Models\Tickets\OperationalAttachment;
+use App\Models\Tickets\Task;
+use App\Models\Tickets\Ticket;
 use App\Models\UploadedVisitFile;
 use App\Models\User;
 use App\Policies\BranchPolicy;
@@ -38,10 +42,14 @@ use App\Policies\CollectionRoutePolicy;
 use App\Policies\CollectionVisitPolicy;
 use App\Policies\CustomerAssignmentPolicy;
 use App\Policies\CustomerNotePolicy;
+use App\Policies\InstallationPolicy;
+use App\Policies\OperationalAttachmentPolicy;
 use App\Policies\PaymentPolicy;
 use App\Policies\PaymentReversalPolicy;
 use App\Policies\PromiseToPayPolicy;
 use App\Policies\ReceiptPolicy;
+use App\Policies\TaskPolicy;
+use App\Policies\TicketPolicy;
 use App\Policies\UploadedVisitFilePolicy;
 use App\Policies\UserPolicy;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -77,6 +85,10 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Payment::class, PaymentPolicy::class);
         Gate::policy(PaymentReversal::class, PaymentReversalPolicy::class);
         Gate::policy(Receipt::class, ReceiptPolicy::class);
+        Gate::policy(Ticket::class, TicketPolicy::class);
+        Gate::policy(Task::class, TaskPolicy::class);
+        Gate::policy(Installation::class, InstallationPolicy::class);
+        Gate::policy(OperationalAttachment::class, OperationalAttachmentPolicy::class);
 
         RateLimiter::for('login', function (Request $request) {
             return Limit::perMinute(5)->by($request->input('login', $request->ip()));

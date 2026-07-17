@@ -10,8 +10,8 @@ use App\Events\TaskReassigned;
 use App\Events\TaskRejected;
 use App\Events\TaskStarted;
 use App\Events\TaskVerified;
-use App\Models\Task;
-use App\Models\TaskAssignmentEvent;
+use App\Models\Tickets\Task;
+use App\Models\Tickets\TaskStatusTransition;
 use App\Models\User;
 use App\Services\AuditLogger;
 use Illuminate\Support\Facades\DB;
@@ -27,12 +27,12 @@ class TaskAssignmentWorkflowService
     public function offer(Task $task, User $to, ?User $actor = null, ?string $reason = null): Task
     {
         return $this->mutate($task, function (Task $task) use ($to, $actor, $reason) {
-            $task->offered_to_id = $to->id;
-            $task->offered_at = now();
+            $from = $task->status;
+            $this->assertTransition($task, Task::STATUS_OFFERED);
+            $task->assignee_id = $to->id;
             $task->status = Task::STATUS_OFFERED;
             $task->save();
-
-            $this->record($task, 'offer', $actor, null, $to->id, $reason);
+            $this->record($task, $from, Task::STATUS_OFFERED, $actor, $reason, 'offer');
             TaskOffered::dispatch($task->id, (int) $task->branch_id, $to->id);
 
             return $task;
@@ -45,16 +45,15 @@ class TaskAssignmentWorkflowService
             if ($task->status !== Task::STATUS_OFFERED) {
                 throw new InvalidArgumentException('Only offered tasks can be accepted.');
             }
-            if ($task->offered_to_id && $task->offered_to_id !== $user->id) {
+            if ($task->assignee_id && $task->assignee_id !== $user->id) {
                 throw new InvalidArgumentException('Task was offered to a different user.');
             }
 
+            $from = $task->status;
             $task->assignee_id = $user->id;
-            $task->accepted_at = now();
             $task->status = Task::STATUS_ACCEPTED;
             $task->save();
-
-            $this->record($task, 'accept', $user, $task->offered_to_id, $user->id, $reason);
+            $this->record($task, $from, Task::STATUS_ACCEPTED, $user, $reason, 'accept');
             TaskAccepted::dispatch($task->id, (int) $task->branch_id, $user->id);
 
             return $task;
@@ -63,57 +62,61 @@ class TaskAssignmentWorkflowService
 
     public function reject(Task $task, User $user, string $reason): Task
     {
+        $this->requireReason($reason, 'reject');
+
         return $this->mutate($task, function (Task $task) use ($user, $reason) {
             if ($task->status !== Task::STATUS_OFFERED) {
                 throw new InvalidArgumentException('Only offered tasks can be rejected.');
             }
 
-            $from = $task->offered_to_id;
-            $task->reject_reason = $reason;
-            $task->offered_to_id = null;
+            $from = $task->status;
             $task->status = Task::STATUS_REJECTED;
+            $task->assignee_id = null;
             $task->save();
-
-            $this->record($task, 'reject', $user, $from, null, $reason);
+            $this->record($task, $from, Task::STATUS_REJECTED, $user, $reason, 'reject');
             TaskRejected::dispatch($task->id, (int) $task->branch_id, $user->id);
 
             return $task;
         }, 'task.rejected', $reason);
     }
 
-    public function reassign(Task $task, User $to, ?User $actor = null, ?string $reason = null): Task
+    public function reassign(Task $task, User $to, ?User $actor = null, string $reason = ''): Task
     {
+        $this->requireReason($reason, 'reassign');
+
         return $this->mutate($task, function (Task $task) use ($to, $actor, $reason) {
-            $from = $task->assignee_id;
+            $fromStatus = $task->status;
             $task->assignee_id = $to->id;
-            $task->offered_to_id = null;
-            if (in_array($task->status, [Task::STATUS_OPEN, Task::STATUS_REJECTED, Task::STATUS_OFFERED], true)) {
-                $task->status = Task::STATUS_ACCEPTED;
-                $task->accepted_at = now();
+            if (in_array($task->status, [Task::STATUS_PENDING, Task::STATUS_REJECTED, Task::STATUS_FAILED], true)) {
+                $task->status = Task::STATUS_OFFERED;
+            } elseif ($task->status === Task::STATUS_OFFERED) {
+                // keep offered, new assignee
+            } else {
+                $task->status = Task::STATUS_OFFERED;
             }
             $task->save();
-
-            $this->record($task, 'reassign', $actor, $from, $to->id, $reason);
+            $this->record($task, $fromStatus, $task->status, $actor, $reason, 'reassign');
             TaskReassigned::dispatch($task->id, (int) $task->branch_id, $to->id);
 
             return $task;
         }, 'task.reassigned', $reason);
     }
 
-    public function travel(Task $task, User $actor, ?string $reason = null): Task
+    public function startTravel(Task $task, User $actor, ?string $reason = null): Task
     {
         $this->assertField($task);
 
         return $this->mutate($task, function (Task $task) use ($actor, $reason) {
             $this->assertAssignee($task, $actor);
             $this->dependencies->assertCanStart($task);
-            $task->status = Task::STATUS_TRAVELING;
-            $task->traveled_at = now();
+            $from = $task->status;
+            $this->assertTransition($task, Task::STATUS_TRAVELLING);
+            $task->status = Task::STATUS_TRAVELLING;
             $task->save();
-            $this->record($task, 'travel', $actor, null, $actor->id, $reason);
+            $this->record($task, $from, Task::STATUS_TRAVELLING, $actor, $reason, 'start_travel');
 
             return $task;
-        }, 'task.traveling', $reason);
+        }, 'task.travelling', $reason);
     }
 
     public function arrive(Task $task, User $actor, ?string $reason = null): Task
@@ -122,13 +125,13 @@ class TaskAssignmentWorkflowService
 
         return $this->mutate($task, function (Task $task) use ($actor, $reason) {
             $this->assertAssignee($task, $actor);
-            if (! in_array($task->status, [Task::STATUS_TRAVELING, Task::STATUS_ACCEPTED], true)) {
-                throw new InvalidArgumentException('Task must be traveling (or accepted) before arrive.');
+            if (! in_array($task->status, [Task::STATUS_TRAVELLING, Task::STATUS_ACCEPTED, Task::STATUS_SCHEDULED], true)) {
+                throw new InvalidArgumentException('Task must be travelling (or accepted/scheduled) before arrive.');
             }
+            $from = $task->status;
             $task->status = Task::STATUS_ARRIVED;
-            $task->arrived_at = now();
             $task->save();
-            $this->record($task, 'arrive', $actor, null, $actor->id, $reason);
+            $this->record($task, $from, Task::STATUS_ARRIVED, $actor, $reason, 'arrive');
 
             return $task;
         }, 'task.arrived', $reason);
@@ -140,17 +143,24 @@ class TaskAssignmentWorkflowService
             $this->assertAssignee($task, $actor);
             $this->dependencies->assertCanStart($task);
 
-            if ($task->work_type === Task::WORK_FIELD
-                && ! in_array($task->status, [Task::STATUS_ARRIVED, Task::STATUS_ACCEPTED, Task::STATUS_TRAVELING], true)) {
+            if ($task->isField()
+                && ! in_array($task->status, [
+                    Task::STATUS_ARRIVED,
+                    Task::STATUS_ACCEPTED,
+                    Task::STATUS_TRAVELLING,
+                    Task::STATUS_PENDING,
+                ], true)
+            ) {
                 throw new InvalidArgumentException('Field tasks should arrive (or be accepted) before start.');
             }
 
+            $from = $task->status;
+            $this->assertTransition($task, Task::STATUS_IN_PROGRESS);
             $task->status = Task::STATUS_IN_PROGRESS;
-            $task->started_at = now();
-            $task->block_reason = null;
+            $task->started_at ??= now();
             $task->save();
 
-            $this->record($task, 'start', $actor, null, $actor->id, $reason);
+            $this->record($task, $from, Task::STATUS_IN_PROGRESS, $actor, $reason, 'start');
             TaskStarted::dispatch($task->id, (int) $task->branch_id);
 
             return $task;
@@ -165,11 +175,15 @@ class TaskAssignmentWorkflowService
                 throw new InvalidArgumentException('Only in-progress tasks can be completed.');
             }
 
+            $from = $task->status;
             $task->status = Task::STATUS_COMPLETED;
             $task->completed_at = now();
+            if ($reason) {
+                $task->completion_notes = $reason;
+            }
             $task->save();
 
-            $this->record($task, 'complete', $actor, null, $actor->id, $reason);
+            $this->record($task, $from, Task::STATUS_COMPLETED, $actor, $reason, 'complete');
             TaskCompleted::dispatch($task->id, (int) $task->branch_id);
 
             return $task;
@@ -179,16 +193,23 @@ class TaskAssignmentWorkflowService
     public function verify(Task $task, User $actor, ?string $reason = null): Task
     {
         return $this->mutate($task, function (Task $task) use ($actor, $reason) {
-            if ($task->status !== Task::STATUS_COMPLETED) {
+            if (! in_array($task->status, [Task::STATUS_COMPLETED, Task::STATUS_VERIFICATION_PENDING], true)) {
                 throw new InvalidArgumentException('Only completed tasks can be verified.');
             }
 
-            $task->status = Task::STATUS_VERIFIED;
-            $task->verified_at = now();
-            $task->verified_by = $actor->id;
+            $from = $task->status;
+            if ($task->status === Task::STATUS_COMPLETED && $task->canTransitionTo(Task::STATUS_VERIFICATION_PENDING)) {
+                $task->status = Task::STATUS_VERIFICATION_PENDING;
+                $task->save();
+                $this->record($task, $from, Task::STATUS_VERIFICATION_PENDING, $actor, $reason, 'verify');
+                $from = Task::STATUS_VERIFICATION_PENDING;
+            }
+
+            $task->status = Task::STATUS_APPROVED;
+            $task->approver_id = $actor->id;
             $task->save();
 
-            $this->record($task, 'verify', $actor, null, $actor->id, $reason);
+            $this->record($task, $from, Task::STATUS_APPROVED, $actor, $reason, 'approve');
             TaskVerified::dispatch($task->id, (int) $task->branch_id);
 
             return $task;
@@ -197,12 +218,14 @@ class TaskAssignmentWorkflowService
 
     public function block(Task $task, User $actor, string $reason): Task
     {
-        return $this->mutate($task, function (Task $task) use ($actor, $reason) {
-            $task->status = Task::STATUS_BLOCKED;
-            $task->block_reason = $reason;
-            $task->save();
+        $this->requireReason($reason, 'block');
 
-            $this->record($task, 'block', $actor, null, $actor->id, $reason);
+        return $this->mutate($task, function (Task $task) use ($actor, $reason) {
+            $from = $task->status;
+            $this->assertTransition($task, Task::STATUS_BLOCKED);
+            $task->status = Task::STATUS_BLOCKED;
+            $task->save();
+            $this->record($task, $from, Task::STATUS_BLOCKED, $actor, $reason, 'block');
             TaskBlocked::dispatch($task->id, (int) $task->branch_id, $reason);
 
             return $task;
@@ -211,16 +234,18 @@ class TaskAssignmentWorkflowService
 
     public function cancel(Task $task, User $actor, string $reason): Task
     {
+        $this->requireReason($reason, 'cancel');
+
         return $this->mutate($task, function (Task $task) use ($actor, $reason) {
             if ($task->isTerminal()) {
                 throw new InvalidArgumentException('Terminal tasks cannot be cancelled.');
             }
 
+            $from = $task->status;
+            $this->assertTransition($task, Task::STATUS_CANCELLED);
             $task->status = Task::STATUS_CANCELLED;
-            $task->cancel_reason = $reason;
             $task->save();
-
-            $this->record($task, 'cancel', $actor, null, $actor->id, $reason);
+            $this->record($task, $from, Task::STATUS_CANCELLED, $actor, $reason, 'cancel');
 
             return $task;
         }, 'task.cancelled', $reason);
@@ -246,21 +271,28 @@ class TaskAssignmentWorkflowService
 
     private function record(
         Task $task,
-        string $action,
+        ?string $from,
+        string $to,
         ?User $actor,
-        ?int $fromUserId,
-        ?int $toUserId,
         ?string $reason,
+        ?string $source,
     ): void {
-        TaskAssignmentEvent::create([
+        TaskStatusTransition::query()->create([
             'task_id' => $task->id,
-            'action' => $action,
-            'actor_id' => $actor?->id,
-            'from_user_id' => $fromUserId,
-            'to_user_id' => $toUserId,
+            'from_status' => $from,
+            'to_status' => $to,
+            'user_id' => $actor?->id,
             'reason' => $reason,
+            'source' => $source,
             'created_at' => now(),
         ]);
+    }
+
+    private function assertTransition(Task $task, string $to): void
+    {
+        if (! $task->canTransitionTo($to)) {
+            throw new InvalidArgumentException("Invalid task status transition [{$task->status} → {$to}].");
+        }
     }
 
     private function assertAssignee(Task $task, User $actor): void
@@ -275,8 +307,15 @@ class TaskAssignmentWorkflowService
 
     private function assertField(Task $task): void
     {
-        if ($task->work_type !== Task::WORK_FIELD) {
+        if (! $task->isField()) {
             throw new InvalidArgumentException('Travel/arrive applies only to field tasks.');
+        }
+    }
+
+    private function requireReason(string $reason, string $action): void
+    {
+        if (trim($reason) === '') {
+            throw new InvalidArgumentException("A reason is required to {$action} a task.");
         }
     }
 }

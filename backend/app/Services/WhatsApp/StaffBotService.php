@@ -2,16 +2,14 @@
 
 namespace App\Services\WhatsApp;
 
-use App\Models\StaffActionToken;
-use App\Models\Task;
-use App\Models\Ticket;
+use App\Models\Tickets\StaffActionToken;
+use App\Models\Tickets\Task;
+use App\Models\Tickets\Ticket;
 use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\Tasks\TaskAssignmentWorkflowService;
 use App\Services\Tickets\TicketService;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\URL;
-use Illuminate\Support\Str;
 use InvalidArgumentException;
 
 class StaffBotService
@@ -37,51 +35,43 @@ class StaffBotService
         ];
     }
 
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array{token: string, model: StaffActionToken}
+     */
     public function generateStaffActionToken(
         User $user,
         string $action,
-        Model $subject,
         array $payload = [],
         ?int $ttlMinutes = null,
-    ): StaffActionToken {
+    ): array {
         $ttl = $ttlMinutes ?? (int) config('ticketing.staff_action_token_ttl_minutes', 60);
+        $issued = StaffActionToken::issue($user, $action, $payload, $ttl);
 
-        $token = StaffActionToken::query()->create([
-            'token' => Str::random(48),
-            'user_id' => $user->id,
+        $this->audit->log('staff_action_token.created', $issued['model'], null, [
             'action' => $action,
-            'subject_type' => $subject->getMorphClass(),
-            'subject_id' => $subject->getKey(),
             'payload' => $payload,
-            'expires_at' => now()->addMinutes($ttl),
-        ]);
-
-        $this->audit->log('staff_action_token.created', $token, null, [
-            'action' => $action,
-            'subject_type' => $token->subject_type,
-            'subject_id' => $token->subject_id,
         ], $payload['branch_id'] ?? null);
 
-        return $token;
+        return $issued;
     }
 
-    public function signedActionUrl(StaffActionToken $token): string
+    public function signedActionUrl(string $plainToken, StaffActionToken $token): string
     {
         return URL::temporarySignedRoute(
             'api.v1.staff-actions.process',
             $token->expires_at,
-            ['token' => $token->token],
+            ['token' => $plainToken],
         );
     }
 
     /**
-     * Process a secure staff action from signed token / interactive payload.
-     *
      * @return array{ok: bool, result?: mixed, message: string}
      */
     public function processSecureAction(string $tokenValue, User $actor): array
     {
-        $token = StaffActionToken::query()->where('token', $tokenValue)->first();
+        $hash = hash('sha256', $tokenValue);
+        $token = StaffActionToken::query()->where('token_hash', $hash)->first();
         if (! $token || ! $token->isValid()) {
             throw new InvalidArgumentException('Staff action token is invalid or expired.');
         }
@@ -89,24 +79,29 @@ class StaffBotService
             throw new InvalidArgumentException('Staff action token belongs to a different user.');
         }
 
-        $subject = $token->subject;
-        if (! $subject) {
-            throw new InvalidArgumentException('Staff action subject not found.');
-        }
-
+        $payload = $token->payload ?? [];
         $result = match ($token->action) {
-            'start_task' => $subject instanceof Task
-                ? $this->taskWorkflow->start($subject, $actor, $token->payload['reason'] ?? null)
-                : throw new InvalidArgumentException('Expected task subject.'),
-            'complete_task' => $subject instanceof Task
-                ? $this->taskWorkflow->complete($subject, $actor, $token->payload['reason'] ?? null)
-                : throw new InvalidArgumentException('Expected task subject.'),
-            'accept_task' => $subject instanceof Task
-                ? $this->taskWorkflow->accept($subject, $actor, $token->payload['reason'] ?? null)
-                : throw new InvalidArgumentException('Expected task subject.'),
-            'assign_ticket' => $subject instanceof Ticket
-                ? $this->tickets->assign($subject, $actor, $actor, $token->payload['reason'] ?? null)
-                : throw new InvalidArgumentException('Expected ticket subject.'),
+            'start_task' => $this->taskWorkflow->start(
+                Task::query()->findOrFail($payload['task_id'] ?? 0),
+                $actor,
+                $payload['reason'] ?? null,
+            ),
+            'complete_task' => $this->taskWorkflow->complete(
+                Task::query()->findOrFail($payload['task_id'] ?? 0),
+                $actor,
+                $payload['reason'] ?? null,
+            ),
+            'accept_task' => $this->taskWorkflow->accept(
+                Task::query()->findOrFail($payload['task_id'] ?? 0),
+                $actor,
+                $payload['reason'] ?? null,
+            ),
+            'assign_ticket' => $this->tickets->assign(
+                Ticket::query()->findOrFail($payload['ticket_id'] ?? 0),
+                $actor,
+                $actor,
+                $payload['reason'] ?? null,
+            ),
             default => throw new InvalidArgumentException("Unsupported staff action [{$token->action}]."),
         };
 
@@ -115,7 +110,7 @@ class StaffBotService
 
         $this->audit->log('staff_action_token.used', $token, null, [
             'action' => $token->action,
-        ], $token->payload['branch_id'] ?? null);
+        ], $payload['branch_id'] ?? null);
 
         return ['ok' => true, 'result' => $result, 'message' => 'Action processed.'];
     }
@@ -127,14 +122,14 @@ class StaffBotService
     {
         return [
             'tasks' => Task::query()
-                ->where(fn ($q) => $q->where('assignee_id', $user->id)->orWhere('offered_to_id', $user->id))
-                ->whereNotIn('status', [Task::STATUS_VERIFIED, Task::STATUS_CANCELLED])
+                ->where('assignee_id', $user->id)
+                ->whereNotIn('status', Task::TERMINAL_STATUSES)
                 ->orderByDesc('id')
                 ->limit($limit)
                 ->get()
                 ->all(),
             'tickets' => Ticket::query()
-                ->where('assignee_id', $user->id)
+                ->where('primary_assignee_id', $user->id)
                 ->whereNotIn('status', [Ticket::STATUS_CLOSED, Ticket::STATUS_CANCELLED])
                 ->orderByDesc('id')
                 ->limit($limit)

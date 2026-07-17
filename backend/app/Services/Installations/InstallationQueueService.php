@@ -3,10 +3,10 @@
 namespace App\Services\Installations;
 
 use App\Events\InstallationStatusChanged;
-use App\Models\Department;
-use App\Models\Installation;
-use App\Models\InstallationTaskTemplate;
-use App\Models\Task;
+use App\Models\Org\Department;
+use App\Models\Tickets\Installation;
+use App\Models\Tickets\Task;
+use App\Models\Tickets\TaskTemplate;
 use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\Tasks\TaskService;
@@ -34,28 +34,36 @@ class InstallationQueueService
         return DB::transaction(function () use ($data, $actor) {
             $branchId = (int) $data['branch_id'];
             $installation = Installation::query()->create([
-                'uuid' => (string) Str::uuid(),
+                'installation_number' => $this->numbers->nextNumber($branchId),
                 'branch_id' => $branchId,
-                'number' => $this->numbers->nextNumber($branchId),
+                'status' => Installation::STATUS_REQUEST_RECEIVED,
                 'customer_id' => $data['customer_id'] ?? null,
-                'ticket_id' => $data['ticket_id'] ?? null,
-                'template_id' => $data['template_id'] ?? null,
-                'created_by' => $actor?->id,
-                'status' => Installation::STATUS_DRAFT,
+                'prospect_name' => $data['prospect_name'] ?? null,
+                'contact_name' => $data['contact_name'] ?? null,
+                'phone' => $data['phone'] ?? null,
                 'address' => $data['address'] ?? null,
-                'latitude' => $data['latitude'] ?? null,
-                'longitude' => $data['longitude'] ?? null,
+                'gps_lat' => $data['gps_lat'] ?? $data['latitude'] ?? null,
+                'gps_lng' => $data['gps_lng'] ?? $data['longitude'] ?? null,
+                'requested_package' => $data['requested_package'] ?? null,
+                'requested_date' => $data['requested_date'] ?? null,
+                'coverage_notes' => $data['coverage_notes'] ?? null,
+                'tower_site_candidate' => $data['tower_site_candidate'] ?? null,
+                'salesperson_id' => $data['salesperson_id'] ?? null,
+                'technician_id' => $data['technician_id'] ?? null,
+                'finance_reviewer_id' => $data['finance_reviewer_id'] ?? null,
+                'noc_reviewer_id' => $data['noc_reviewer_id'] ?? null,
+                'equipment_status' => $data['equipment_status'] ?? null,
+                'installation_fee' => $data['installation_fee'] ?? null,
+                'monthly_fee_estimate' => $data['monthly_fee_estimate'] ?? null,
                 'notes' => $data['notes'] ?? null,
-                'meta' => array_merge([
-                    'inventory_reservation' => 'pending_stage9',
-                    'radius_activation' => 'pending_stage10',
-                ], $data['meta'] ?? []),
+                'whatsapp_conversation_id' => $data['whatsapp_conversation_id'] ?? null,
+                'created_by' => $actor?->id,
             ]);
 
             $this->audit->log('installation.created', $installation, null, $installation->toArray(), $branchId);
 
-            if (! empty($data['expand_template']) && $installation->template_id) {
-                $this->expandTaskTemplate($installation, $actor);
+            if (! empty($data['template_code']) || ! empty($data['expand_template'])) {
+                $this->expandTaskTemplate($installation, $actor, $data['template_code'] ?? null);
             }
 
             return $installation->fresh('tasks');
@@ -65,8 +73,7 @@ class InstallationQueueService
     public function transitionStatus(Installation $installation, string $to, ?User $actor = null, ?string $notes = null): Installation
     {
         $from = $installation->status;
-        $allowed = Installation::ALLOWED_TRANSITIONS[$from] ?? [];
-        if (! in_array($to, $allowed, true)) {
+        if (! $installation->canTransitionTo($to)) {
             throw new InvalidArgumentException("Invalid installation transition [{$from} → {$to}].");
         }
 
@@ -89,19 +96,20 @@ class InstallationQueueService
     }
 
     /**
-     * Expand template steps into tasks with dependencies.
-     * Inventory reservation and Radius activation remain placeholders until Stages 9/10.
-     *
      * @return list<Task>
      */
-    public function expandTaskTemplate(Installation $installation, ?User $actor = null): array
+    public function expandTaskTemplate(Installation $installation, ?User $actor = null, ?string $templateCode = null): array
     {
-        $template = $installation->template_id
-            ? InstallationTaskTemplate::query()->find($installation->template_id)
-            : null;
+        $template = $templateCode
+            ? TaskTemplate::query()->where('code', $templateCode)->where('is_active', true)->first()
+            : TaskTemplate::query()
+                ->where('workflow_type', TaskTemplate::WORKFLOW_INSTALLATION)
+                ->where('is_active', true)
+                ->orderBy('id')
+                ->first();
 
         if (! $template) {
-            throw new InvalidArgumentException('Installation has no task template.');
+            throw new InvalidArgumentException('No installation task template found.');
         }
 
         $steps = $template->steps ?? [];
@@ -128,17 +136,12 @@ class InstallationQueueService
                 $task = $this->tasks->create([
                     'branch_id' => $installation->branch_id,
                     'installation_id' => $installation->id,
-                    'ticket_id' => $installation->ticket_id,
+                    'customer_id' => $installation->customer_id,
                     'department_id' => $departmentId,
                     'title' => $step['title'] ?? $key,
                     'description' => $step['description'] ?? null,
-                    'work_type' => $step['work_type'] ?? Task::WORK_FIELD,
-                    'priority' => $step['priority'] ?? 'normal',
-                    'meta' => [
-                        'template_step_key' => $key,
-                        'inventory_placeholder' => $step['inventory'] ?? null,
-                        'radius_placeholder' => $step['radius'] ?? null,
-                    ],
+                    'type' => $step['type'] ?? ($step['work_type'] ?? Task::TYPE_FIELD),
+                    'priority' => $step['priority'] ?? Task::PRIORITY_NORMAL,
                 ], $actor);
 
                 $byKey[$key] = $task;
@@ -158,7 +161,7 @@ class InstallationQueueService
                     }
                 }
                 if ($depIds !== []) {
-                    $byKey[$key]->dependencies()->sync($depIds);
+                    $byKey[$key]->dependsOnTasks()->sync($depIds);
                 }
             }
 

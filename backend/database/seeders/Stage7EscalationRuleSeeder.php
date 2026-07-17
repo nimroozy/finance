@@ -17,7 +17,7 @@ class Stage7EscalationRuleSeeder extends Seeder
                 'priority' => Ticket::PRIORITY_CRITICAL,
                 'trigger_type' => 'time',
                 'trigger_after_minutes' => 15,
-                'from_status' => Ticket::STATUS_OPEN,
+                'from_status' => Ticket::STATUS_NEW,
                 'escalate_to_role' => User::ROLE_BRANCH_MANAGER,
                 'escalate_to_department_code' => 'management',
                 'notify_whatsapp' => true,

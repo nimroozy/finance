@@ -19,27 +19,140 @@ class Installation extends Model
 {
     use SoftDeletes;
 
-    public const STATUS_DRAFT = 'draft';
+    public const STATUS_REQUEST_RECEIVED = 'request_received';
 
-    public const STATUS_SURVEY_SCHEDULED = 'survey_scheduled';
+    public const STATUS_CUSTOMER_VERIFICATION = 'customer_verification';
 
-    public const STATUS_SURVEY_DONE = 'survey_done';
+    public const STATUS_COVERAGE_CHECK = 'coverage_check';
 
-    public const STATUS_AWAITING_FINANCE = 'awaiting_finance';
+    public const STATUS_SITE_SURVEY_PENDING = 'site_survey_pending';
 
-    public const STATUS_APPROVED = 'approved';
+    public const STATUS_FINANCE_REVIEW = 'finance_review';
 
-    public const STATUS_EQUIPMENT_RESERVED = 'equipment_reserved';
+    public const STATUS_EQUIPMENT_WAITING = 'equipment_waiting';
 
-    public const STATUS_IN_INSTALL = 'in_install';
+    public const STATUS_SCHEDULED = 'scheduled';
 
-    public const STATUS_AWAITING_ACTIVATION = 'awaiting_activation';
+    public const STATUS_ASSIGNED = 'assigned';
 
-    public const STATUS_ACTIVATED = 'activated';
+    public const STATUS_TRAVELLING = 'travelling';
 
-    public const STATUS_ACCEPTED = 'accepted';
+    public const STATUS_INSTALLING = 'installing';
+
+    public const STATUS_NOC_ACTIVATION_PENDING = 'noc_activation_pending';
+
+    public const STATUS_CUSTOMER_CONFIRMATION = 'customer_confirmation';
+
+    public const STATUS_COMPLETED = 'completed';
+
+    public const STATUS_DELAYED = 'delayed';
 
     public const STATUS_CANCELLED = 'cancelled';
+
+    public const STATUSES = [
+        self::STATUS_REQUEST_RECEIVED,
+        self::STATUS_CUSTOMER_VERIFICATION,
+        self::STATUS_COVERAGE_CHECK,
+        self::STATUS_SITE_SURVEY_PENDING,
+        self::STATUS_FINANCE_REVIEW,
+        self::STATUS_EQUIPMENT_WAITING,
+        self::STATUS_SCHEDULED,
+        self::STATUS_ASSIGNED,
+        self::STATUS_TRAVELLING,
+        self::STATUS_INSTALLING,
+        self::STATUS_NOC_ACTIVATION_PENDING,
+        self::STATUS_CUSTOMER_CONFIRMATION,
+        self::STATUS_COMPLETED,
+        self::STATUS_DELAYED,
+        self::STATUS_CANCELLED,
+    ];
+
+    /**
+     * @return array<string, list<string>>
+     */
+    public static function allowedTransitions(): array
+    {
+        return [
+            self::STATUS_REQUEST_RECEIVED => [
+                self::STATUS_CUSTOMER_VERIFICATION,
+                self::STATUS_COVERAGE_CHECK,
+                self::STATUS_CANCELLED,
+            ],
+            self::STATUS_CUSTOMER_VERIFICATION => [
+                self::STATUS_COVERAGE_CHECK,
+                self::STATUS_CANCELLED,
+            ],
+            self::STATUS_COVERAGE_CHECK => [
+                self::STATUS_SITE_SURVEY_PENDING,
+                self::STATUS_FINANCE_REVIEW,
+                self::STATUS_CANCELLED,
+            ],
+            self::STATUS_SITE_SURVEY_PENDING => [
+                self::STATUS_FINANCE_REVIEW,
+                self::STATUS_DELAYED,
+                self::STATUS_CANCELLED,
+            ],
+            self::STATUS_FINANCE_REVIEW => [
+                self::STATUS_EQUIPMENT_WAITING,
+                self::STATUS_SCHEDULED,
+                self::STATUS_CANCELLED,
+            ],
+            self::STATUS_EQUIPMENT_WAITING => [
+                self::STATUS_SCHEDULED,
+                self::STATUS_DELAYED,
+                self::STATUS_CANCELLED,
+            ],
+            self::STATUS_SCHEDULED => [
+                self::STATUS_ASSIGNED,
+                self::STATUS_DELAYED,
+                self::STATUS_CANCELLED,
+            ],
+            self::STATUS_ASSIGNED => [
+                self::STATUS_TRAVELLING,
+                self::STATUS_INSTALLING,
+                self::STATUS_DELAYED,
+                self::STATUS_CANCELLED,
+            ],
+            self::STATUS_TRAVELLING => [
+                self::STATUS_INSTALLING,
+                self::STATUS_DELAYED,
+                self::STATUS_CANCELLED,
+            ],
+            self::STATUS_INSTALLING => [
+                self::STATUS_NOC_ACTIVATION_PENDING,
+                self::STATUS_DELAYED,
+                self::STATUS_CANCELLED,
+            ],
+            self::STATUS_NOC_ACTIVATION_PENDING => [
+                self::STATUS_CUSTOMER_CONFIRMATION,
+                self::STATUS_DELAYED,
+                self::STATUS_CANCELLED,
+            ],
+            self::STATUS_CUSTOMER_CONFIRMATION => [
+                self::STATUS_COMPLETED,
+                self::STATUS_DELAYED,
+            ],
+            self::STATUS_DELAYED => [
+                self::STATUS_SITE_SURVEY_PENDING,
+                self::STATUS_EQUIPMENT_WAITING,
+                self::STATUS_SCHEDULED,
+                self::STATUS_ASSIGNED,
+                self::STATUS_TRAVELLING,
+                self::STATUS_INSTALLING,
+                self::STATUS_NOC_ACTIVATION_PENDING,
+                self::STATUS_CANCELLED,
+            ],
+            self::STATUS_COMPLETED => [],
+            self::STATUS_CANCELLED => [],
+        ];
+    }
+
+    public function canTransitionTo(string $toStatus): bool
+    {
+        $allowed = self::allowedTransitions()[$this->status] ?? [];
+
+        return in_array($toStatus, $allowed, true);
+    }
 
     protected $fillable = [
         'installation_number',
