@@ -26,7 +26,7 @@ export type ModuleFlag = {
 };
 
 /**
- * Stage 6 WhatsApp foundation is enabled.
+ * Stage 6–8 modules are enabled (WhatsApp, ticketing/tasks/install queue, CRM).
  * Later modules remain placeholders until their stage ships.
  */
 export const FEATURE_FLAGS: Record<PlatformModule, ModuleFlag> = {
@@ -50,9 +50,9 @@ export const FEATURE_FLAGS: Record<PlatformModule, ModuleFlag> = {
   },
   crm: {
     id: "crm",
-    enabled: false,
+    enabled: true,
     stage: 8,
-    showRoadmapPlaceholder: true,
+    showRoadmapPlaceholder: false,
   },
   installations: {
     id: "installations",

@@ -88,6 +88,7 @@ tags:
   - name: Operations
   - name: Departments
   - name: TaskTemplates
+  - name: CRM
 security:
   - bearerAuth: []
 paths:
@@ -4587,6 +4588,434 @@ paths:
             schema: { type: object, additionalProperties: true }
       responses:
         '200': { description: Template updated }
+
+  /crm/lead-sources:
+    get:
+      tags: [CRM]
+      summary: List CRM lead sources
+      operationId: listCrmLeadSources
+      parameters:
+        - { in: query, name: active_only, schema: { type: boolean, default: true } }
+      responses:
+        '200': { description: Lead source list }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /crm/leads:
+    get:
+      tags: [CRM]
+      summary: List leads (branch-scoped)
+      operationId: listCrmLeads
+      parameters:
+        - { in: query, name: branch_id, schema: { type: integer } }
+        - { in: query, name: pipeline_stage, schema: { type: string } }
+        - { in: query, name: status, schema: { type: string } }
+        - { in: query, name: salesperson_id, schema: { type: integer } }
+        - { in: query, name: owner_id, schema: { type: integer } }
+        - { in: query, name: source_code, schema: { type: string } }
+        - { in: query, name: phone, schema: { type: string } }
+        - { in: query, name: search, schema: { type: string } }
+        - { in: query, name: per_page, schema: { type: integer, default: 15 } }
+      responses:
+        '200': { description: Paginated lead list }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [CRM]
+      summary: Create lead
+      operationId: createCrmLead
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrmLeadCreateRequest'
+      responses:
+        '201': { description: Lead created }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /crm/leads/{id}:
+    get:
+      tags: [CRM]
+      summary: Show lead
+      operationId: showCrmLead
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200': { description: Lead detail with activities, follow_ups, quotations, allowed_transitions }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [CRM]
+      summary: Update lead
+      operationId: updateCrmLead
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrmLeadUpdateRequest'
+      responses:
+        '200': { description: Lead updated }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /crm/leads/{id}/transition:
+    post:
+      tags: [CRM]
+      summary: Transition lead pipeline stage
+      operationId: transitionCrmLead
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                pipeline_stage: { type: string }
+                status: { type: string }
+                reason: { type: string }
+                notes: { type: string }
+      responses:
+        '200': { description: Lead transitioned }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /crm/leads/{id}/assign:
+    post:
+      tags: [CRM]
+      summary: Assign lead owner
+      operationId: assignCrmLead
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [owner_id]
+              properties:
+                owner_id: { type: integer }
+                salesperson_id: { type: integer, nullable: true }
+      responses:
+        '200': { description: Lead assigned }
+  /crm/leads/{id}/convert:
+    post:
+      tags: [CRM]
+      summary: Convert lead to customer / installation handoff
+      operationId: convertCrmLead
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                customer_id: { type: integer, nullable: true }
+                collector_id: { type: integer, nullable: true }
+                win_reason: { type: string }
+                expand_template: { type: boolean }
+
+    CrmLeadCreateRequest:
+      type: object
+      required: [branch_id]
+      properties:
+        branch_id: { type: integer }
+        company: { type: string, nullable: true }
+        contact_person: { type: string, nullable: true }
+        phone: { type: string, nullable: true }
+        whatsapp: { type: string, nullable: true }
+        email: { type: string, nullable: true }
+        address: { type: string, nullable: true }
+        source_code: { type: string, nullable: true }
+        campaign: { type: string, nullable: true }
+        salesperson_id: { type: integer, nullable: true }
+        owner_id: { type: integer, nullable: true }
+        lead_value: { type: number, nullable: true }
+        estimated_mrr: { type: number, nullable: true }
+        interested_package: { type: string, nullable: true }
+        customer_type: { type: string, enum: [residential, business, enterprise, government] }
+        notes: { type: string, nullable: true }
+
+    CrmLeadUpdateRequest:
+      type: object
+      properties:
+        company: { type: string, nullable: true }
+        contact_person: { type: string, nullable: true }
+        phone: { type: string, nullable: true }
+        whatsapp: { type: string, nullable: true }
+        email: { type: string, nullable: true }
+        address: { type: string, nullable: true }
+        source_code: { type: string, nullable: true }
+        salesperson_id: { type: integer, nullable: true }
+        owner_id: { type: integer, nullable: true }
+        lead_value: { type: number, nullable: true }
+        estimated_mrr: { type: number, nullable: true }
+        interested_package: { type: string, nullable: true }
+        notes: { type: string, nullable: true }
+
+    CrmQuotationCreateRequest:
+      type: object
+      required: [lead_id]
+      properties:
+        lead_id: { type: integer }
+        monthly_package: { type: number, nullable: true }
+        installation_fee: { type: number, nullable: true }
+        discount: { type: number, nullable: true }
+        taxes: { type: number, nullable: true }
+        notes: { type: string, nullable: true }
+        valid_until: { type: string, format: date, nullable: true }
+        equipment_json: { type: array, items: { type: object } }
+                template_code: { type: string }
+      responses:
+        '200': { description: Conversion result with customer_id and installation_id }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /crm/leads/{id}/timeline:
+    get:
+      tags: [CRM]
+      summary: Lead timeline
+      operationId: crmLeadTimeline
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200': { description: Timeline payload }
+  /crm/activities:
+    get:
+      tags: [CRM]
+      summary: List CRM activities
+      operationId: listCrmActivities
+      parameters:
+        - { in: query, name: lead_id, schema: { type: integer } }
+        - { in: query, name: branch_id, schema: { type: integer } }
+        - { in: query, name: type, schema: { type: string } }
+        - { in: query, name: per_page, schema: { type: integer, default: 15 } }
+      responses:
+        '200': { description: Paginated activities }
+    post:
+      tags: [CRM]
+      summary: Create CRM activity
+      operationId: createCrmActivity
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [lead_id, type]
+              properties:
+                lead_id: { type: integer }
+                opportunity_id: { type: integer, nullable: true }
+                type: { type: string }
+                subject: { type: string }
+                body: { type: string }
+                performed_at: { type: string, format: date-time }
+                customer_visible: { type: boolean }
+                next_follow_up_at: { type: string, format: date-time }
+      responses:
+        '201': { description: Activity created }
+  /crm/follow-ups:
+    get:
+      tags: [CRM]
+      summary: List follow-ups
+      operationId: listCrmFollowUps
+      parameters:
+        - { in: query, name: lead_id, schema: { type: integer } }
+        - { in: query, name: status, schema: { type: string } }
+        - { in: query, name: assigned_to, schema: { type: integer } }
+        - { in: query, name: per_page, schema: { type: integer, default: 15 } }
+      responses:
+        '200': { description: Paginated follow-ups }
+    post:
+      tags: [CRM]
+      summary: Schedule follow-up
+      operationId: createCrmFollowUp
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [lead_id, due_at]
+              properties:
+                lead_id: { type: integer }
+                assigned_to: { type: integer, nullable: true }
+                due_at: { type: string, format: date-time }
+                notes: { type: string }
+      responses:
+        '201': { description: Follow-up created }
+  /crm/follow-ups/{id}/complete:
+    post:
+      tags: [CRM]
+      summary: Complete follow-up
+      operationId: completeCrmFollowUp
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200': { description: Follow-up completed }
+  /crm/follow-ups/{id}/cancel:
+    post:
+      tags: [CRM]
+      summary: Cancel follow-up
+      operationId: cancelCrmFollowUp
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200': { description: Follow-up cancelled }
+  /crm/coverage-checks:
+    get:
+      tags: [CRM]
+      summary: List coverage checks
+      operationId: listCrmCoverageChecks
+      responses:
+        '200': { description: Paginated coverage checks }
+    post:
+      tags: [CRM]
+      summary: Create coverage check
+      operationId: createCrmCoverageCheck
+      responses:
+        '201': { description: Coverage check created }
+  /crm/site-surveys:
+    get:
+      tags: [CRM]
+      summary: List site surveys
+      operationId: listCrmSiteSurveys
+      parameters:
+        - { in: query, name: lead_id, schema: { type: integer } }
+        - { in: query, name: branch_id, schema: { type: integer } }
+        - { in: query, name: per_page, schema: { type: integer, default: 15 } }
+      responses:
+        '200': { description: Paginated site surveys }
+    post:
+      tags: [CRM]
+      summary: Create site survey
+      operationId: createCrmSiteSurvey
+      responses:
+        '201': { description: Site survey created }
+  /crm/site-surveys/{id}/complete:
+    post:
+      tags: [CRM]
+      summary: Complete site survey
+      operationId: completeCrmSiteSurvey
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200': { description: Site survey completed }
+  /crm/quotations:
+    get:
+      tags: [CRM]
+      summary: List quotations
+      operationId: listCrmQuotations
+      parameters:
+        - { in: query, name: lead_id, schema: { type: integer } }
+        - { in: query, name: branch_id, schema: { type: integer } }
+        - { in: query, name: status, schema: { type: string } }
+        - { in: query, name: per_page, schema: { type: integer, default: 15 } }
+      responses:
+        '200': { description: Paginated quotations }
+    post:
+      tags: [CRM]
+      summary: Create quotation
+      operationId: createCrmQuotation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrmQuotationCreateRequest'
+      responses:
+        '201': { description: Quotation created }
+  /crm/quotations/{id}/send:
+    post:
+      tags: [CRM]
+      summary: Send quotation
+      operationId: sendCrmQuotation
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200': { description: Quotation sent }
+  /crm/quotations/{id}/accept:
+    post:
+      tags: [CRM]
+      summary: Accept quotation
+      operationId: acceptCrmQuotation
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200': { description: Quotation accepted }
+  /crm/quotations/{id}/reject:
+    post:
+      tags: [CRM]
+      summary: Reject quotation
+      operationId: rejectCrmQuotation
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200': { description: Quotation rejected }
+  /crm/opportunities:
+    get:
+      tags: [CRM]
+      summary: List opportunities
+      operationId: listCrmOpportunities
+      responses:
+        '200': { description: Paginated opportunities }
+    post:
+      tags: [CRM]
+      summary: Create opportunity
+      operationId: createCrmOpportunity
+      responses:
+        '201': { description: Opportunity created }
+  /crm/opportunities/{id}:
+    put:
+      tags: [CRM]
+      summary: Update opportunity
+      operationId: updateCrmOpportunity
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200': { description: Opportunity updated }
+  /crm/sales-targets:
+    get:
+      tags: [CRM]
+      summary: List sales targets
+      operationId: listCrmSalesTargets
+      parameters:
+        - { in: query, name: branch_id, schema: { type: integer } }
+        - { in: query, name: period_year, schema: { type: integer } }
+        - { in: query, name: period_month, schema: { type: integer } }
+        - { in: query, name: per_page, schema: { type: integer, default: 15 } }
+      responses:
+        '200': { description: Paginated sales targets }
+    post:
+      tags: [CRM]
+      summary: Upsert sales target
+      operationId: upsertCrmSalesTarget
+      responses:
+        '201': { description: Sales target saved }
+  /crm/dashboard:
+    get:
+      tags: [CRM]
+      summary: CRM dashboard summary
+      operationId: crmDashboard
+      parameters:
+        - { in: query, name: branch_id, schema: { type: integer } }
+      responses:
+        '200': { description: Dashboard metrics }
+  /crm/reports/leads:
+    get:
+      tags: [CRM]
+      summary: Export leads CSV report
+      operationId: crmLeadsReport
+      parameters:
+        - { in: query, name: branch_id, schema: { type: integer } }
+        - { in: query, name: pipeline_stage, schema: { type: string } }
+        - { in: query, name: salesperson_id, schema: { type: integer } }
+        - { in: query, name: from, schema: { type: string, format: date } }
+        - { in: query, name: to, schema: { type: string, format: date } }
+      responses:
+        '200':
+          description: CSV download
+          content:
+            text/csv:
+              schema: { type: string }
 
 components:
   securitySchemes:

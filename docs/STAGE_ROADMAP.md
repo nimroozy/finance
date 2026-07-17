@@ -17,7 +17,8 @@ Unified multi-branch ISP operations so branch staff can work without daily login
 | 5 | Cash handovers / cashboxes | Complete |
 | 5.1–5.3 | Sync hardening, ownership, prefix mapping, cleanup | Complete |
 | **6** | **WhatsApp Cloud API + notification orchestration** | **Complete / foundation** |
-| **7** | **Ticketing, tasks, installation queue** | **In progress / delivered on branch** |
+| **7** | **Ticketing, tasks, installation queue** | **Complete / delivered on branch** |
+| **8** | **CRM, sales pipeline, installations handoff** | **In progress / delivered on branch** |
 
 ## Stage 6 — WhatsApp & notifications (complete / foundation)
 
@@ -56,7 +57,7 @@ Unified multi-branch ISP operations so branch staff can work without daily login
 
 **Hard rule:** Separate **tickets** from **tasks**. One ticket may create multiple departmental tasks.
 
-**Clarification — installation queue vs CRM:** Stage 7 owns the installation **queue** (request → field → confirmation statuses). Full CRM (leads, opportunities, quotations, sales targets) and the commercial installation workflow remain **Stage 8**. Stage 8 has **not** started.
+**Clarification — installation queue vs CRM:** Stage 7 owns the installation **queue** (request → field → confirmation statuses). Full CRM (leads, opportunities, quotations, sales targets) and commercial install orchestration are **Stage 8** (see [STAGE_8_CRM_SALES.md](STAGE_8_CRM_SALES.md)).
 
 Model: [TICKETING_MODEL.md](TICKETING_MODEL.md). Queue notes: [INSTALLATION_QUEUE.md](INSTALLATION_QUEUE.md).
 
@@ -64,16 +65,20 @@ Model: [TICKETING_MODEL.md](TICKETING_MODEL.md). Queue notes: [INSTALLATION_QUEU
 
 ## Stage 8 — CRM, sales pipeline, new installations
 
-**Not started.** Do not begin until Stage 7 is accepted.
+**In progress / delivered on branch.** Overview: [STAGE_8_CRM_SALES.md](STAGE_8_CRM_SALES.md).
 
-**Required**
+**Delivered / in scope on this branch**
 
 - Leads, opportunities, follow-ups, site surveys, quotations
 - Sales ownership, lost reasons, sales targets
-- Installation requests → finance approval → equipment reservation → technical assignment (CRM-grade; builds on Stage 7 queue)
-- Radius activation + Zoho customer/invoice creation (queued)
-- Customer acceptance
-- Branch sales reports
+- CRM dashboard + lead CSV reports
+- Frontend CRM workspace (pipeline, leads, follow-ups, quotations, surveys, targets, reports)
+- Conversion → customer + installation queue handoff (event/queue; no inline Zoho/Radius)
+
+**Still later / partial**
+
+- Full CRM-grade install orchestration through finance/equipment/Radius/Zoho acceptance
+- Deep sales attribution dashboards (Stage 11)
 
 Model: [CRM_INSTALLATION_MODEL.md](CRM_INSTALLATION_MODEL.md).
 

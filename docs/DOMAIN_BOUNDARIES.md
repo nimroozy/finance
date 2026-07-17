@@ -55,19 +55,23 @@ Each domain owns its tables, services, permissions, API resources, domain events
 
 ---
 
-## CRM (Stage 8)
+## CRM (Stage 8 — delivered foundation)
 
-**Owns:** leads, opportunities, follow-ups, lost reasons, sales ownership.
+**Owns:** leads, opportunities, follow-ups, lost reasons, sales ownership, activities, coverage checks, site surveys.
 
-**Events:** `LeadCreated`, `OpportunityWon`, `OpportunityLost`.
+**Exposes:** `/crm/leads`, `/crm/activities`, `/crm/follow-ups`, `/crm/coverage-checks`, `/crm/site-surveys`, `/crm/opportunities`, `/crm/dashboard`.
 
-**Must not:** create Zoho invoices inline — emit finance/install intents.
+**Events:** `LeadCreated`, `OpportunityWon`, `OpportunityLost`, conversion/install handoff events.
+
+**Must not:** create Zoho invoices inline — emit finance/install intents; must not mutate payment calc paths.
 
 ---
 
-## Sales (Stage 8)
+## Sales (Stage 8 — delivered foundation)
 
 **Owns:** quotations, targets, employee sales attribution, equipment sales reporting keys.
+
+**Exposes:** `/crm/quotations`, `/crm/sales-targets`, `/crm/reports/leads`.
 
 **Events:** `QuoteAccepted`, `SalesTargetUpdated`.
 
@@ -85,13 +89,15 @@ Each domain owns its tables, services, permissions, API resources, domain events
 
 **Must not:** implement CRM leads/quotes, Zoho invoice creation, inventory reservation, or live Radius activation — those remain later stages. See [INSTALLATION_QUEUE.md](INSTALLATION_QUEUE.md).
 
-### CRM-grade install (Stage 8 — not started)
+### CRM-grade install (Stage 8 — foundation on branch)
 
-**Owns:** installation requests tied to won opportunities, surveys, finance approval gates, technical assignment orchestration with accounting/Radius handoff.
+**Owns:** installation requests tied to won/converted leads, surveys, finance approval gates, technical assignment orchestration with accounting/Radius handoff.
 
-**Events:** `InstallationRequested`, `InstallationApproved`, `InstallationCompleted`.
+**Events:** `InstallationRequested`, `InstallationApproved`, `InstallationCompleted` (plus CRM conversion handoff events).
 
-**Downstream:** Inventory reservation job; Radius activation command; Zoho customer/invoice job.
+**Downstream:** Inventory reservation job (Stage 9); Radius activation command (Stage 10); Zoho customer/invoice job.
+
+See [STAGE_8_CRM_SALES.md](STAGE_8_CRM_SALES.md).
 
 ---
 
