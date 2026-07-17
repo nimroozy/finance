@@ -58,7 +58,7 @@ export default function NocServicesPage() {
       {loading ? <LoadingState label={tCommon("loading")} /> : null}
       {error ? <ErrorWorkspace message={error} onRetry={() => void load()} /> : null}
       {data ? (
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-2">
           <Panel className="space-y-3 p-4">
             <h2 className="text-sm font-semibold">{t("nocAttention")}</h2>
             {data.attention_queue.length === 0 ? (
@@ -87,6 +87,38 @@ export default function NocServicesPage() {
                   title={svc.service_number}
                   subtitle={svc.customer?.contact_name || String(svc.customer_id)}
                   badges={<StatusBadge status={svc.commercial_status} />}
+                />
+              ))
+            )}
+          </Panel>
+          <Panel className="space-y-3 p-4">
+            <h2 className="text-sm font-semibold">{t("changeRequestsTitle")}</h2>
+            {(data.open_change_requests || []).length === 0 ? (
+              <EmptyWorkspace label={t("emptyChangeRequests")} />
+            ) : (
+              (data.open_change_requests || []).map((row) => (
+                <MobileRecordCard
+                  key={row.id}
+                  href={`/services/${row.service_id}`}
+                  title={row.service?.service_number || `#${row.service_id}`}
+                  subtitle={row.status}
+                  badges={<StatusBadge status={row.status} />}
+                />
+              ))
+            )}
+          </Panel>
+          <Panel className="space-y-3 p-4">
+            <h2 className="text-sm font-semibold">{t("relocationsTitle")}</h2>
+            {(data.open_relocations || []).length === 0 ? (
+              <EmptyWorkspace label={t("emptyRelocations")} />
+            ) : (
+              (data.open_relocations || []).map((row) => (
+                <MobileRecordCard
+                  key={row.id}
+                  href={`/services/${row.service_id}`}
+                  title={row.service?.service_number || `#${row.service_id}`}
+                  subtitle={row.status}
+                  badges={<StatusBadge status={row.status} />}
                 />
               ))
             )}

@@ -6,6 +6,8 @@ import { ApiError } from "@/lib/api";
 import {
   createServiceContract,
   listServiceContracts,
+  listServices,
+  type IspService,
   type ServiceContract,
 } from "@/lib/services";
 import { useAuthStore } from "@/store/auth-store";
@@ -35,13 +37,21 @@ export default function ServiceContractsPage() {
   const [customerId, setCustomerId] = useState("");
   const [customerLabel, setCustomerLabel] = useState<string | null>(null);
   const [recurring, setRecurring] = useState("");
+  const [serviceId, setServiceId] = useState("");
+  const [services, setServices] = useState<IspService[]>([]);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await listServiceContracts({ per_page: 50 });
+      const [res, svcRes] = await Promise.all([
+        listServiceContracts({ per_page: 50 }),
+        listServices({ per_page: 100 }).catch(() => null),
+      ]);
       setRows(res.data);
+      if (svcRes) setServices(svcRes.data);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : tCommon("error"));
       setRows([]);
@@ -67,6 +77,9 @@ export default function ServiceContractsPage() {
       await createServiceContract({
         branch_id: Number(branchId),
         customer_id: Number(customerId),
+        service_id: serviceId ? Number(serviceId) : undefined,
+        start_date: startDate || undefined,
+        end_date: endDate || undefined,
         recurring_fee: recurring ? Number(recurring) : undefined,
       });
       setSuccess(t("contractSuccess"));
@@ -117,6 +130,31 @@ export default function ServiceContractsPage() {
                 setCustomerLabel(opt?.label ?? null);
               }}
             />
+            <label className="block space-y-1">
+              <span className="text-sm font-medium">{t("columns.service")}</span>
+              <select
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                value={serviceId}
+                onChange={(e) => setServiceId(e.target.value)}
+              >
+                <option value="">{t("fields.selectPackage")}</option>
+                {services
+                  .filter((s) => !customerId || String(s.customer_id) === customerId)
+                  .map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.service_number}
+                    </option>
+                  ))}
+              </select>
+            </label>
+            <label className="block space-y-1">
+              <span className="text-sm font-medium">Start</span>
+              <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+            </label>
+            <label className="block space-y-1">
+              <span className="text-sm font-medium">End</span>
+              <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+            </label>
             <label className="block space-y-1">
               <span className="text-sm font-medium">{t("fields.mrr")}</span>
               <Input type="number" value={recurring} onChange={(e) => setRecurring(e.target.value)} />

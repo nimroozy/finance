@@ -10,7 +10,9 @@ import {
   ACTIVATION_CHECKLIST,
   activateService,
   cancelService,
+  confirmServiceOnline,
   createChangeRequest,
+  getActivationChecklist,
   getService,
   getServiceBilling,
   getServiceTimeline,
@@ -20,6 +22,7 @@ import {
   reactivateService,
   relocateService,
   suspendService,
+  type ActivationChecklist,
   type IspService,
   type ServiceBillingView,
   type ServiceLocation,
@@ -70,10 +73,12 @@ export default function ServiceDetailPage() {
   const canActivate = useAuthStore((s) => s.hasPermission("services.activate"));
   const canSuspend = useAuthStore((s) => s.hasPermission("services.suspend"));
   const canCancel = useAuthStore((s) => s.hasPermission("services.cancel"));
-  const canChange = useAuthStore((s) => s.hasPermission("services.change") || s.hasPermission("services.update"));
-  const canRelocate =
-    useAuthStore((s) => s.hasPermission("services.relocate") || s.hasPermission("services.update"));
-  const canHold = useAuthStore((s) => s.hasPermission("services.finance_holds.manage") || s.hasPermission("services.update"));
+  const canChange = useAuthStore((s) => s.hasPermission("services.change"));
+  const canRelocate = useAuthStore((s) => s.hasPermission("services.relocate"));
+  const canHold = useAuthStore((s) => s.hasPermission("services.finance_holds.manage"));
+  const canNocConfirm = useAuthStore(
+    (s) => s.hasPermission("services.noc.view") || s.hasPermission("services.activate"),
+  );
   const canBilling = useAuthStore((s) => s.hasPermission("services.billing.view") || s.hasPermission("services.view"));
 
   const initialTab = searchParams.get("tab") || "overview";
@@ -93,6 +98,11 @@ export default function ServiceDetailPage() {
   const [changeReason, setChangeReason] = useState("");
   const [relocateLocationId, setRelocateLocationId] = useState("");
   const [holdReason, setHoldReason] = useState("");
+  const [checklist, setChecklist] = useState<ActivationChecklist | null>(null);
+  const [nocReason, setNocReason] = useState("");
+  const [cancelId, setCancelId] = useState<number | null>(null);
+  const [changeStep, setChangeStep] = useState(1);
+  const [relocateStep, setRelocateStep] = useState(1);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -102,13 +112,15 @@ export default function ServiceDetailPage() {
       const res = await getService(id);
       setService(res.data);
       const customerId = res.data.customer_id;
-      const [billingRes, timelineRes, equipRes, pkgRes, locRes] = await Promise.all([
+      const [billingRes, timelineRes, equipRes, pkgRes, locRes, checklistRes] = await Promise.all([
         canBilling ? getServiceBilling(id).catch(() => null) : Promise.resolve(null),
         getServiceTimeline(id).catch(() => null),
         listCustomerEquipment({ customer_id: customerId, per_page: 50 }).catch(() => null),
         listServicePackages({ per_page: 100 }).catch(() => null),
         listServiceLocations({ customer_id: customerId, per_page: 100 }).catch(() => null),
+        getActivationChecklist(id).catch(() => null),
       ]);
+      if (checklistRes) setChecklist(checklistRes.data);
       if (billingRes) setBilling(billingRes.data);
       if (timelineRes) setTimeline(timelineRes.data);
       if (equipRes) {
@@ -181,16 +193,18 @@ export default function ServiceDetailPage() {
 
   const timelineItems: TimelineItem[] = useMemo(() => {
     return timeline.map((ev, idx) => {
-      const data = ev.data || {};
+      const meta = ev.meta || ev.data || {};
       const title =
-        ev.type === "status_transition"
-          ? `${String(data.from_commercial ?? data.from_status ?? "—")} → ${String(data.to_commercial ?? data.to_status ?? "—")}`
-          : t(`timelineTypes.${ev.type}` as "timelineTypes.activation");
+        ev.title ||
+        (ev.type === "status_transition"
+          ? `${String(meta.from_commercial ?? meta.from_status ?? "—")} → ${String(meta.to_commercial ?? meta.to_status ?? "—")}`
+          : t(`timelineTypes.${ev.type}` as "timelineTypes.activation"));
+      const when = ev.occurred_at || ev.at;
       return {
-        id: `${ev.type}-${idx}`,
+        id: ev.id || `${ev.type}-${idx}`,
         title,
-        description: String(data.reason || data.notes || data.comment || "") || undefined,
-        meta: ev.at ? formatDateTime(String(ev.at), locale) : undefined,
+        description: ev.summary || String(meta.reason || meta.notes || meta.comment || "") || undefined,
+        meta: when ? formatDateTime(String(when), locale) : undefined,
       };
     });
   }, [locale, t, timeline]);
@@ -202,11 +216,8 @@ export default function ServiceDetailPage() {
     setSuccess(null);
     try {
       if (actionId === "activate") {
-        const checklist = Object.fromEntries(ACTIVATION_CHECKLIST.map((k) => [k, true]));
         await activateService(service.id, {
           idempotency_key: `ui-${service.id}-${Date.now()}`,
-          checklist,
-          skip_checklist: false,
           reason,
         });
         setSuccess(t("activateSuccess"));
@@ -218,8 +229,15 @@ export default function ServiceDetailPage() {
         await reactivateService(service.id, { reason });
         setSuccess(t("reactivateSuccess"));
       } else if (actionId === "cancel") {
-        await cancelService(service.id, { reason: reason || "cancelled", complete: true });
-        setSuccess(t("cancelSuccess"));
+        const res = await cancelService(service.id, {
+          reason: reason || "cancelled",
+          complete: false,
+          equipment_return_required: true,
+        });
+        const data = res.data as { id?: number };
+        if (data?.id) setCancelId(Number(data.id));
+        setSuccess(t("cancelWizardHint"));
+        onTabChange("cancel");
       }
       await load();
     } catch (err) {
@@ -236,12 +254,13 @@ export default function ServiceDetailPage() {
     setError(null);
     try {
       await createChangeRequest(service.id, {
-        type: "package",
+        type: "package_change",
         requested_values: { package_id: Number(changePackageId) },
         reason: changeReason || undefined,
-        apply: true,
+        apply: false,
       });
-      setSuccess(t("changeSuccess"));
+      setChangeStep(2);
+      setSuccess(t("changeWizardHint"));
       await load();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : tCommon("error"));
@@ -258,9 +277,10 @@ export default function ServiceDetailPage() {
     try {
       await relocateService(service.id, {
         new_location_id: Number(relocateLocationId),
-        complete: true,
+        complete: false,
       });
-      setSuccess(t("relocateSuccess"));
+      setRelocateStep(2);
+      setSuccess(t("relocateWizardHint"));
       await load();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : tCommon("error"));
@@ -278,6 +298,24 @@ export default function ServiceDetailPage() {
       await placeFinanceHold(service.id, { reason: holdReason.trim() });
       setSuccess(t("holdSuccess"));
       setHoldReason("");
+      await load();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : tCommon("error"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+
+  async function onConfirmOnline(e: React.FormEvent) {
+    e.preventDefault();
+    if (!service || !nocReason.trim()) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await confirmServiceOnline(service.id, { reason: nocReason.trim() });
+      setSuccess(t("actions.confirmOnline"));
+      setNocReason("");
       await load();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : tCommon("error"));
@@ -330,6 +368,36 @@ export default function ServiceDetailPage() {
 
       {tab === "overview" ? (
         <div className="grid gap-4 lg:grid-cols-2">
+          <Panel className="space-y-4 p-4" data-testid="activation-checklist">
+            <h3 className="text-sm font-semibold">{t("activationChecklistTitle")}</h3>
+            {checklist ? (
+              <ul className="space-y-2 text-sm">
+                {ACTIVATION_CHECKLIST.map((key) => (
+                  <li key={key} className="flex items-center justify-between gap-2">
+                    <span>{t(`checklist.${key}` as "checklist.zoho_linked")}</span>
+                    <StatusBadge status={checklist.checklist[key] ? "ok" : "missing"} />
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-muted">{t("checklistIncomplete")}</p>
+            )}
+            {canNocConfirm && service.commercial_status === "active" && service.operational_status === "ready" ? (
+              <form className="mt-3 grid gap-2" onSubmit={onConfirmOnline}>
+                <Alert>{t("nocConfirmHint")}</Alert>
+                <Input
+                  data-testid="noc-online-reason"
+                  value={nocReason}
+                  onChange={(e) => setNocReason(e.target.value)}
+                  placeholder={t("fields.reason")}
+                  required
+                />
+                <Button type="submit" disabled={busy || !nocReason.trim()}>
+                  {t("actions.confirmOnline")}
+                </Button>
+              </form>
+            ) : null}
+          </Panel>
           <Panel className="space-y-4 p-4">
             <RecordSummary
               items={[
@@ -419,6 +487,7 @@ export default function ServiceDetailPage() {
           {!canChange ? (
             <Alert tone="danger">{t("permissionDenied")}</Alert>
           ) : (
+            <Alert>{t("changeWizardHint")} · step {changeStep}</Alert>
             <form className="grid max-w-lg gap-3" onSubmit={onChangePackage}>
               <label className="block space-y-1">
                 <span className="text-sm font-medium">{t("fields.package")}</span>
@@ -452,6 +521,7 @@ export default function ServiceDetailPage() {
           {!canRelocate ? (
             <Alert tone="danger">{t("permissionDenied")}</Alert>
           ) : (
+            <Alert>{t("relocateWizardHint")} · step {relocateStep}</Alert>
             <form className="grid max-w-lg gap-3" onSubmit={onRelocate}>
               <label className="block space-y-1">
                 <span className="text-sm font-medium">{t("fields.location")}</span>
@@ -524,21 +594,27 @@ export default function ServiceDetailPage() {
       ) : null}
 
       {tab === "cancel" ? (
-        <Panel className="p-4">
+        <Panel className="space-y-3 p-4">
+          <Alert>{t("cancelWizardHint")}</Alert>
           {canCancel ? (
-            <StatusActionMenu
-              transitions={[
-                {
-                  id: "cancel",
-                  label: t("actions.cancel"),
-                  requiresReason: true,
-                  danger: true,
-                },
-              ]}
-              onTransition={onAction}
-              loading={busy}
-              large
-            />
+            <>
+              <StatusActionMenu
+                transitions={[
+                  {
+                    id: "cancel",
+                    label: t("actions.requestCancel"),
+                    requiresReason: true,
+                    danger: true,
+                  },
+                ]}
+                onTransition={onAction}
+                loading={busy}
+                large
+              />
+              {cancelId ? (
+                <p className="text-sm text-muted">Cancellation #{cancelId} requested — continue steps from queue or API.</p>
+              ) : null}
+            </>
           ) : (
             <Alert tone="danger">{t("permissionDenied")}</Alert>
           )}

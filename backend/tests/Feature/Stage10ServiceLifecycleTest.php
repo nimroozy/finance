@@ -177,13 +177,20 @@ class Stage10ServiceLifecycleTest extends TestCase
         $this->postJson("/api/v1/services/{$service->id}/activate", [
             'idempotency_key' => 'act-1',
             'checklist' => $checklist,
+            'skip_checklist' => true,
         ])->assertOk()
             ->assertJsonPath('data.commercial_status', Service::COMMERCIAL_ACTIVE)
+            ->assertJsonPath('data.operational_status', Service::OPERATIONAL_READY);
+
+        $this->postJson("/api/v1/services/{$service->id}/noc-confirm-online", [
+            'reason' => 'NOC verified link',
+        ])->assertOk()
             ->assertJsonPath('data.operational_status', Service::OPERATIONAL_ONLINE);
 
         $this->postJson("/api/v1/services/{$service->id}/activate", [
             'idempotency_key' => 'act-1',
             'checklist' => $checklist,
+            'skip_checklist' => true,
         ])->assertOk();
 
         $this->assertSame(1, $service->activations()->count());
@@ -480,12 +487,12 @@ class Stage10ServiceLifecycleTest extends TestCase
         $this->actingAsUser($manager);
         $this->postJson("/api/v1/services/{$service->id}/activate", [
             'idempotency_key' => 'act-'.$branchCode,
-            'checklist' => [
-                'customer_confirmed',
-                'equipment_installed',
-                'link_tested',
-                'documentation_complete',
-            ],
+            'skip_checklist' => true,
+            'checklist' => [],
+        ])->assertOk();
+
+        $this->postJson("/api/v1/services/{$service->id}/noc-confirm-online", [
+            'reason' => 'test online',
         ])->assertOk();
 
         return [$manager, $service->fresh()];

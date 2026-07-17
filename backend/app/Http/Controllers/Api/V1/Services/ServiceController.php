@@ -4,7 +4,10 @@ namespace App\Http\Controllers\Api\V1\Services;
 
 use App\Http\Controllers\Controller;
 use App\Models\Services\Service;
+use App\Models\Services\ServiceCancellation;
+use App\Models\Services\ServiceChangeRequest;
 use App\Models\Services\ServiceFinanceHold;
+use App\Models\Services\ServiceRelocation;
 use App\Services\ServiceLifecycle\ServiceActivationService;
 use App\Services\ServiceLifecycle\ServiceBillingViewService;
 use App\Services\ServiceLifecycle\ServiceCancellationService;
@@ -58,6 +61,7 @@ class ServiceController extends Controller
         $payload = $this->serialize($service);
         $payload['allowed_commercial_transitions'] = Service::allowedCommercialTransitions()[$service->commercial_status] ?? [];
         $payload['allowed_operational_transitions'] = Service::allowedOperationalTransitions()[$service->operational_status] ?? [];
+        $payload['activation_checklist'] = $this->activations->evaluateChecklist($service);
 
         return ApiResponse::success($payload);
     }
@@ -145,9 +149,17 @@ class ServiceController extends Controller
         return ApiResponse::success($this->serialize($service));
     }
 
+    public function activationChecklist(int $id): JsonResponse
+    {
+        $service = Service::with(['customer', 'installation'])->findOrFail($id);
+        $this->authorize('view', $service);
+
+        return ApiResponse::success($this->activations->evaluateChecklist($service));
+    }
+
     public function activate(Request $request, int $id): JsonResponse
     {
-        $service = Service::query()->findOrFail($id);
+        $service = Service::with(['customer', 'installation'])->findOrFail($id);
         $this->authorize('activate', $service);
         $data = $request->validate([
             'idempotency_key' => ['required', 'string', 'max:128'],
@@ -159,6 +171,24 @@ class ServiceController extends Controller
 
         try {
             $service = $this->activations->activate($service, $data, Auth::user());
+        } catch (InvalidArgumentException $e) {
+            return ApiResponse::error($e->getMessage(), [], 422);
+        }
+
+        return ApiResponse::success($this->serialize($service));
+    }
+
+    public function confirmOnline(Request $request, int $id): JsonResponse
+    {
+        $service = Service::query()->findOrFail($id);
+        $this->authorize('confirmOnline', $service);
+        $data = $request->validate([
+            'reason' => ['required', 'string', 'max:255'],
+            'notes' => ['nullable', 'string'],
+        ]);
+
+        try {
+            $service = $this->activations->confirmOnline($service, $data, Auth::user());
         } catch (InvalidArgumentException $e) {
             return ApiResponse::error($e->getMessage(), [], 422);
         }
@@ -220,7 +250,12 @@ class ServiceController extends Controller
 
         try {
             $cancellation = $this->cancellations->request($service, $data, Auth::user());
-            if ($request->boolean('complete', true)) {
+            // complete defaults FALSE — no instant completion shortcut
+            if ($request->boolean('complete', false)) {
+                $cancellation = $this->cancellations->approve($cancellation, Auth::user());
+                if ($cancellation->equipment_return_required) {
+                    $cancellation = $this->cancellations->markEquipmentRecovered($cancellation, Auth::user());
+                }
                 $service = $this->cancellations->complete($cancellation, Auth::user());
 
                 return ApiResponse::success($this->serialize($service));
@@ -229,13 +264,59 @@ class ServiceController extends Controller
             return ApiResponse::error($e->getMessage(), [], 422);
         }
 
+        return ApiResponse::success($cancellation, null, 201);
+    }
+
+    public function approveCancellation(int $cancellationId): JsonResponse
+    {
+        $cancellation = ServiceCancellation::query()->findOrFail($cancellationId);
+        $service = Service::query()->findOrFail($cancellation->service_id);
+        $this->authorize('cancel', $service);
+
+        try {
+            $cancellation = $this->cancellations->approve($cancellation, Auth::user());
+        } catch (InvalidArgumentException $e) {
+            return ApiResponse::error($e->getMessage(), [], 422);
+        }
+
         return ApiResponse::success($cancellation);
+    }
+
+    public function recoverCancellationEquipment(Request $request, int $cancellationId): JsonResponse
+    {
+        $cancellation = ServiceCancellation::query()->findOrFail($cancellationId);
+        $service = Service::query()->findOrFail($cancellation->service_id);
+        $this->authorize('cancel', $service);
+        $data = $request->validate(['notes' => ['nullable', 'string']]);
+
+        try {
+            $cancellation = $this->cancellations->markEquipmentRecovered($cancellation, Auth::user(), $data['notes'] ?? null);
+        } catch (InvalidArgumentException $e) {
+            return ApiResponse::error($e->getMessage(), [], 422);
+        }
+
+        return ApiResponse::success($cancellation);
+    }
+
+    public function completeCancellation(int $cancellationId): JsonResponse
+    {
+        $cancellation = ServiceCancellation::query()->findOrFail($cancellationId);
+        $service = Service::query()->findOrFail($cancellation->service_id);
+        $this->authorize('cancel', $service);
+
+        try {
+            $service = $this->cancellations->complete($cancellation, Auth::user());
+        } catch (InvalidArgumentException $e) {
+            return ApiResponse::error($e->getMessage(), [], 422);
+        }
+
+        return ApiResponse::success($this->serialize($service));
     }
 
     public function changeRequest(Request $request, int $id): JsonResponse
     {
         $service = Service::query()->findOrFail($id);
-        $this->authorize('update', $service);
+        $this->authorize('change', $service);
         $data = $request->validate([
             'type' => ['nullable', 'string', 'max:64'],
             'requested_values' => ['required', 'array'],
@@ -244,20 +325,54 @@ class ServiceController extends Controller
             'reason' => ['nullable', 'string'],
             'notes' => ['nullable', 'string'],
             'apply' => ['nullable', 'boolean'],
+            'approve' => ['nullable', 'boolean'],
         ]);
 
         $cr = $this->changes->request($service, $data, Auth::user());
-        if ($request->boolean('apply', true)) {
-            $cr = $this->changes->approve($cr, Auth::user(), true);
+
+        // apply/approve default FALSE — cannot self-approve by omitting boolean
+        if ($request->boolean('approve', false) || $request->boolean('apply', false)) {
+            try {
+                $cr = $this->changes->approve($cr, Auth::user(), $request->boolean('apply', false));
+            } catch (InvalidArgumentException $e) {
+                return ApiResponse::error($e->getMessage(), [], 422);
+            }
         }
 
         return ApiResponse::success($cr, null, 201);
     }
 
+    public function advanceChangeRequest(Request $request, int $changeRequestId): JsonResponse
+    {
+        $cr = ServiceChangeRequest::query()->findOrFail($changeRequestId);
+        $service = Service::query()->findOrFail($cr->service_id);
+        $this->authorize('change', $service);
+        $data = $request->validate([
+            'step' => ['required', 'string', Rule::in(['technical', 'finance', 'approve', 'apply', 'close'])],
+            'approved' => ['nullable', 'boolean'],
+            'notes' => ['nullable', 'string'],
+        ]);
+
+        try {
+            $approved = $request->boolean('approved', true);
+            $cr = match ($data['step']) {
+                'technical' => $this->changes->submitTechnicalReview($cr, Auth::user(), $approved, $data['notes'] ?? null),
+                'finance' => $this->changes->submitFinanceReview($cr, Auth::user(), $approved, $data['notes'] ?? null),
+                'approve' => $this->changes->approve($cr, Auth::user(), false),
+                'apply' => $this->changes->apply($cr, Auth::user()),
+                'close' => $this->changes->close($cr, Auth::user()),
+            };
+        } catch (InvalidArgumentException $e) {
+            return ApiResponse::error($e->getMessage(), [], 422);
+        }
+
+        return ApiResponse::success($cr);
+    }
+
     public function relocate(Request $request, int $id): JsonResponse
     {
         $service = Service::query()->findOrFail($id);
-        $this->authorize('update', $service);
+        $this->authorize('relocate', $service);
         $data = $request->validate([
             'new_location_id' => ['required', 'integer', 'exists:service_locations,id'],
             'new_tower_id' => ['nullable', 'integer'],
@@ -267,7 +382,8 @@ class ServiceController extends Controller
 
         try {
             $relocation = $this->relocations->request($service, $data, Auth::user());
-            if ($request->boolean('complete', true)) {
+            // complete defaults FALSE
+            if ($request->boolean('complete', false)) {
                 $service = $this->relocations->complete($relocation, Auth::user());
 
                 return ApiResponse::success($this->serialize($service));
@@ -279,10 +395,40 @@ class ServiceController extends Controller
         return ApiResponse::success($relocation, null, 201);
     }
 
+    public function startRelocation(int $relocationId): JsonResponse
+    {
+        $relocation = ServiceRelocation::query()->findOrFail($relocationId);
+        $service = Service::query()->findOrFail($relocation->service_id);
+        $this->authorize('relocate', $service);
+
+        try {
+            $relocation = $this->relocations->start($relocation, Auth::user());
+        } catch (InvalidArgumentException $e) {
+            return ApiResponse::error($e->getMessage(), [], 422);
+        }
+
+        return ApiResponse::success($relocation);
+    }
+
+    public function completeRelocation(int $relocationId): JsonResponse
+    {
+        $relocation = ServiceRelocation::query()->findOrFail($relocationId);
+        $service = Service::query()->findOrFail($relocation->service_id);
+        $this->authorize('relocate', $service);
+
+        try {
+            $service = $this->relocations->complete($relocation, Auth::user());
+        } catch (InvalidArgumentException $e) {
+            return ApiResponse::error($e->getMessage(), [], 422);
+        }
+
+        return ApiResponse::success($this->serialize($service));
+    }
+
     public function renew(Request $request, int $id): JsonResponse
     {
         $service = Service::query()->findOrFail($id);
-        $this->authorize('update', $service);
+        $this->authorize('renew', $service);
         $data = $request->validate([
             'term_months' => ['nullable', 'integer', 'min:1'],
             'new_expiration' => ['nullable', 'date'],
@@ -304,7 +450,7 @@ class ServiceController extends Controller
     public function placeHold(Request $request, int $id): JsonResponse
     {
         $service = Service::query()->findOrFail($id);
-        $this->authorize('update', $service);
+        $this->authorize('manageFinanceHold', $service);
         $data = $request->validate([
             'reason' => ['required', 'string'],
             'hold_type' => ['nullable', 'string'],
@@ -323,7 +469,7 @@ class ServiceController extends Controller
     {
         $hold = ServiceFinanceHold::query()->findOrFail($holdId);
         $service = Service::query()->findOrFail($hold->service_id);
-        $this->authorize('update', $service);
+        $this->authorize('manageFinanceHold', $service);
         $hold = $this->holds->release($hold, Auth::user());
 
         return ApiResponse::success($hold);
@@ -374,6 +520,7 @@ class ServiceController extends Controller
             'cancellation_date' => $service->cancellation_date,
             'expiration_date' => $service->expiration_date,
             'sla_template_id' => $service->sla_template_id,
+            'zoho_customer_id' => $service->zoho_customer_id,
             'notes' => $service->notes,
             'customer' => $service->relationLoaded('customer') ? $service->customer : null,
             'package' => $service->relationLoaded('package') ? $service->package : null,

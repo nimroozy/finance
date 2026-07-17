@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class ServiceSlaTemplate extends Model
 {
     protected $fillable = [
-        'name', 'response_minutes', 'resolution_minutes', 'availability_target',
+        'code', 'name', 'response_minutes', 'resolution_minutes', 'availability_target',
         'support_hours', 'escalation_rules', 'priority_matrix', 'is_active',
     ];
 

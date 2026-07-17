@@ -61,6 +61,7 @@ use App\Models\Inventory\Supplier;
 use App\Models\Inventory\Tower;
 use App\Models\Inventory\Transfer;
 use App\Models\Services\Service;
+use App\Support\PermissionRegistry;
 use App\Policies\Inventory\CustodyRecordPolicy;
 use App\Policies\Inventory\EquipmentPolicy;
 use App\Policies\Inventory\EquipmentSalePolicy;
@@ -131,6 +132,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        PermissionRegistry::registerGates();
+
         Gate::policy(User::class, UserPolicy::class);
         Gate::policy(Branch::class, BranchPolicy::class);
         Gate::policy(CustomerAssignment::class, CustomerAssignmentPolicy::class);
