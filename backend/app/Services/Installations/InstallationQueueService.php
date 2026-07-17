@@ -97,6 +97,15 @@ class InstallationQueueService
 
             InstallationStatusChanged::dispatch($installation->id, (int) $installation->branch_id, $from, $to);
 
+            if ($to === Installation::STATUS_COMPLETED) {
+                try {
+                    app(\App\Services\ServiceLifecycle\InstallationToServiceConverter::class)
+                        ->maybeAutoDraft($installation->fresh(), $actor);
+                } catch (\Throwable) {
+                    // Conversion is best-effort; explicit convert endpoint remains available.
+                }
+            }
+
             return $installation->fresh();
         });
     }

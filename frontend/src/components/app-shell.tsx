@@ -123,6 +123,15 @@ const NAV_GROUPS: NavGroup[] = [
         labelKey: "nocDashboard",
         permissions: ["escalations.view", "dashboard.view"],
       },
+      ...(isModuleEnabled("services")
+        ? [
+            {
+              href: "/noc/services",
+              labelKey: "nocServices",
+              permissions: ["services.noc.view", "services.view"],
+            },
+          ]
+        : []),
       ...(isModuleEnabled("whatsapp")
         ? [
             { href: "/whatsapp/inbox", labelKey: "whatsappInbox", permissions: ["whatsapp.view"] },
@@ -255,6 +264,76 @@ const NAV_GROUPS: NavGroup[] = [
               href: "/crm/reports",
               labelKey: "crmReports",
               permissions: ["crm.reports.view"],
+            },
+          ],
+        } satisfies NavGroup,
+      ]
+    : []),
+  ...(isModuleEnabled("services")
+    ? [
+        {
+          id: "services",
+          labelKey: "groupServices",
+          items: [
+            {
+              href: "/services/dashboard",
+              labelKey: "servicesDashboard",
+              permissions: ["services.dashboard.view", "services.view"],
+            },
+            {
+              href: "/services",
+              labelKey: "servicesAll",
+              permissions: ["services.view"],
+            },
+            {
+              href: "/services/pending-installation",
+              labelKey: "servicesPendingInstall",
+              permissions: ["services.view"],
+            },
+            {
+              href: "/services/pending-activation",
+              labelKey: "servicesPendingActivation",
+              permissions: ["services.view", "services.activate"],
+            },
+            {
+              href: "/services/suspended",
+              labelKey: "servicesSuspended",
+              permissions: ["services.view", "services.suspend"],
+            },
+            {
+              href: "/services/finance-hold",
+              labelKey: "servicesFinanceHold",
+              permissions: ["services.view", "services.finance_holds.manage"],
+            },
+            {
+              href: "/services/change-requests",
+              labelKey: "servicesChangeRequests",
+              permissions: ["services.view", "services.change"],
+            },
+            {
+              href: "/services/relocations",
+              labelKey: "servicesRelocations",
+              permissions: ["services.view", "services.relocate"],
+            },
+            {
+              href: "/services/packages",
+              labelKey: "servicesPackages",
+              permissions: ["services.packages.view", "services.view"],
+            },
+            {
+              href: "/services/contracts",
+              labelKey: "servicesContracts",
+              permissions: ["services.contracts.view", "services.view"],
+            },
+            {
+              href: "/services/sla",
+              labelKey: "servicesSla",
+              permissions: ["services.sla.manage", "services.view"],
+            },
+            {
+              href: "/services/reports",
+              labelKey: "servicesReports",
+              permissions: ["services.reports.view", "services.view"],
             },
           ],
         } satisfies NavGroup,

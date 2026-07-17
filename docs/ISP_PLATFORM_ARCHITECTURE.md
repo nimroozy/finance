@@ -49,7 +49,8 @@ Do **not** create a second independent general ledger.
 | Finance | Local finance workflows that sync to Zoho | Partial (collections) |
 | Collections | Assignments, visits, payments, wallets, handovers | Delivered |
 | Zoho Integration | OAuth, sync, mapping, payment push, reconciliation | Delivered |
-| Radius Integration | Branch-aware adapters, cached views, queued commands | Stage 10 |
+| Service Lifecycle | Packages, activation, suspension, contracts, finance holds, read-only billing | **Stage 10 delivered on branch** |
+| Radius Integration | Branch-aware adapters, cached views, queued commands | Stage 12 (deferred) |
 | WhatsApp | Cloud API connection, templates, outbound, webhooks | **Stage 6 complete / foundation** |
 | Notifications | Channel orchestration (in-app, WhatsApp, future email/SMS) | Stage 6 foundation |
 | Reporting | Operational and management dashboards | Stage 7 ops dashboards partial; Stage 11 full |
@@ -124,5 +125,6 @@ Details: [WHATSAPP_TICKET_INTAKE.md](WHATSAPP_TICKET_INTAKE.md).
 - [FIELD_MOBILE_WORKFLOW.md](FIELD_MOBILE_WORKFLOW.md)
 - [CRM_INSTALLATION_MODEL.md](CRM_INSTALLATION_MODEL.md)
 - [INVENTORY_MODEL.md](INVENTORY_MODEL.md)
+- [STAGE_10_SERVICE_LIFECYCLE.md](STAGE_10_SERVICE_LIFECYCLE.md)
 - [RADIUS_INTEGRATION_MODEL.md](RADIUS_INTEGRATION_MODEL.md)
 - [../WHATSAPP_SETUP.md](../WHATSAPP_SETUP.md)

@@ -18,7 +18,7 @@ class CustomerEquipment extends Model
     protected $fillable = [
         'customer_id', 'branch_id', 'service_ref', 'product_id', 'equipment_id',
         'ownership_type', 'sale_price', 'install_fee', 'installed_at', 'returned_at',
-        'installation_id', 'status',
+        'installation_id', 'service_id', 'status',
     ];
 
     protected function casts(): array
