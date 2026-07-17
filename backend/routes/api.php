@@ -660,5 +660,151 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
 
         Route::middleware('permission:crm.reports.view|crm.leads.view|dashboard.view')->get('/crm/dashboard', \App\Http\Controllers\Api\V1\Crm\CrmDashboardController::class)->name('crm.dashboard');
         Route::middleware('permission:crm.reports.view')->get('/crm/reports/leads', [\App\Http\Controllers\Api\V1\Crm\CrmReportController::class, 'leads'])->name('crm.reports.leads');
+
+        // Stage 9 — Inventory
+        Route::middleware('permission:inventory.products.view|inventory.products.manage')->group(function () {
+            Route::get('/inventory/products', [\App\Http\Controllers\Api\V1\Inventory\ProductController::class, 'index'])->name('inventory.products.index');
+            Route::get('/inventory/products/{id}', [\App\Http\Controllers\Api\V1\Inventory\ProductController::class, 'show'])->whereNumber('id')->name('inventory.products.show');
+        });
+        Route::middleware('permission:inventory.products.manage')->group(function () {
+            Route::post('/inventory/products', [\App\Http\Controllers\Api\V1\Inventory\ProductController::class, 'store'])->name('inventory.products.store');
+            Route::put('/inventory/products/{id}', [\App\Http\Controllers\Api\V1\Inventory\ProductController::class, 'update'])->whereNumber('id')->name('inventory.products.update');
+        });
+
+        Route::middleware('permission:inventory.products.view|inventory.categories.manage')->get('/inventory/categories', [\App\Http\Controllers\Api\V1\Inventory\CategoryController::class, 'index'])->name('inventory.categories.index');
+        Route::middleware('permission:inventory.categories.manage')->group(function () {
+            Route::post('/inventory/categories', [\App\Http\Controllers\Api\V1\Inventory\CategoryController::class, 'store'])->name('inventory.categories.store');
+            Route::put('/inventory/categories/{id}', [\App\Http\Controllers\Api\V1\Inventory\CategoryController::class, 'update'])->whereNumber('id')->name('inventory.categories.update');
+        });
+
+        Route::middleware('permission:inventory.locations.view|inventory.locations.manage')->get('/inventory/locations', [\App\Http\Controllers\Api\V1\Inventory\LocationController::class, 'index'])->name('inventory.locations.index');
+        Route::middleware('permission:inventory.locations.manage')->group(function () {
+            Route::post('/inventory/locations', [\App\Http\Controllers\Api\V1\Inventory\LocationController::class, 'store'])->name('inventory.locations.store');
+            Route::put('/inventory/locations/{id}', [\App\Http\Controllers\Api\V1\Inventory\LocationController::class, 'update'])->whereNumber('id')->name('inventory.locations.update');
+        });
+
+        Route::middleware('permission:inventory.sites.view|inventory.sites.manage')->group(function () {
+            Route::get('/inventory/sites', [\App\Http\Controllers\Api\V1\Inventory\SiteController::class, 'index'])->name('inventory.sites.index');
+            Route::get('/inventory/sites/{id}', [\App\Http\Controllers\Api\V1\Inventory\SiteController::class, 'show'])->whereNumber('id')->name('inventory.sites.show');
+        });
+        Route::middleware('permission:inventory.sites.manage')->group(function () {
+            Route::post('/inventory/sites', [\App\Http\Controllers\Api\V1\Inventory\SiteController::class, 'store'])->name('inventory.sites.store');
+            Route::put('/inventory/sites/{id}', [\App\Http\Controllers\Api\V1\Inventory\SiteController::class, 'update'])->whereNumber('id')->name('inventory.sites.update');
+        });
+
+        Route::middleware('permission:inventory.towers.view|inventory.towers.manage')->get('/inventory/towers', [\App\Http\Controllers\Api\V1\Inventory\TowerController::class, 'index'])->name('inventory.towers.index');
+        Route::middleware('permission:inventory.towers.manage')->group(function () {
+            Route::post('/inventory/towers', [\App\Http\Controllers\Api\V1\Inventory\TowerController::class, 'store'])->name('inventory.towers.store');
+            Route::put('/inventory/towers/{id}', [\App\Http\Controllers\Api\V1\Inventory\TowerController::class, 'update'])->whereNumber('id')->name('inventory.towers.update');
+        });
+
+        Route::middleware('permission:inventory.suppliers.view|inventory.suppliers.manage')->get('/inventory/suppliers', [\App\Http\Controllers\Api\V1\Inventory\SupplierController::class, 'index'])->name('inventory.suppliers.index');
+        Route::middleware('permission:inventory.suppliers.manage')->group(function () {
+            Route::post('/inventory/suppliers', [\App\Http\Controllers\Api\V1\Inventory\SupplierController::class, 'store'])->name('inventory.suppliers.store');
+            Route::put('/inventory/suppliers/{id}', [\App\Http\Controllers\Api\V1\Inventory\SupplierController::class, 'update'])->whereNumber('id')->name('inventory.suppliers.update');
+        });
+
+        Route::middleware('permission:inventory.stock.view')->group(function () {
+            Route::get('/inventory/stock/balances', [\App\Http\Controllers\Api\V1\Inventory\StockController::class, 'balances'])->name('inventory.stock.balances');
+            Route::get('/inventory/stock/transactions', [\App\Http\Controllers\Api\V1\Inventory\StockController::class, 'transactions'])->name('inventory.stock.transactions');
+        });
+        Route::middleware('permission:inventory.stock.adjust')->post('/inventory/stock/adjust', [\App\Http\Controllers\Api\V1\Inventory\StockController::class, 'adjust'])->name('inventory.stock.adjust');
+
+        Route::middleware('permission:inventory.reservations.view|inventory.reservations.manage')->group(function () {
+            Route::get('/inventory/reservations', [\App\Http\Controllers\Api\V1\Inventory\ReservationController::class, 'index'])->name('inventory.reservations.index');
+            Route::get('/inventory/reservations/{id}', [\App\Http\Controllers\Api\V1\Inventory\ReservationController::class, 'show'])->whereNumber('id')->name('inventory.reservations.show');
+        });
+        Route::middleware('permission:inventory.reservations.manage')->group(function () {
+            Route::post('/inventory/reservations', [\App\Http\Controllers\Api\V1\Inventory\ReservationController::class, 'store'])->name('inventory.reservations.store');
+            Route::post('/inventory/reservations/{id}/reserve', [\App\Http\Controllers\Api\V1\Inventory\ReservationController::class, 'reserve'])->whereNumber('id')->name('inventory.reservations.reserve');
+            Route::post('/inventory/reservations/{id}/fulfill', [\App\Http\Controllers\Api\V1\Inventory\ReservationController::class, 'fulfill'])->whereNumber('id')->name('inventory.reservations.fulfill');
+            Route::post('/inventory/reservations/{id}/release', [\App\Http\Controllers\Api\V1\Inventory\ReservationController::class, 'release'])->whereNumber('id')->name('inventory.reservations.release');
+        });
+
+        Route::middleware('permission:inventory.transfers.view|inventory.transfers.manage')->get('/inventory/transfers', [\App\Http\Controllers\Api\V1\Inventory\TransferController::class, 'index'])->name('inventory.transfers.index');
+        Route::middleware('permission:inventory.transfers.manage|inventory.stock.transfer')->group(function () {
+            Route::post('/inventory/transfers', [\App\Http\Controllers\Api\V1\Inventory\TransferController::class, 'store'])->name('inventory.transfers.store');
+            Route::post('/inventory/transfers/{id}/submit', [\App\Http\Controllers\Api\V1\Inventory\TransferController::class, 'submit'])->whereNumber('id')->name('inventory.transfers.submit');
+            Route::post('/inventory/transfers/{id}/dispatch', [\App\Http\Controllers\Api\V1\Inventory\TransferController::class, 'dispatchTransfer'])->whereNumber('id')->name('inventory.transfers.dispatch');
+            Route::post('/inventory/transfers/{id}/receive', [\App\Http\Controllers\Api\V1\Inventory\TransferController::class, 'receive'])->whereNumber('id')->name('inventory.transfers.receive');
+            Route::post('/inventory/transfers/{id}/close', [\App\Http\Controllers\Api\V1\Inventory\TransferController::class, 'close'])->whereNumber('id')->name('inventory.transfers.close');
+        });
+        Route::middleware('permission:inventory.transfers.approve')->post('/inventory/transfers/{id}/approve', [\App\Http\Controllers\Api\V1\Inventory\TransferController::class, 'approve'])->whereNumber('id')->name('inventory.transfers.approve');
+
+        Route::middleware('permission:inventory.equipment.view|inventory.equipment.manage')->group(function () {
+            Route::get('/inventory/equipment', [\App\Http\Controllers\Api\V1\Inventory\EquipmentController::class, 'index'])->name('inventory.equipment.index');
+            Route::get('/inventory/equipment/{id}', [\App\Http\Controllers\Api\V1\Inventory\EquipmentController::class, 'show'])->whereNumber('id')->name('inventory.equipment.show');
+        });
+        Route::middleware('permission:inventory.equipment.manage')->group(function () {
+            Route::post('/inventory/equipment/receive', [\App\Http\Controllers\Api\V1\Inventory\EquipmentController::class, 'receive'])->name('inventory.equipment.receive');
+            Route::post('/inventory/equipment/{id}/move', [\App\Http\Controllers\Api\V1\Inventory\EquipmentController::class, 'move'])->whereNumber('id')->name('inventory.equipment.move');
+        });
+
+        Route::middleware('permission:inventory.purchasing.view|inventory.purchasing.manage')->group(function () {
+            Route::get('/inventory/purchase-requests', [\App\Http\Controllers\Api\V1\Inventory\PurchasingController::class, 'requests'])->name('inventory.purchase-requests.index');
+            Route::get('/inventory/purchase-orders', [\App\Http\Controllers\Api\V1\Inventory\PurchasingController::class, 'orders'])->name('inventory.purchase-orders.index');
+        });
+        Route::middleware('permission:inventory.purchasing.manage')->group(function () {
+            Route::post('/inventory/purchase-requests', [\App\Http\Controllers\Api\V1\Inventory\PurchasingController::class, 'storeRequest'])->name('inventory.purchase-requests.store');
+            Route::post('/inventory/purchase-orders', [\App\Http\Controllers\Api\V1\Inventory\PurchasingController::class, 'storeOrder'])->name('inventory.purchase-orders.store');
+        });
+        Route::middleware('permission:inventory.purchasing.approve')->group(function () {
+            Route::post('/inventory/purchase-requests/{id}/approve', [\App\Http\Controllers\Api\V1\Inventory\PurchasingController::class, 'approveRequest'])->whereNumber('id')->name('inventory.purchase-requests.approve');
+            Route::post('/inventory/purchase-orders/{id}/approve', [\App\Http\Controllers\Api\V1\Inventory\PurchasingController::class, 'approveOrder'])->whereNumber('id')->name('inventory.purchase-orders.approve');
+        });
+        Route::middleware('permission:inventory.receiving.manage')->post('/inventory/goods-receipts', [\App\Http\Controllers\Api\V1\Inventory\PurchasingController::class, 'receive'])->name('inventory.goods-receipts.store');
+
+        Route::middleware('permission:inventory.equipment.sales|inventory.equipment.view')->get('/inventory/equipment-sales', [\App\Http\Controllers\Api\V1\Inventory\EquipmentSaleController::class, 'index'])->name('inventory.equipment-sales.index');
+        Route::middleware('permission:inventory.equipment.sales')->group(function () {
+            Route::post('/inventory/equipment-sales', [\App\Http\Controllers\Api\V1\Inventory\EquipmentSaleController::class, 'store'])->name('inventory.equipment-sales.store');
+            Route::post('/inventory/equipment-sales/{id}/issue', [\App\Http\Controllers\Api\V1\Inventory\EquipmentSaleController::class, 'issue'])->whereNumber('id')->name('inventory.equipment-sales.issue');
+        });
+
+        Route::middleware('permission:inventory.reservations.manage|installations.update')->group(function () {
+            Route::post('/inventory/installations/{installationId}/reserve', [\App\Http\Controllers\Api\V1\Inventory\InstallationEquipmentController::class, 'reserve'])->whereNumber('installationId')->name('inventory.installations.reserve');
+            Route::post('/inventory/installation-reservations/{reservationId}/fulfill', [\App\Http\Controllers\Api\V1\Inventory\InstallationEquipmentController::class, 'fulfill'])->whereNumber('reservationId')->name('inventory.installations.fulfill');
+            Route::post('/inventory/installation-equipment/install', [\App\Http\Controllers\Api\V1\Inventory\InstallationEquipmentController::class, 'install'])->name('inventory.installations.install');
+            Route::post('/inventory/equipment/{equipmentId}/return-unused', [\App\Http\Controllers\Api\V1\Inventory\InstallationEquipmentController::class, 'returnUnused'])->whereNumber('equipmentId')->name('inventory.equipment.return-unused');
+        });
+
+        Route::middleware('permission:inventory.custody.manage|inventory.equipment.view')->get('/inventory/custody', [\App\Http\Controllers\Api\V1\Inventory\CustodyController::class, 'index'])->name('inventory.custody.index');
+        Route::middleware('permission:inventory.custody.manage')->group(function () {
+            Route::post('/inventory/custody/issue', [\App\Http\Controllers\Api\V1\Inventory\CustodyController::class, 'issue'])->name('inventory.custody.issue');
+            Route::post('/inventory/custody/{id}/return', [\App\Http\Controllers\Api\V1\Inventory\CustodyController::class, 'returnItem'])->whereNumber('id')->name('inventory.custody.return');
+        });
+
+        Route::middleware('permission:inventory.repairs.manage|inventory.equipment.view')->get('/inventory/repairs', [\App\Http\Controllers\Api\V1\Inventory\RepairController::class, 'index'])->name('inventory.repairs.index');
+        Route::middleware('permission:inventory.repairs.manage')->group(function () {
+            Route::post('/inventory/repairs', [\App\Http\Controllers\Api\V1\Inventory\RepairController::class, 'open'])->name('inventory.repairs.open');
+            Route::post('/inventory/repairs/{id}/complete', [\App\Http\Controllers\Api\V1\Inventory\RepairController::class, 'complete'])->whereNumber('id')->name('inventory.repairs.complete');
+        });
+
+        Route::middleware('permission:inventory.maintenance.manage|inventory.assets.view')->get('/inventory/maintenance-plans', [\App\Http\Controllers\Api\V1\Inventory\MaintenanceController::class, 'index'])->name('inventory.maintenance.index');
+        Route::middleware('permission:inventory.maintenance.manage')->group(function () {
+            Route::post('/inventory/maintenance-plans', [\App\Http\Controllers\Api\V1\Inventory\MaintenanceController::class, 'store'])->name('inventory.maintenance.store');
+            Route::post('/inventory/maintenance-plans/{id}/create-task', [\App\Http\Controllers\Api\V1\Inventory\MaintenanceController::class, 'createTask'])->whereNumber('id')->name('inventory.maintenance.create-task');
+        });
+
+        Route::middleware('permission:inventory.stock.count|inventory.stock.view')->get('/inventory/stock-counts', [\App\Http\Controllers\Api\V1\Inventory\StockCountController::class, 'index'])->name('inventory.stock-counts.index');
+        Route::middleware('permission:inventory.stock.count')->group(function () {
+            Route::post('/inventory/stock-counts', [\App\Http\Controllers\Api\V1\Inventory\StockCountController::class, 'store'])->name('inventory.stock-counts.store');
+            Route::post('/inventory/stock-counts/{id}/record', [\App\Http\Controllers\Api\V1\Inventory\StockCountController::class, 'record'])->whereNumber('id')->name('inventory.stock-counts.record');
+            Route::post('/inventory/stock-counts/{id}/post', [\App\Http\Controllers\Api\V1\Inventory\StockCountController::class, 'post'])->whereNumber('id')->name('inventory.stock-counts.post');
+        });
+
+        Route::middleware('permission:inventory.dashboard.view|inventory.reports.view|dashboard.view')->get('/inventory/dashboard', [\App\Http\Controllers\Api\V1\Inventory\InventoryOpsController::class, 'dashboard'])->name('inventory.dashboard');
+        Route::middleware('permission:inventory.products.view|inventory.equipment.view')->get('/inventory/search', [\App\Http\Controllers\Api\V1\Inventory\InventoryOpsController::class, 'search'])->name('inventory.search');
+        Route::middleware('permission:inventory.reports.view')->group(function () {
+            Route::get('/inventory/reports/balances', [\App\Http\Controllers\Api\V1\Inventory\InventoryOpsController::class, 'reportBalances'])->name('inventory.reports.balances');
+            Route::get('/inventory/reports/transactions', [\App\Http\Controllers\Api\V1\Inventory\InventoryOpsController::class, 'reportTransactions'])->name('inventory.reports.transactions');
+        });
+        Route::middleware('permission:inventory.import')->group(function () {
+            Route::post('/inventory/import/dry-run', [\App\Http\Controllers\Api\V1\Inventory\InventoryOpsController::class, 'importDryRun'])->name('inventory.import.dry-run');
+            Route::post('/inventory/import/apply', [\App\Http\Controllers\Api\V1\Inventory\InventoryOpsController::class, 'importApply'])->name('inventory.import.apply');
+        });
+        Route::middleware('permission:inventory.equipment.view')->get('/inventory/customer-equipment', [\App\Http\Controllers\Api\V1\Inventory\InventoryOpsController::class, 'customerEquipmentIndex'])->name('inventory.customer-equipment.index');
+        Route::middleware('permission:inventory.assets.view|inventory.assets.manage')->get('/inventory/fixed-assets', [\App\Http\Controllers\Api\V1\Inventory\InventoryOpsController::class, 'fixedAssetsIndex'])->name('inventory.fixed-assets.index');
+        Route::middleware('permission:inventory.assets.manage')->post('/inventory/fixed-assets', [\App\Http\Controllers\Api\V1\Inventory\InventoryOpsController::class, 'fixedAssetsStore'])->name('inventory.fixed-assets.store');
+
     });
 });

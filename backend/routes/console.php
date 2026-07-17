@@ -1,6 +1,8 @@
 <?php
 
 use App\Jobs\EvaluateCrmFollowUpsJob;
+use App\Jobs\EvaluateInventoryAlertsJob;
+use App\Jobs\ExpireReservationsJob;
 use App\Jobs\EvaluateEscalationsJob;
 use App\Jobs\EvaluateSlaBreachesJob;
 use App\Jobs\RunPaymentReconciliationJob;
@@ -51,4 +53,14 @@ Schedule::job(new EvaluateEscalationsJob)
 Schedule::job(new EvaluateCrmFollowUpsJob)
     ->everyFifteenMinutes()
     ->name('evaluate-crm-follow-ups')
+    ->withoutOverlapping();
+
+Schedule::job(new EvaluateInventoryAlertsJob)
+    ->everyThirtyMinutes()
+    ->name('evaluate-inventory-alerts')
+    ->withoutOverlapping();
+
+Schedule::job(new ExpireReservationsJob)
+    ->daily()
+    ->name('expire-inventory-reservations')
     ->withoutOverlapping();
