@@ -4,9 +4,9 @@
 **Branch:** `cursor/stage-10-2-production-recovery`  
 **VPS:** `root@209.38.194.184` (`/opt/collection-system`)  
 **Deploy stamp:** `20260717T211618Z`  
-**Tip SHA (branch tip after delivery report):** see `/api/v1/health` `commit_sha` / host `.deployed-sha` (advanced after this report commit)  
+**Tip SHA deployed:** `18f5e40397fd23937a938475f0cfb36dfc818791`  
+**Production SHA:** `18f5e40397fd23937a938475f0cfb36dfc818791`  
 **Code deploy SHA:** `50c6e6619ac025ef13d6a96c00f3c00c1c7d9b05`  
-**Production SHA at close:** matches tip after final docs sync (verified via health)  
 **Do not merge until human review.** **Stage 11 not started.** **No Radius.**  
 **KEY_KEPT** (`~/.ssh/id_ed25519` preserved — not deleted).
 
@@ -81,7 +81,7 @@ Stage **10.2 production recovery** is live on production: service API completene
 | Check | Result |
 |-------|--------|
 | `/api/v1/health` → `deployment.stage` | **`10.2-production-recovery`** |
-| git_sha / commit_sha | matches tip after final docs sync (health verified) |
+| git_sha / commit_sha | `18f5e40397fd23937a938475f0cfb36dfc818791` (= tip) |
 | branch | `cursor/stage-10-2-production-recovery` |
 | migration_batch | **19** (`2026_07_17_210000_stage102_service_lifecycle_recovery`) |
 | `/en/apps` | **200** |
