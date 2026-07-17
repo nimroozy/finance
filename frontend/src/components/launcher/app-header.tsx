@@ -196,6 +196,7 @@ export function AppHeader({
                 variant="secondary"
                 size="sm"
                 className="h-9 gap-1"
+                aria-label={t("quickCreate")}
                 aria-expanded={quickOpen}
                 aria-haspopup="menu"
                 onClick={() => setQuickOpen((v) => !v)}

@@ -1,4 +1,5 @@
 import { test, expect, type Page, type Route } from "@playwright/test";
+import { clickConfirmDialog, clickMainAction, clickVisible } from "./helpers";
 
 const STAGE10_PERMISSIONS = [
   "dashboard.view",
@@ -389,8 +390,8 @@ test.describe("Stage 10 service lifecycle", () => {
     await mockStage10Api(page);
     await page.goto("/en/services/40");
     await expect(page.getByTestId("service-detail")).toBeVisible();
-    await page.getByRole("button", { name: /Activate/i }).click();
-    await page.getByRole("button", { name: /Confirm/i }).click();
+    await clickMainAction(page, /Activate/i);
+    await clickConfirmDialog(page);
     await expect(page.getByText(/Service activated/i)).toBeVisible();
   });
 
@@ -405,9 +406,9 @@ test.describe("Stage 10 service lifecycle", () => {
       await route.fallback();
     });
     await page.goto("/en/services/40");
-    await page.getByRole("button", { name: /Suspend/i }).click();
+    await clickMainAction(page, /Suspend/i);
     await page.locator("textarea").fill("Non-payment");
-    await page.getByRole("button", { name: /Confirm/i }).click();
+    await clickVisible(page.getByRole("button", { name: /Confirm/i }));
     await expect(page.getByText(/Service suspended/i)).toBeVisible();
   });
 

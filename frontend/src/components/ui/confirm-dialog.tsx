@@ -40,7 +40,7 @@ export function ConfirmDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-primary/40 p-4 sm:items-center"
+      className="fixed inset-0 z-[60] flex items-end justify-center bg-primary/40 p-4 pb-24 sm:items-center sm:pb-4"
       role="presentation"
       onClick={onCancel}
     >

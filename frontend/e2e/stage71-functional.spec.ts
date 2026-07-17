@@ -8,6 +8,7 @@
  * Authenticated live VPS verification remains an ops checklist item.
  */
 import { test, expect, type Page, type Route } from "@playwright/test";
+import { clickConfirmDialog, clickMainAction } from "./helpers";
 
 const PERMS = [
   "dashboard.view",
@@ -249,7 +250,7 @@ test.describe("stage 7.1 functional (mocked)", () => {
     await page.getByRole("combobox", { name: /^Type$/i }).selectOption("support");
     await page.getByRole("textbox", { name: /^Subject$/i }).fill("Fiber cut");
 
-    await page.getByRole("button", { name: "Create", exact: true }).click();
+    await clickMainAction(page, "Create", { exact: true });
     await expect(page).toHaveURL(/\/tickets\/99/);
   });
 
@@ -262,7 +263,7 @@ test.describe("stage 7.1 functional (mocked)", () => {
     await expect(page.locator("main select").filter({ hasText: /verification pending/i })).toHaveCount(0);
 
     await page.getByRole("button", { name: /In Progress/i }).click();
-    await page.getByRole("button", { name: /Confirm/i }).click();
+    await clickConfirmDialog(page);
     await expect(page.getByText(/Status updated/i)).toBeVisible();
   });
 
