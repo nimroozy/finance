@@ -7,8 +7,8 @@
 return [
     'modules' => [
         'whatsapp' => ['enabled' => true, 'stage' => 6],
-        'ticketing' => ['enabled' => false, 'stage' => 7],
-        'tasks' => ['enabled' => false, 'stage' => 7],
+        'ticketing' => ['enabled' => true, 'stage' => 7],
+        'tasks' => ['enabled' => true, 'stage' => 7],
         'crm' => ['enabled' => false, 'stage' => 8],
         'installations' => ['enabled' => false, 'stage' => 8],
         'inventory' => ['enabled' => false, 'stage' => 9],
