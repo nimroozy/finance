@@ -36,7 +36,7 @@ Do **not** create a second independent general ledger.
 | Identity | Users, roles, permissions, departments, auth | Delivered |
 | Branches | Branch master data, HQ flags, isolation rules | Delivered |
 | Customers | Local customer operational profile, mapping, ownership | Delivered |
-| CRM | Leads, opportunities, follow-ups | Stage 8 (not started) |
+| CRM | Leads, opportunities, follow-ups | Stage 8 delivered on branch |
 | Sales | Quotes, ownership, targets, lost reasons | Stage 8 delivered on branch |
 | Installations | Queue pipeline (Stage 7); CRM-grade install (Stage 8) | **Stage 7 queue delivered**; Stage 8 deferred |
 | Tickets | Customer/internal tickets, SLA, escalation, intake | **Stage 7 delivered** |
@@ -53,6 +53,7 @@ Do **not** create a second independent general ledger.
 | WhatsApp | Cloud API connection, templates, outbound, webhooks | **Stage 6 complete / foundation** |
 | Notifications | Channel orchestration (in-app, WhatsApp, future email/SMS) | Stage 6 foundation |
 | Reporting | Operational and management dashboards | Stage 7 ops dashboards partial; Stage 11 full |
+| Presentation / UX shell | App launcher, preferences, theme, EN/FA RTL shell | **Stage 9.1 delivered on branch** |
 | Audit | Immutable action history across domains | Delivered |
 
 Detailed contracts: [DOMAIN_BOUNDARIES.md](DOMAIN_BOUNDARIES.md).
@@ -112,6 +113,9 @@ Details: [WHATSAPP_TICKET_INTAKE.md](WHATSAPP_TICKET_INTAKE.md).
 ## Related documents
 
 - [STAGE_ROADMAP.md](STAGE_ROADMAP.md)
+- [STAGE_9_1_UI_UX.md](STAGE_9_1_UI_UX.md)
+- [APP_LAUNCHER_ARCHITECTURE.md](APP_LAUNCHER_ARCHITECTURE.md)
+- [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md)
 - [STAGE_7_TICKETING_TASKS.md](STAGE_7_TICKETING_TASKS.md)
 - [DOMAIN_BOUNDARIES.md](DOMAIN_BOUNDARIES.md)
 - [ZOHO_ACCOUNTING_BOUNDARY.md](ZOHO_ACCOUNTING_BOUNDARY.md)
