@@ -91,6 +91,11 @@ class User extends Authenticatable
         return $this->hasMany(AppNotification::class, 'user_id');
     }
 
+    public function uiPreference(): HasOne
+    {
+        return $this->hasOne(UserUiPreference::class);
+    }
+
     public function isSuperAdmin(): bool
     {
         return $this->hasRole(self::ROLE_SUPER_ADMIN);

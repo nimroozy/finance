@@ -7,6 +7,7 @@ use App\Http\Requests\Api\V1\Auth\ChangePasswordRequest;
 use App\Http\Requests\Api\V1\Auth\LoginRequest;
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\UserUiPreferenceService;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,7 +16,10 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    public function __construct(protected AuditLogger $auditLogger) {}
+    public function __construct(
+        protected AuditLogger $auditLogger,
+        protected UserUiPreferenceService $uiPreferences,
+    ) {}
 
     public function login(LoginRequest $request): JsonResponse
     {
@@ -99,7 +103,7 @@ class AuthController extends Controller
 
         $this->auditLogger->log('auth.login_success', $user);
 
-        $user->load(['roles', 'permissions', 'branches']);
+        $user->load(['roles', 'permissions', 'branches', 'uiPreference']);
 
         return ApiResponse::success([
             'token' => $token,
@@ -127,7 +131,7 @@ class AuthController extends Controller
 
     public function me(Request $request): JsonResponse
     {
-        $user = $request->user()->load(['roles', 'permissions', 'branches']);
+        $user = $request->user()->load(['roles', 'permissions', 'branches', 'uiPreference']);
 
         return ApiResponse::success($this->userPayload($user));
     }
@@ -180,6 +184,7 @@ class AuthController extends Controller
                 'name_en' => $branch->name_en,
                 'name_fa' => $branch->name_fa,
             ])->values(),
+            'ui_preferences' => $this->uiPreferences->getOrCreate($user)->toSummaryArray(),
         ];
     }
 }
