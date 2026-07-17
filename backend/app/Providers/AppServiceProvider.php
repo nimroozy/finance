@@ -28,8 +28,17 @@ use App\Events\TicketReopened;
 use App\Events\TicketResolved;
 use App\Events\TicketStatusChanged;
 use App\Events\WorkLogAdded;
+use App\Events\Services\ServiceActivated;
+use App\Events\Services\ServiceCancelled;
+use App\Events\Services\ServiceCreated;
+use App\Events\Services\ServiceFinanceHoldPlaced;
+use App\Events\Services\ServicePackageChanged;
+use App\Events\Services\ServiceReactivated;
+use App\Events\Services\ServiceRelocated;
+use App\Events\Services\ServiceSuspended;
 use App\Listeners\Crm\LogCrmPlaceholderIntegrations;
 use App\Listeners\EmitBusinessNotificationFromTicketEvents;
+use App\Listeners\Services\EmitBusinessNotificationFromServiceEvents;
 use App\Models\Branch;
 use App\Models\CollectionRoute;
 use App\Models\CollectionVisit;
@@ -53,6 +62,7 @@ use App\Models\Inventory\StockTransaction;
 use App\Models\Inventory\Supplier;
 use App\Models\Inventory\Tower;
 use App\Models\Inventory\Transfer;
+use App\Models\Services\Service;
 use App\Policies\Inventory\CustodyRecordPolicy;
 use App\Policies\Inventory\EquipmentPolicy;
 use App\Policies\Inventory\EquipmentSalePolicy;
@@ -96,6 +106,7 @@ use App\Policies\PaymentPolicy;
 use App\Policies\PaymentReversalPolicy;
 use App\Policies\PromiseToPayPolicy;
 use App\Policies\ReceiptPolicy;
+use App\Policies\Services\ServicePolicy;
 use App\Policies\TaskPolicy;
 use App\Policies\TicketPolicy;
 use App\Policies\UploadedVisitFilePolicy;
@@ -157,6 +168,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(MaintenancePlan::class, MaintenancePlanPolicy::class);
         Gate::policy(StockCount::class, StockCountPolicy::class);
         Gate::policy(FixedAsset::class, FixedAssetPolicy::class);
+        Gate::policy(Service::class, ServicePolicy::class);
 
         RateLimiter::for('login', function (Request $request) {
             return Limit::perMinute(5)->by($request->input('login', $request->ip()));
@@ -164,6 +176,25 @@ class AppServiceProvider extends ServiceProvider
 
         $this->registerOperationalEventListeners();
         $this->registerCrmEventListeners();
+        $this->registerServiceLifecycleEventListeners();
+    }
+
+    private function registerServiceLifecycleEventListeners(): void
+    {
+        $notifyFrom = [
+            ServiceCreated::class,
+            ServiceActivated::class,
+            ServiceSuspended::class,
+            ServiceReactivated::class,
+            ServiceCancelled::class,
+            ServicePackageChanged::class,
+            ServiceRelocated::class,
+            ServiceFinanceHoldPlaced::class,
+        ];
+
+        foreach ($notifyFrom as $event) {
+            Event::listen($event, [EmitBusinessNotificationFromServiceEvents::class, 'onDomainEvent']);
+        }
     }
 
     private function registerCrmEventListeners(): void

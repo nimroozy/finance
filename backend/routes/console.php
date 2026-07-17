@@ -2,6 +2,8 @@
 
 use App\Jobs\EvaluateCrmFollowUpsJob;
 use App\Jobs\EvaluateInventoryAlertsJob;
+use App\Jobs\EvaluateServiceContractExpiryJob;
+use App\Jobs\EvaluateServiceFinanceHoldsJob;
 use App\Jobs\ExpireReservationsJob;
 use App\Jobs\EvaluateEscalationsJob;
 use App\Jobs\EvaluateSlaBreachesJob;
@@ -63,4 +65,14 @@ Schedule::job(new EvaluateInventoryAlertsJob)
 Schedule::job(new ExpireReservationsJob)
     ->daily()
     ->name('expire-inventory-reservations')
+    ->withoutOverlapping();
+
+Schedule::job(new EvaluateServiceContractExpiryJob)
+    ->daily()
+    ->name('evaluate-service-contract-expiry')
+    ->withoutOverlapping();
+
+Schedule::job(new EvaluateServiceFinanceHoldsJob)
+    ->daily()
+    ->name('evaluate-service-finance-holds')
     ->withoutOverlapping();

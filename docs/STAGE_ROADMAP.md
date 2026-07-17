@@ -104,7 +104,26 @@ Models: [INVENTORY_MODEL.md](INVENTORY_MODEL.md), [INVENTORY_LEDGER_MODEL.md](IN
 
 ---
 
-## Stage 10 — SAS Radius integration
+## Stage 10 — ISP Service Lifecycle
+
+Commercial/operational service lifecycle after installation: packages, locations, activation, suspension, reactivation, cancellation, change requests, relocation, renewals, contracts, finance holds, and Zoho-synced read-only billing views.
+
+**Hard rules**
+
+- Do **not** connect to SAS Radius or any Radius DB in this stage.
+- Do **not** begin automated network provisioning.
+- Zoho remains source of truth for customers / invoices / payments — billing views are read-only from synced data.
+- Radius feature flag stays **false** (deferred to a later stage).
+
+---
+
+## Stage 11 — Unified dashboards and operational reporting
+
+Branch sales, sales by employee, new internet vs equipment sales, installation pipeline, ticket SLA, task backlog, inventory value, tower assets, receivables, collections, cash handovers, service lifecycle status, department performance, branch comparison.
+
+---
+
+## Stage 12 — SAS Radius integration (deferred)
 
 Branch-aware Radius adapter architecture (independent SAS server per branch).
 
@@ -113,12 +132,6 @@ Lookup, create, activate, suspend, package change, expiration, online status, se
 **Hard rule:** Central app must not depend on live Radius DB for normal page loads — cached views + queued commands. Optional secure local agent later.
 
 Model: [RADIUS_INTEGRATION_MODEL.md](RADIUS_INTEGRATION_MODEL.md).
-
----
-
-## Stage 11 — Unified dashboards and operational reporting
-
-Branch sales, sales by employee, new internet vs equipment sales, installation pipeline, ticket SLA, task backlog, inventory value, tower assets, receivables, collections, cash handovers, Radius activation status, department performance, branch comparison.
 
 ---
 
@@ -134,10 +147,11 @@ Branch sales, sales by employee, new internet vs equipment sales, installation p
 | 6 | Fixed asset and tower/site | 9 |
 | 7 | Customer-installed equipment | 8–9 |
 | 8 | Sales management and reporting | 8 + 11 |
-| 9 | SAS Radius branch integrations | 10 |
+| 9 | ISP service lifecycle | 10 |
 | 10 | Unified dashboards | 11 |
-| 11 | Purchasing and suppliers | After 9 (Zoho-backed) |
-| 12 | Advanced operational/financial reporting | 11 |
+| 11 | SAS Radius branch integrations | 12 |
+| 12 | Purchasing and suppliers | After 9 (Zoho-backed) |
+| 13 | Advanced operational/financial reporting | 11 |
 
 ## Feature flags
 
