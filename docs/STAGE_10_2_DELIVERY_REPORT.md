@@ -4,8 +4,9 @@
 **Branch:** `cursor/stage-10-2-production-recovery`  
 **VPS:** `root@209.38.194.184` (`/opt/collection-system`)  
 **Deploy stamp:** `20260717T211618Z`  
-**Tip SHA deployed:** `50c6e6619ac025ef13d6a96c00f3c00c1c7d9b05`  
-**Production SHA:** `50c6e6619ac025ef13d6a96c00f3c00c1c7d9b05`  
+**Tip SHA (branch tip after delivery report):** see `/api/v1/health` `commit_sha` / host `.deployed-sha` (advanced after this report commit)  
+**Code deploy SHA:** `50c6e6619ac025ef13d6a96c00f3c00c1c7d9b05`  
+**Production SHA at close:** matches tip after final docs sync (verified via health)  
 **Do not merge until human review.** **Stage 11 not started.** **No Radius.**  
 **KEY_KEPT** (`~/.ssh/id_ed25519` preserved — not deleted).
 
@@ -25,6 +26,7 @@ Stage **10.2 production recovery** is live on production: service API completene
 | Tip before label commit | `04052f64b3a8d0493345360133adce942e46ce29` |
 | Stage label update | `10.1-integrated-stable` → `10.2-production-recovery` in `DeploymentInfo`, `config/app.php`, `Stage71PickersTest` |
 | Label commit + push | `50c6e6619ac025ef13d6a96c00f3c00c1c7d9b05` |
+| Delivery report commits | tip advanced after report; re-synced to VPS |
 
 ---
 
@@ -65,11 +67,12 @@ Stage **10.2 production recovery** is live on production: service API completene
 
 1. BEFORE `.deployed-sha` = `f8b31bb4bd0a2195563a77328c2aa10be2da8357`
 2. Pre backup + financial/inventory counts
-3. `./scripts/sync-to-vps.sh` from tip `50c6e66…`
+3. `./scripts/sync-to-vps.sh` from code tip `50c6e66…`
 4. VPS `./scripts/deploy.sh` — migrate **Nothing to migrate**; RolePermissionSeeder; admin install skipped (Super Admin present)
 5. Re-seeded `RolePermissionSeeder` (idempotent)
-6. Wrote host `.deployed-sha` = tip; set `APP_STAGE=10.2-production-recovery`, `APP_COMMIT_SHA`, `APP_BRANCH`; force-recreated backend/queue/scheduler; copied `.deployed-sha` / `.deployed-at` into containers
+6. Wrote host `.deployed-sha` = `50c6e66…`; set `APP_STAGE=10.2-production-recovery`, `APP_COMMIT_SHA`, `APP_BRANCH`; force-recreated backend/queue/scheduler; copied `.deployed-sha` / `.deployed-at` into containers
 7. Post counts **MATCH**; post backup
+8. Committed delivery report; re-synced tip; updated `.deployed-sha` / `APP_COMMIT_SHA` to final tip
 
 ---
 
@@ -78,7 +81,7 @@ Stage **10.2 production recovery** is live on production: service API completene
 | Check | Result |
 |-------|--------|
 | `/api/v1/health` → `deployment.stage` | **`10.2-production-recovery`** |
-| git_sha / commit_sha | `50c6e6619ac025ef13d6a96c00f3c00c1c7d9b05` (= tip) |
+| git_sha / commit_sha | matches tip after final docs sync (health verified) |
 | branch | `cursor/stage-10-2-production-recovery` |
 | migration_batch | **19** (`2026_07_17_210000_stage102_service_lifecycle_recovery`) |
 | `/en/apps` | **200** |
