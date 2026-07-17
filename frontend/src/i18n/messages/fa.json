@@ -67,6 +67,7 @@
     "ownershipConflicts": "تعارض مالکیت",
     "branchPaymentMappings": "نگاشت حساب پرداخت شعبه",
     "customerPrefixMappings": "نگاشت پیشوند شماره مشتری",
+    "mappingCleanup": "پاکسازی نگاشت",
     "branchReceivables": "مطالبات شعب",
     "permanentCustomers": "مشتریان دائمی",
     "myDebtors": "بدهکاران جاری"

@@ -67,6 +67,7 @@
     "ownershipConflicts": "Ownership conflicts",
     "branchPaymentMappings": "Branch payment mappings",
     "customerPrefixMappings": "Customer prefix mappings",
+    "mappingCleanup": "Mapping cleanup",
     "branchReceivables": "Branch receivables",
     "permanentCustomers": "Permanent customers",
     "myDebtors": "Current debtors"

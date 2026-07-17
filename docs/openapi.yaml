@@ -3470,6 +3470,47 @@ paths:
           description: OK
         '401':
           description: Unauthorized
+  /customer-prefix-mappings/conflicts/{id}:
+    get:
+      summary: Conflict review payload
+      tags: [Mapping]
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: OK
+  /customer-prefix-mappings/conflicts/{id}/resolve:
+    post:
+      summary: Resolve a mapping conflict with required reason
+      tags: [Mapping]
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: OK
+        '422':
+          description: Validation error
+  /customer-prefix-mappings/backfill-dry-run:
+    post:
+      summary: Dry-run customer number backfill
+      tags: [Mapping]
+      responses:
+        '200':
+          description: OK
+  /customer-prefix-mappings/backfill-apply:
+    post:
+      summary: Apply customer number backfill
+      tags: [Mapping]
+      responses:
+        '200':
+          description: OK
+  /customer-prefix-mappings/unmapped:
+    get:
+      summary: List classified unmapped customers
+      tags: [Mapping]
+      responses:
+        '200':
+          description: OK
   /customer-prefix-mappings/{id}:
     put:
       summary: Update a customer number prefix mapping

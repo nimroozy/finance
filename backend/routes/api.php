@@ -245,8 +245,12 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         Route::middleware('permission:customer_prefix_mapping.view')->group(function () {
             Route::get('/customer-prefix-mappings', [CustomerPrefixMappingController::class, 'index']);
             Route::post('/customer-prefix-mappings/test', [CustomerPrefixMappingController::class, 'testNumber']);
+            Route::post('/customer-prefix-mappings/extract-preview', [CustomerPrefixMappingController::class, 'extractPreview']);
             Route::get('/customer-prefix-mappings/preview', [CustomerPrefixMappingController::class, 'preview']);
             Route::get('/customer-prefix-mappings/conflicts', [CustomerPrefixMappingController::class, 'conflicts']);
+            Route::get('/customer-prefix-mappings/conflicts/{id}', [CustomerPrefixMappingController::class, 'conflictShow'])->whereNumber('id');
+            Route::get('/customer-prefix-mappings/protected-history', [CustomerPrefixMappingController::class, 'protectedHistory']);
+            Route::get('/customer-prefix-mappings/unmapped', [CustomerPrefixMappingController::class, 'unmappedIndex']);
             Route::get('/customer-prefix-mappings/history', [CustomerPrefixMappingController::class, 'history']);
             Route::get('/customer-prefix-mappings/report', [CustomerPrefixMappingController::class, 'reportSummary']);
             Route::get('/branches/{branchId}/prefix-metrics', [CustomerPrefixMappingController::class, 'branchMetrics'])->whereNumber('branchId');
@@ -256,8 +260,16 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::put('/customer-prefix-mappings/{id}', [CustomerPrefixMappingController::class, 'update'])->whereNumber('id');
             Route::post('/customer-prefix-mappings/{id}/disable', [CustomerPrefixMappingController::class, 'disable'])->whereNumber('id');
             Route::post('/customer-prefix-mappings/dry-run', [CustomerPrefixMappingController::class, 'dryRun']);
+            Route::post('/customer-prefix-mappings/backfill-dry-run', [CustomerPrefixMappingController::class, 'backfillDryRun']);
+            Route::post('/customer-prefix-mappings/conflicts/{id}/resolve', [CustomerPrefixMappingController::class, 'conflictResolve'])->whereNumber('id');
+            Route::post('/customer-prefix-mappings/classify-unmapped', [CustomerPrefixMappingController::class, 'classifyUnmapped']);
+            Route::post('/customer-prefix-mappings/customers/{id}/classify', [CustomerPrefixMappingController::class, 'classifyCustomer'])->whereNumber('id');
+            Route::post('/branches/{branchId}/mark-headquarter', [CustomerPrefixMappingController::class, 'markBranchHeadquarter'])->whereNumber('branchId');
         });
-        Route::middleware('permission:customer_prefix_mapping.apply')->post('/customer-prefix-mappings/apply', [CustomerPrefixMappingController::class, 'apply']);
+        Route::middleware('permission:customer_prefix_mapping.apply')->group(function () {
+            Route::post('/customer-prefix-mappings/apply', [CustomerPrefixMappingController::class, 'apply']);
+            Route::post('/customer-prefix-mappings/backfill-apply', [CustomerPrefixMappingController::class, 'backfillApply']);
+        });
         Route::middleware('permission:receivables_dashboard.view')->get('/reports/branch-receivables', [BranchReceivablesController::class, 'index']);
 
         // --- Visits ---

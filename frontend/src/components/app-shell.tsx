@@ -66,6 +66,7 @@ const NAV_GROUPS: NavGroup[] = [
     { href: "/settings", labelKey: "settings", permissions: ["settings.manage"] },
     { href: "/settings/branch-payment-mappings", labelKey: "branchPaymentMappings", permissions: ["branch_payment_mapping.view"] },
     { href: "/settings/customer-prefix-mappings", labelKey: "customerPrefixMappings", permissions: ["customer_prefix_mapping.view"] },
+    { href: "/settings/mapping-cleanup", labelKey: "mappingCleanup", permissions: ["customer_prefix_mapping.view"] },
     { href: "/reports/branch-receivables", labelKey: "branchReceivables", permissions: ["receivables_dashboard.view"] },
     { href: "/audit-logs", labelKey: "auditLogs", permissions: ["audit.view"] },
   ] },

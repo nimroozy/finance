@@ -140,6 +140,7 @@ test.describe("mocked authenticated shells", () => {
     "/en/invoices",
     "/en/collector/payments/new",
     "/en/settings/customer-prefix-mappings",
+    "/en/settings/mapping-cleanup",
     "/en/branches",
   ]) {
     test(`route ${path} renders without crash`, async ({ page }) => {

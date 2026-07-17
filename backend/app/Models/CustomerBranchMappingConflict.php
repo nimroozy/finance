@@ -39,6 +39,12 @@ class CustomerBranchMappingConflict extends Model
         'resolved_by',
         'resolved_at',
         'resolution_notes',
+        'resolution_action',
+        'risk_level',
+        'recommended_action',
+        'resolved_branch_id',
+        'deferred',
+        'deferred_until',
     ];
 
     protected function casts(): array
@@ -46,6 +52,8 @@ class CustomerBranchMappingConflict extends Model
         return [
             'evidence' => 'array',
             'resolved_at' => 'datetime',
+            'deferred' => 'boolean',
+            'deferred_until' => 'datetime',
         ];
     }
 
