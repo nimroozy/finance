@@ -15,6 +15,11 @@ class DatabaseSeeder extends Seeder
             RolePermissionSeeder::class,
             BranchCustomerPrefixSeeder::class,
             WhatsAppNotificationRuleSeeder::class,
+            Stage7OrgSeeder::class,
+            Stage7SlaPolicySeeder::class,
+            Stage7TicketTypeSeeder::class,
+            Stage7TaskTemplateSeeder::class,
+            Stage7EscalationRuleSeeder::class,
         ]);
     }
 }

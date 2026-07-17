@@ -2,20 +2,9 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-
-class InstallationSequence extends Model
+/**
+ * Backward-compatible alias for App\Models\Tickets\InstallationSequence.
+ */
+class InstallationSequence extends \App\Models\Tickets\InstallationSequence
 {
-    protected $fillable = ['branch_id', 'year', 'last_sequence'];
-
-    protected function casts(): array
-    {
-        return ['year' => 'integer', 'last_sequence' => 'integer'];
-    }
-
-    public function branch(): BelongsTo
-    {
-        return $this->belongsTo(Branch::class);
-    }
 }
