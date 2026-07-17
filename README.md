@@ -30,6 +30,7 @@ Multi-branch ISP operations platform. Collections, Zoho Books accounting sync, a
 | [docs/TICKETING_MODEL.md](docs/TICKETING_MODEL.md) | Stage 7 tickets vs tasks |
 | [docs/CRM_INSTALLATION_MODEL.md](docs/CRM_INSTALLATION_MODEL.md) | Stage 8 CRM + installs |
 | [docs/INVENTORY_MODEL.md](docs/INVENTORY_MODEL.md) | Stage 9 immutable stock + assets |
+| [docs/STAGE_9_INVENTORY_ASSETS.md](docs/STAGE_9_INVENTORY_ASSETS.md) | Stage 9 delivery overview |
 | [docs/RADIUS_INTEGRATION_MODEL.md](docs/RADIUS_INTEGRATION_MODEL.md) | Stage 10 branch adapters |
 | [docs/ZOHO_ACCOUNTING_BOUNDARY.md](docs/ZOHO_ACCOUNTING_BOUNDARY.md) | Zoho SoT vs local ops |
 | [docs/openapi.yaml](docs/openapi.yaml) | OpenAPI |

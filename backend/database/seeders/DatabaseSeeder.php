@@ -21,6 +21,8 @@ class DatabaseSeeder extends Seeder
             Stage7TaskTemplateSeeder::class,
             Stage7EscalationRuleSeeder::class,
             Stage8LeadSourceSeeder::class,
+            Stage9ProductCategorySeeder::class,
+            Stage9DefaultLocationsSeeder::class,
         ]);
     }
 }

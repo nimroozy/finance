@@ -162,6 +162,44 @@ class RolePermissionSeeder extends Seeder
         'crm.targets.manage',
         'crm.reports.view',
         'crm.pipeline.manage',
+        // Stage 9 — Inventory / assets / sites / towers
+        'inventory.products.view',
+        'inventory.products.manage',
+        'inventory.categories.manage',
+        'inventory.locations.view',
+        'inventory.locations.manage',
+        'inventory.sites.view',
+        'inventory.sites.manage',
+        'inventory.towers.view',
+        'inventory.towers.manage',
+        'inventory.suppliers.view',
+        'inventory.suppliers.manage',
+        'inventory.stock.view',
+        'inventory.stock.transfer',
+        'inventory.stock.adjust',
+        'inventory.stock.count',
+        'inventory.reservations.view',
+        'inventory.reservations.manage',
+        'inventory.reservations.approve',
+        'inventory.transfers.view',
+        'inventory.transfers.manage',
+        'inventory.transfers.approve',
+        'inventory.purchasing.view',
+        'inventory.purchasing.manage',
+        'inventory.purchasing.approve',
+        'inventory.receiving.manage',
+        'inventory.equipment.view',
+        'inventory.equipment.manage',
+        'inventory.equipment.sales',
+        'inventory.custody.manage',
+        'inventory.repairs.manage',
+        'inventory.maintenance.manage',
+        'inventory.assets.view',
+        'inventory.assets.manage',
+        'inventory.reports.view',
+        'inventory.import',
+        'inventory.alerts.manage',
+        'inventory.dashboard.view',
     ];
 
     public function run(): void
@@ -252,6 +290,11 @@ class RolePermissionSeeder extends Seeder
             'crm.reports.view',
             'crm.leads.view',
             'crm.targets.view',
+            // Stage 9
+            'inventory.purchasing.view', 'inventory.purchasing.approve',
+            'inventory.reports.view', 'inventory.dashboard.view',
+            'inventory.products.view', 'inventory.stock.view',
+            'inventory.suppliers.view',
         ]);
 
         $branchManager->syncPermissions([
@@ -325,6 +368,21 @@ class RolePermissionSeeder extends Seeder
             'crm.targets.view', 'crm.targets.manage',
             'crm.reports.view',
             'crm.pipeline.manage',
+            // Stage 9 — inventory ops
+            'inventory.products.view', 'inventory.products.manage', 'inventory.categories.manage',
+            'inventory.locations.view', 'inventory.locations.manage',
+            'inventory.sites.view', 'inventory.sites.manage',
+            'inventory.towers.view', 'inventory.towers.manage',
+            'inventory.suppliers.view', 'inventory.suppliers.manage',
+            'inventory.stock.view', 'inventory.stock.transfer', 'inventory.stock.adjust', 'inventory.stock.count',
+            'inventory.reservations.view', 'inventory.reservations.manage', 'inventory.reservations.approve',
+            'inventory.transfers.view', 'inventory.transfers.manage', 'inventory.transfers.approve',
+            'inventory.purchasing.view', 'inventory.purchasing.manage',
+            'inventory.receiving.manage',
+            'inventory.equipment.view', 'inventory.equipment.manage', 'inventory.equipment.sales',
+            'inventory.custody.manage', 'inventory.repairs.manage', 'inventory.maintenance.manage',
+            'inventory.assets.view', 'inventory.assets.manage',
+            'inventory.reports.view', 'inventory.import', 'inventory.alerts.manage', 'inventory.dashboard.view',
         ]);
 
         $collector->syncPermissions([
@@ -399,6 +457,13 @@ class RolePermissionSeeder extends Seeder
             'crm.quotations.view',
             'crm.targets.view',
             'crm.reports.view',
+            // Stage 9 — view + reports
+            'inventory.products.view', 'inventory.locations.view', 'inventory.sites.view',
+            'inventory.towers.view', 'inventory.suppliers.view', 'inventory.stock.view',
+            'inventory.reservations.view', 'inventory.transfers.view', 'inventory.purchasing.view',
+            'inventory.equipment.view', 'inventory.assets.view',
+            'inventory.reports.view', 'inventory.dashboard.view',
         ]);
     }
 }
+

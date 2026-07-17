@@ -26,7 +26,7 @@ export type ModuleFlag = {
 };
 
 /**
- * Stage 6–8 modules are enabled (WhatsApp, ticketing/tasks/install queue, CRM).
+ * Stage 6–9 modules are enabled (WhatsApp, ticketing/tasks/install queue, CRM, inventory/assets/sites).
  * Later modules remain placeholders until their stage ships.
  */
 export const FEATURE_FLAGS: Record<PlatformModule, ModuleFlag> = {
@@ -62,21 +62,21 @@ export const FEATURE_FLAGS: Record<PlatformModule, ModuleFlag> = {
   },
   inventory: {
     id: "inventory",
-    enabled: false,
+    enabled: true,
     stage: 9,
-    showRoadmapPlaceholder: true,
+    showRoadmapPlaceholder: false,
   },
   assets: {
     id: "assets",
-    enabled: false,
+    enabled: true,
     stage: 9,
-    showRoadmapPlaceholder: true,
+    showRoadmapPlaceholder: false,
   },
   sites: {
     id: "sites",
-    enabled: false,
+    enabled: true,
     stage: 9,
-    showRoadmapPlaceholder: true,
+    showRoadmapPlaceholder: false,
   },
   radius: {
     id: "radius",

@@ -127,19 +127,23 @@ See [STAGE_8_CRM_SALES.md](STAGE_8_CRM_SALES.md).
 
 ## Inventory (Stage 9)
 
-**Owns:** products, serials, quantity items, warehouses/offices/towers/sites locations, **immutable** stock transactions.
+**Owns:** products, serials, quantity items, warehouses/offices/towers/sites locations, **immutable** stock transactions, reservations, transfers, receiving, counts, operational purchasing docs.
 
 **Events:** `StockReserved`, `StockTransferred`, `StockSold`, `StockAdjusted` (adjustment = txn type, not direct qty edit).
 
-**Must not:** allow `UPDATE products SET qty`.
+**Must not:** allow `UPDATE ... SET quantity`; call Zoho/Radius/WhatsApp inside stock TX.
+
+Docs: [INVENTORY_LEDGER_MODEL.md](INVENTORY_LEDGER_MODEL.md), [STAGE_9_INVENTORY_ASSETS.md](STAGE_9_INVENTORY_ASSETS.md).
 
 ---
 
 ## Assets / Sites / Towers (Stage 9)
 
-**Owns:** fixed assets, tower/office/vehicle/power equipment, custodians, maintenance, warranties, photos/docs; site and tower registries.
+**Owns:** fixed assets, tower/office/vehicle/power equipment, custodians, maintenance, warranties, photos/docs; site and tower registries; customer-installed equipment views.
 
 **Events:** `AssetAssigned`, `MaintenanceLogged`, `SiteCommissioned`.
+
+Docs: [TOWER_SITE_ASSET_MODEL.md](TOWER_SITE_ASSET_MODEL.md), [CUSTOMER_SERVICE_EQUIPMENT.md](CUSTOMER_SERVICE_EQUIPMENT.md).
 
 ---
 

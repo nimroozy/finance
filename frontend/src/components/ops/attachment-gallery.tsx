@@ -19,12 +19,20 @@ export function AttachmentGallery({
   onRefresh,
   uploading,
   className,
+  accept,
+  capture,
+  uploadLabel,
 }: {
   items: AttachmentItem[];
   onUpload?: (file: File) => void | Promise<void>;
   onRefresh?: () => void;
   uploading?: boolean;
   className?: string;
+  /** e.g. "image/*" for damage photos */
+  accept?: string;
+  /** Prefer rear camera on mobile when capturing photos */
+  capture?: boolean | "user" | "environment";
+  uploadLabel?: string;
 }) {
   const t = useTranslations("opsUi");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -45,7 +53,9 @@ export function AttachmentGallery({
                 ref={inputRef}
                 type="file"
                 className="sr-only"
-                aria-label={t("upload")}
+                aria-label={uploadLabel ?? t("upload")}
+                accept={accept}
+                capture={capture === true ? "environment" : capture || undefined}
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (file) void onUpload(file);
@@ -58,7 +68,7 @@ export function AttachmentGallery({
                 disabled={uploading}
                 onClick={() => inputRef.current?.click()}
               >
-                {t("upload")}
+                {uploadLabel ?? t("upload")}
               </Button>
             </>
           ) : null}

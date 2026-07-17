@@ -19,6 +19,7 @@ Unified multi-branch ISP operations so branch staff can work without daily login
 | **6** | **WhatsApp Cloud API + notification orchestration** | **Complete / foundation** |
 | **7** | **Ticketing, tasks, installation queue** | **Complete / delivered on branch** |
 | **8** | **CRM, sales pipeline, installations handoff** | **In progress / delivered on branch** |
+| **9** | **Inventory, assets, sites, towers** | **In progress / delivered on branch** |
 
 ## Stage 6 — WhatsApp & notifications (complete / foundation)
 
@@ -86,13 +87,20 @@ Model: [CRM_INSTALLATION_MODEL.md](CRM_INSTALLATION_MODEL.md).
 
 ## Stage 9 — Inventory, assets, sites, towers
 
-**Required inventory:** products, serialized + quantity items, warehouses/offices/towers/sites/customer locations, stock transactions (transfer, reserve, sale, install, return, repair, damage, loss, adjustment, scrap).
+**In progress / delivered on branch.** Overview: [STAGE_9_INVENTORY_ASSETS.md](STAGE_9_INVENTORY_ASSETS.md).
+
+**Delivered / in scope on this branch**
+
+- Immutable stock ledger, products, locations, reservations, transfers, receiving, counts
+- Serialized equipment lifecycle, custody, repairs, maintenance
+- Sites, towers, fixed assets, customer equipment
+- Purchasing requests/orders + goods receipts (operational)
+- Frontend inventory / assets / purchasing workspaces + reports
+- Import dry-run/apply + CSV reports
 
 **Hard rule:** Immutable inventory transactions only. No direct stock quantity editing.
 
-**Required assets:** fixed assets, tower/office/vehicle/server/power/solar equipment, maintenance, custodian, warranty, condition, photos, documents.
-
-Model: [INVENTORY_MODEL.md](INVENTORY_MODEL.md).
+Models: [INVENTORY_MODEL.md](INVENTORY_MODEL.md), [INVENTORY_LEDGER_MODEL.md](INVENTORY_LEDGER_MODEL.md).
 
 ---
 

@@ -9,6 +9,7 @@ use App\Models\Tickets\Task;
 use App\Models\Tickets\TaskTemplate;
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\Inventory\InstallationEquipmentService;
 use App\Services\Tasks\TaskService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -20,6 +21,7 @@ class InstallationQueueService
         private InstallationNumberService $numbers,
         private TaskService $tasks,
         private AuditLogger $audit,
+        private InstallationEquipmentService $installationEquipment,
     ) {}
 
     /**
@@ -77,6 +79,10 @@ class InstallationQueueService
             throw new InvalidArgumentException("Invalid installation transition [{$from} → {$to}].");
         }
 
+        if ($to === Installation::STATUS_COMPLETED) {
+            $this->ensureEquipmentReconciled($installation);
+        }
+
         return DB::transaction(function () use ($installation, $from, $to, $actor, $notes) {
             $installation->status = $to;
             if ($notes) {
@@ -93,6 +99,12 @@ class InstallationQueueService
 
             return $installation->fresh();
         });
+    }
+
+
+    public function ensureEquipmentReconciled(Installation $installation): void
+    {
+        $this->installationEquipment->ensureEquipmentReconciled($installation);
     }
 
     /**
