@@ -2,7 +2,9 @@
 
 **Date (UTC):** 2026-07-17  
 **Branch:** `cursor/stage-7-ticketing-tasks`  
-**SHA:** `bb9e408f20a9e730e0b09731b08a007f6e933489`  
+**SHA deployed:** `aa5d1a5a48283e1e2d5d14c9b49228a1ce344c68`  
+**VPS:** `root@209.38.194.184` (`/opt/collection-system`)  
+**Deploy stamp:** `20260717T133627Z`  
 **Base:** `cursor/stage-6-whatsapp` @ `af147c44870a07952fc8300d3eaf0a6ebca4c600`  
 **Draft PR:** https://github.com/nimroozy/finance/pull/11  
 **Do not merge:** prior stacked PRs until reviewed. **Stage 8 CRM not started.**
@@ -11,7 +13,7 @@
 
 ## Summary
 
-Stage 7 multi-branch ticketing and task management foundation delivered on branch:
+Stage 7 multi-branch ticketing and task management foundation delivered and **deployed to production VPS**:
 
 - Tickets separate from tasks (one ticket may spawn many departmental tasks)
 - Departments/teams, SLA clocks and escalations, work logs, attachments, major incidents
@@ -27,6 +29,7 @@ Stage 7 multi-branch ticketing and task management foundation delivered on branc
 - Does not merge previous PRs
 - Does not start Stage 8 CRM
 - Does not modify payment, wallet, handover, cashbox, custody reversal, or Zoho reconciliation calculations
+- Does not send live WhatsApp/Meta messages
 
 ---
 
@@ -34,8 +37,11 @@ Stage 7 multi-branch ticketing and task management foundation delivered on branc
 
 | Phase | Path | Status |
 |-------|------|--------|
-| Pre-deploy | `/opt/collection-backups/<UTC>-stage7-predeploy/` | **Pending** — `/opt/collection-system` not available in this agent environment |
-| Post-deploy | `/opt/collection-backups/<UTC>-stage7-postdeploy/` | **Pending** — requires production host |
+| Pre-deploy (labeled) | `/opt/collection-backups/20260717T133627Z-stage7-predeploy/` | **Done** — `db.sql` (~24MB), `config.tgz`, pre-counts |
+| Pre-deploy (script) | `/opt/collection-backups/20260717T133947Z` | **Done** — `./scripts/backup.sh` |
+| Post-deploy (labeled) | `/opt/collection-backups/20260717T133627Z-stage7-postdeploy/` | **Done** — `db.sql`, post-counts |
+| Post-deploy (script) | `/opt/collection-backups/20260717T134003Z` | **Done** — `./scripts/backup.sh` |
+| Snapshots | `/opt/collection-backups/snapshots/20260717T133627Z-stage7-*.txt` | pre/post counts + table list |
 
 ---
 
@@ -43,26 +49,74 @@ Stage 7 multi-branch ticketing and task management foundation delivered on branc
 
 | Artifact | Notes |
 |----------|--------|
-| `2026_07_17_160000_create_stage7_org_tables.php` | Departments, teams, membership pivots |
-| `2026_07_17_161000_create_stage7_ticketing_tables.php` | Tickets, tasks, SLA, escalations, installations, attachments, work logs |
-| Seeders | `Stage7OrgSeeder`, `Stage7TicketTypeSeeder`, `Stage7SlaPolicySeeder`, `Stage7EscalationRuleSeeder`, `Stage7TaskTemplateSeeder` |
+| `2026_07_17_160000_create_stage7_org_tables.php` | **Ran** `[14]` |
+| `2026_07_17_161000_create_stage7_ticketing_tables.php` | **Ran** `[14]` |
+| Seeders | All **SEED_OK** |
 
-### Tables created
+### Seed results (production)
 
-| Migration | Tables |
-|-----------|--------|
-| Org | `departments`, `teams`, `department_user`, `team_user` |
-| Ticketing | `ticket_types`, `sla_policies`, `ticket_sequences`, `task_sequences`, `installation_sequences`, `tickets`, `ticket_watchers`, `ticket_status_transitions`, `ticket_sla_states`, `sla_breach_events`, `major_incidents`, `major_incident_ticket`, `escalation_rules`, `escalations`, `task_templates`, `tasks`, `task_dependencies`, `task_status_transitions`, `work_logs`, `work_log_amendments`, `operational_attachments`, `installations`, `ticket_intake_suggestions`, `staff_action_tokens` |
+| Seeder | Result |
+|--------|--------|
+| `Stage7OrgSeeder` | OK — departments=72, teams=27 |
+| `Stage7SlaPolicySeeder` | OK — sla_policies=5 |
+| `Stage7TicketTypeSeeder` | OK — ticket_types=22 |
+| `Stage7TaskTemplateSeeder` | OK — task_templates=2 |
+| `Stage7EscalationRuleSeeder` | OK — escalation_rules=5 |
+| `RolePermissionSeeder` | OK |
 
-### Permissions summary
+### Tables confirmed present
 
-Stage 7 permissions are defined in `RolePermissionSeeder` (`tickets.*`, `tasks.*`, `sla.manage`, `installations.*`, `attachments.*`, `reports.support|technical|management`, `whatsapp.ticket_intake`, `whatsapp.staff_actions`, `departments.manage`, `ticket_types.manage`, `task_templates.manage`). Super Admin receives all; Central Finance / Branch Manager / Collector / Auditor get scoped subsets (view-heavy for auditor; field task accept/complete for collector).
+`departments`, `teams`, `tickets`, `tasks`, `ticket_types`, `sla_policies`, `escalation_rules`, `escalations`, `installations`, `task_templates`, plus related SLA/status/sequence/attachment tables.
 
-### Ticket types / SLA seeded
+---
 
-`Stage7SlaPolicySeeder` seeds default Critical/High/Normal/Medium/Low SLA policies (Asia/Kabul business hours). `Stage7TicketTypeSeeder` seeds 22 ticket types (e.g. connectivity_outage, slow_speed, installation_request, billing_inquiry, major_incident, whatsapp_general) linked to matching default SLA by priority.
+## Financial counts (production)
 
-**Production migrate/seed:** **Pending** — run on production host under `/opt/collection-system` after backup.
+| Metric | Pre | Post | Match |
+|--------|-----|------|-------|
+| payments | 3 | 3 | MATCH |
+| cash_handover_requests | 1 | 1 | MATCH |
+| cash_handovers | MISSING (N/A; table is `cash_handover_requests`) | MISSING | MATCH |
+| collector_wallets | 3 | 3 | MATCH |
+| branch_cashboxes | 2 | 2 | MATCH |
+| payment_reversals | 3 | 3 | MATCH |
+| whatsapp_connections | 1 | 1 | MATCH |
+
+---
+
+## Production verification checklist
+
+- [x] Pre-deploy backup + financial counts snapshot
+- [x] Code sync via `scripts/sync-to-vps.sh` + `./scripts/deploy.sh`
+- [x] Migrate + seed Stage 7
+- [x] Financial counts before/after unchanged
+- [x] Docker compose healthy (backend/frontend/postgres/redis healthy; nginx/queue/scheduler up)
+- [x] Health: `https://finance.mns.af/up` → **200**; local 443 → 200
+- [x] Admin login unchanged (`/en/login` + `/fa/login` → 200; Super Admin not reinstalled)
+- [x] WhatsApp foundation present (`whatsapp_connections=1`); no live Meta messages sent
+- [x] Public ports **22/80/443** (ufw allow OpenSSH/80/443; ss confirms listeners)
+- [x] `STAGE7 TEST` records created (ticket #2, task #1, installation #1) labeled **DO NOT USE**
+- [x] Post-deploy backup
+- [x] Stage 8 **not** started
+
+### STAGE7 TEST records
+
+| Entity | ID | Label |
+|--------|----|-------|
+| Ticket | 2 (`S7-TEST-1784295629`) | STAGE7 TEST ticket - DO NOT USE |
+| Task | 1 | STAGE7 TEST task - DO NOT USE |
+| Installation | 1 | STAGE7 TEST installation - DO NOT USE |
+
+---
+
+## Docker / ports / scheduler
+
+| Check | Status |
+|-------|--------|
+| `docker compose ps` | backend, frontend, postgres, redis **healthy**; nginx, queue-worker, scheduler up |
+| Public listeners | 22, 80, 443 |
+| ufw | active — OpenSSH, 80/tcp, 443/tcp |
+| Zoho / scheduler | `collection-system-scheduler-1` running (Laravel scheduler container); host cron includes `collection-backup`, certbot |
 
 ---
 
@@ -77,42 +131,6 @@ Stage 7 permissions are defined in `RolePermissionSeeder` (`tickets.*`, `tasks.*
 
 ---
 
-## Production verification
-
-**Status: PENDING** — `/opt/collection-system` is not available in this cloud agent environment. Complete on the production host:
-
-- [ ] Pre-deploy backup + financial counts snapshot
-- [ ] Migrate + seed Stage 7
-- [ ] `STAGE7 TEST` labeled walkthrough (tickets, tasks, installation queue, WhatsApp intake intents only — no live Meta unless approved)
-- [ ] Financial counts before/after unchanged (payments, handovers, wallets, cashboxes, custody)
-- [ ] WhatsApp foundation health (Stage 6 connection/webhook)
-- [ ] Public ports **22/80/443** only; containers healthy
-- [ ] Post-deploy backup
-- [ ] Update this report with backup paths, count tables, and walkthrough evidence
-
----
-
-## Financial counts (production)
-
-| Metric | Pre | Post | Notes |
-|--------|-----|------|-------|
-| Payments | _pending_ | _pending_ | Must remain unchanged |
-| Handovers | _pending_ | _pending_ | Must remain unchanged |
-| Collector wallets | _pending_ | _pending_ | Must remain unchanged |
-| Cashboxes | _pending_ | _pending_ | Must remain unchanged |
-
----
-
-## WhatsApp / ports (production)
-
-| Check | Status |
-|-------|--------|
-| Stage 6 WhatsApp foundation health | **Pending** (production host) |
-| Ticket intake via async orchestration (no Meta inside TX) | Implemented in code; live Meta optional |
-| Public listeners 22/80/443 | **Pending** (production host) |
-
----
-
 ## Delivered surfaces
 
 - Backend: org, tickets, tasks, SLA/escalations, installation queue, WhatsApp intake, dashboards/search/timeline APIs
@@ -123,6 +141,8 @@ Stage 7 permissions are defined in `RolePermissionSeeder` (`tickets.*`, `tasks.*
 
 ## Known issues / deferred
 
-- Production deploy, migrate/seed, `STAGE7 TEST` walkthrough, and financial/port checks remain for the production host
-- Stage 8 CRM (leads, opportunities, quotations, commercial installation workflow) not started
-- Live Meta WhatsApp end-to-end only when credentials approved on production
+- Initial remote heredoc lost trailing commands because `docker compose exec` consumed stdin; fixed by re-running migrate/seed/verify with stdin redirected to `/dev/null`. Migrations had already been applied by backend entrypoint/deploy; seeders were re-run successfully.
+- True pre-sync Stage 7 table absence confirmed via `\dt` (119 relations, no tickets/tasks); financial pre-counts file was written during fixup after migrate but before seed — financial totals unchanged throughout.
+- WhatsAppConnection tinker one-liner hit a PHP parse/escaping issue; SQL count confirmed `whatsapp_connections=1`.
+- Stage 8 CRM not started
+- Live Meta WhatsApp end-to-end only when credentials approved
