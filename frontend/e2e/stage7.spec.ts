@@ -114,7 +114,7 @@ async function mockStage7Api(page: Page, user = MOCK_USER) {
     );
   }, user);
 
-  let ticketsById: Record<number, typeof MOCK_TICKET> = {
+  const ticketsById: Record<number, typeof MOCK_TICKET> = {
     [MOCK_TICKET.id]: { ...MOCK_TICKET },
   };
   let task = { ...MOCK_TASK };
