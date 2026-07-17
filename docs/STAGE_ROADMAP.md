@@ -20,6 +20,9 @@ Unified multi-branch ISP operations so branch staff can work without daily login
 | **7** | **Ticketing, tasks, installation queue** | **Complete / delivered on branch** |
 | **8** | **CRM, sales pipeline, installations handoff** | **In progress / delivered on branch** |
 | **9** | **Inventory, assets, sites, towers** | **In progress / delivered on branch** |
+| **9.1** | **Unified app launcher, bilingual UI, UX shell** | **Complete / in 10.1 tip** |
+| **10** | **ISP service lifecycle** | **Complete / in 10.1 tip** |
+| **10.1** | **Integrated stable baseline (7→10 + 9.1)** | **In progress / tip branch** |
 
 ## Stage 6 — WhatsApp & notifications (complete / foundation)
 
@@ -104,7 +107,60 @@ Models: [INVENTORY_MODEL.md](INVENTORY_MODEL.md), [INVENTORY_LEDGER_MODEL.md](IN
 
 ---
 
-## Stage 10 — SAS Radius integration
+## Stage 9.1 — Unified app launcher & UX stabilization
+
+**Delivered on branch** `cursor/stage-9-1-unified-app-ui` (PR stacks on stage-9). Overview: [STAGE_9_1_UI_UX.md](STAGE_9_1_UI_UX.md).
+
+**Delivered / in scope**
+
+- `/apps` permission-aware launcher (favorites, recent, search, groups)
+- Server-backed UI preferences (theme, favorites, recent, default app)
+- Shared app shell: header, context sidebar, mobile drawer, bottom nav
+- EN/FA + RTL shell polish, dark/light/system theme, design tokens
+- i18n key parity check (`npm run i18n:check`)
+- Playwright launcher + matrix smoke; backend Stage91 preference tests
+
+**Hard rule:** UI/navigation/localization only. No accounting, inventory ledger, CRM, or Zoho behavior changes.
+
+Docs: [APP_LAUNCHER_ARCHITECTURE.md](APP_LAUNCHER_ARCHITECTURE.md), [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md), [EN_FA_LOCALIZATION.md](EN_FA_LOCALIZATION.md), [UI_TEST_MATRIX.md](UI_TEST_MATRIX.md).
+
+---
+
+## Stage 10 — ISP Service Lifecycle
+
+**Delivered on branch** `cursor/stage-10-service-lifecycle` (PR #15) and included in integrated tip `cursor/stage-10-1-integrated-stable` (PR #17).
+
+Commercial/operational service lifecycle after installation: packages, locations, activation, suspension, reactivation, cancellation, change requests, relocation, renewals, contracts, finance holds, and Zoho-synced read-only billing views.
+
+Docs: [STAGE_10_SERVICE_LIFECYCLE.md](STAGE_10_SERVICE_LIFECYCLE.md).
+
+**Hard rules**
+
+- Do **not** connect to SAS Radius or any Radius DB in this stage.
+- Do **not** begin automated network provisioning.
+- Zoho remains source of truth for customers / invoices / payments — billing views are read-only from synced data.
+- Radius feature flag stays **false** (deferred to Stage 12).
+- Stage 10 = **Service Lifecycle**; Radius is **not** Stage 10.
+
+---
+
+## Stage 10.1 — Integrated stable baseline
+
+**Tip branch:** `cursor/stage-10-1-integrated-stable` (draft PR #17). Version label: `10.1-integrated-stable`.
+
+Unifies Stages **7 / 7.1 / 8 / 9 / 9.1 / 10** for production deploy. Docs: [STAGE_10_1_INTEGRATED_STABLE.md](STAGE_10_1_INTEGRATED_STABLE.md), [BRANCH_INTEGRATION_HISTORY.md](BRANCH_INTEGRATION_HISTORY.md), [REGRESSION_TEST_MATRIX.md](REGRESSION_TEST_MATRIX.md), [PRODUCTION_SMOKE_TEST.md](PRODUCTION_SMOKE_TEST.md).
+
+**Hard rules:** No Stage 11. No Radius. Preserve superseded PRs #15/#16 for audit (close later as superseded). Do not mutate financial or ledger calculations.
+
+---
+
+## Stage 11 — Unified dashboards and operational reporting
+
+Branch sales, sales by employee, new internet vs equipment sales, installation pipeline, ticket SLA, task backlog, inventory value, tower assets, receivables, collections, cash handovers, service lifecycle status, department performance, branch comparison.
+
+---
+
+## Stage 12 — SAS Radius integration (deferred)
 
 Branch-aware Radius adapter architecture (independent SAS server per branch).
 
@@ -113,12 +169,6 @@ Lookup, create, activate, suspend, package change, expiration, online status, se
 **Hard rule:** Central app must not depend on live Radius DB for normal page loads — cached views + queued commands. Optional secure local agent later.
 
 Model: [RADIUS_INTEGRATION_MODEL.md](RADIUS_INTEGRATION_MODEL.md).
-
----
-
-## Stage 11 — Unified dashboards and operational reporting
-
-Branch sales, sales by employee, new internet vs equipment sales, installation pipeline, ticket SLA, task backlog, inventory value, tower assets, receivables, collections, cash handovers, Radius activation status, department performance, branch comparison.
 
 ---
 
@@ -134,10 +184,11 @@ Branch sales, sales by employee, new internet vs equipment sales, installation p
 | 6 | Fixed asset and tower/site | 9 |
 | 7 | Customer-installed equipment | 8–9 |
 | 8 | Sales management and reporting | 8 + 11 |
-| 9 | SAS Radius branch integrations | 10 |
+| 9 | ISP service lifecycle | 10 |
 | 10 | Unified dashboards | 11 |
-| 11 | Purchasing and suppliers | After 9 (Zoho-backed) |
-| 12 | Advanced operational/financial reporting | 11 |
+| 11 | SAS Radius branch integrations | 12 |
+| 12 | Purchasing and suppliers | After 9 (Zoho-backed) |
+| 13 | Advanced operational/financial reporting | 11 |
 
 ## Feature flags
 

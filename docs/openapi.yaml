@@ -91,6 +91,8 @@ tags:
   - name: CRM
   - name: Inventory
     description: Stage 9 inventory, assets, sites
+  - name: Services
+    description: Stage 10 ISP service lifecycle (no Radius)
 security:
   - bearerAuth: []
 paths:
@@ -4257,7 +4259,7 @@ paths:
       operationId: systemVersion
       responses:
         '200':
-          description: app_name, commit_sha, build_timestamp, backend/frontend versions, migration info, php/laravel versions
+          description: app_name, stage (10.1-integrated-stable), git_sha/commit_sha, branch, build_timestamp, deployment_timestamp, backend/frontend versions, migration info, php/laravel versions
 
   /pickers/customers:
     get:
@@ -5371,6 +5373,286 @@ paths:
           description: CSV
           content:
             text/csv: {}
+
+  # --- Stage 10 Service Lifecycle ---
+  /services/dashboard:
+    get:
+      tags: [Services]
+      summary: Service lifecycle dashboard summary
+      parameters:
+        - in: query
+          name: branch_id
+          schema: { type: integer }
+      responses:
+        "200": { description: Dashboard metrics }
+  /services/noc-workspace:
+    get:
+      tags: [Services]
+      summary: NOC operational services workspace
+      parameters:
+        - in: query
+          name: branch_id
+          schema: { type: integer }
+      responses:
+        "200": { description: Attention and pending activation queues }
+  /services/reports/status:
+    get:
+      tags: [Services]
+      summary: Service status report
+      parameters:
+        - in: query
+          name: branch_id
+          schema: { type: integer }
+      responses:
+        "200": { description: Status breakdown }
+  /services:
+    get:
+      tags: [Services]
+      summary: List services
+      responses:
+        "200": { description: Paginated services }
+    post:
+      tags: [Services]
+      summary: Create service
+      responses:
+        "201": { description: Created }
+  /services/{id}:
+    get:
+      tags: [Services]
+      summary: Get service (includes allowed transitions)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: Service }
+    put:
+      tags: [Services]
+      summary: Update service
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: Updated }
+  /services/{id}/activate:
+    post:
+      tags: [Services]
+      summary: Activate service (lifecycle only; no Radius)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: Activated }
+  /services/{id}/suspend:
+    post:
+      tags: [Services]
+      summary: Suspend service
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: Suspended }
+  /services/{id}/reactivate:
+    post:
+      tags: [Services]
+      summary: Reactivate suspended service
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: Reactivated }
+  /services/{id}/cancel:
+    post:
+      tags: [Services]
+      summary: Cancel service
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: Cancelled }
+  /services/{id}/transition:
+    post:
+      tags: [Services]
+      summary: Transition commercial/operational/billing status
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: Transitioned }
+  /services/{id}/change-requests:
+    post:
+      tags: [Services]
+      summary: Create package/service change request
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "201": { description: Change request created }
+  /services/{id}/relocations:
+    post:
+      tags: [Services]
+      summary: Request service relocation
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: Relocated or relocation created }
+  /services/{id}/renewals:
+    post:
+      tags: [Services]
+      summary: Renew service term
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "201": { description: Renewal created }
+  /services/{id}/finance-holds:
+    post:
+      tags: [Services]
+      summary: Place finance hold
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "201": { description: Hold placed }
+  /services/{id}/billing:
+    get:
+      tags: [Services]
+      summary: Read-only Zoho-synced billing view
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: Billing snapshot }
+  /services/{id}/timeline:
+    get:
+      tags: [Services]
+      summary: Service lifecycle timeline
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: Timeline events }
+  /service-packages:
+    get:
+      tags: [Services]
+      summary: List service packages
+      responses:
+        "200": { description: Paginated packages }
+    post:
+      tags: [Services]
+      summary: Create service package
+      responses:
+        "201": { description: Created }
+  /service-packages/{id}/versions:
+    post:
+      tags: [Services]
+      summary: Create package version
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "201": { description: Version created }
+  /service-locations:
+    get:
+      tags: [Services]
+      summary: List service locations
+      responses:
+        "200": { description: Paginated locations }
+    post:
+      tags: [Services]
+      summary: Create service location
+      responses:
+        "201": { description: Created }
+  /service-locations/{id}:
+    put:
+      tags: [Services]
+      summary: Update service location
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: Updated }
+  /service-types:
+    get:
+      tags: [Services]
+      summary: List service types
+      responses:
+        "200": { description: Types }
+  /service-access-technologies:
+    get:
+      tags: [Services]
+      summary: List access technologies
+      responses:
+        "200": { description: Technologies }
+  /service-sla-templates:
+    get:
+      tags: [Services]
+      summary: List service SLA templates
+      responses:
+        "200": { description: SLA templates }
+  /service-contracts:
+    get:
+      tags: [Services]
+      summary: List service contracts
+      responses:
+        "200": { description: Paginated contracts }
+    post:
+      tags: [Services]
+      summary: Create service contract
+      responses:
+        "201": { description: Created }
+  /service-finance-holds/{holdId}/release:
+    post:
+      tags: [Services]
+      summary: Release finance hold
+      parameters:
+        - in: path
+          name: holdId
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: Hold released }
+  /installations/{id}/convert-to-service:
+    post:
+      tags: [Services]
+      summary: Convert completed installation to service draft
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "201": { description: Service created }
 
 components:
   securitySchemes:

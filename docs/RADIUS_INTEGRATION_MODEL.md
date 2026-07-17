@@ -1,4 +1,6 @@
-# SAS Radius Integration Model (Stage 10)
+# SAS Radius Integration Model (Stage 12 — deferred)
+
+> Historically drafted as Stage 10. Product brief assigns Stage 10 to **Service Lifecycle**; Radius is Stage 12.
 
 ## Context
 

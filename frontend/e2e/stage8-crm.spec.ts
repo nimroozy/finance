@@ -1,4 +1,5 @@
 import { test, expect, type Page, type Route } from "@playwright/test";
+import { clickConfirmDialog, clickMainAction } from "./helpers";
 
 const STAGE8_PERMISSIONS = [
   "dashboard.view",
@@ -328,13 +329,13 @@ test.describe("Stage 8 CRM", () => {
     await page.goto("/en/crm/leads/new");
     await expect(page.getByRole("heading", { name: /Create lead/i })).toBeVisible();
     await page.getByRole("textbox").first().fill("New Contact");
-    await page.getByRole("button", { name: /Create lead/i }).click();
+    await clickMainAction(page, /Create lead/i);
     await expect(page).toHaveURL(/\/crm\/leads\/99/);
 
     await page.goto("/en/crm/leads/10");
     await expect(page.getByRole("heading", { name: /LEAD-000010/ })).toBeVisible();
     await page.getByRole("button", { name: /^Contacted$/i }).click();
-    await page.getByRole("button", { name: /Confirm/i }).click();
+    await clickConfirmDialog(page);
     await expect(page.getByText(/Stage updated/i)).toBeVisible();
 
     await page.goto("/en/crm/follow-ups");

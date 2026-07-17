@@ -23,6 +23,9 @@ class DatabaseSeeder extends Seeder
             Stage8LeadSourceSeeder::class,
             Stage9ProductCategorySeeder::class,
             Stage9DefaultLocationsSeeder::class,
+            Stage10ServiceTypeSeeder::class,
+            Stage10AccessTechnologySeeder::class,
+            Stage10SlaTemplateSeeder::class,
         ]);
     }
 }

@@ -4,6 +4,7 @@ import { getMessages, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { routing } from "@/i18n/routing";
 import { AuthProvider } from "@/components/auth-provider";
+import { ThemeProvider } from "@/components/theme-provider";
 
 const ibmPlexSans = IBM_Plex_Sans({
   subsets: ["latin"],
@@ -42,11 +43,20 @@ export default async function LocaleLayout({
 
   return (
     <html lang={locale} dir={dir} suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var c=localStorage.getItem("ui-preferences-cache");var t=c?JSON.parse(c).theme:"system";var d=t==="dark"||(t!=="light"&&window.matchMedia("(prefers-color-scheme: dark)").matches);if(d)document.documentElement.classList.add("dark");document.documentElement.dataset.theme=t||"system";}catch(e){}})();`,
+          }}
+        />
+      </head>
       <body
         className={`${ibmPlexSans.variable} ${ibmPlexArabic.variable} antialiased`}
       >
         <NextIntlClientProvider messages={messages}>
-          <AuthProvider>{children}</AuthProvider>
+          <ThemeProvider>
+            <AuthProvider>{children}</AuthProvider>
+          </ThemeProvider>
         </NextIntlClientProvider>
       </body>
     </html>

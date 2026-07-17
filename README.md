@@ -12,11 +12,12 @@ Multi-branch ISP operations platform. Collections, Zoho Books accounting sync, a
 |-------|--------|--------|
 | 1–5.3 | Foundation → collections → cash → ownership → prefix mapping cleanup | Complete |
 | **6** | WhatsApp Cloud API + notification orchestration | Foundation deployed (live Meta verify when credentials set) |
-| 7 | Ticketing & tasks | Not started |
-| 8 | CRM, sales, installations | Not started |
-| 9 | Inventory, assets, sites, towers | Not started |
-| 10 | SAS Radius branch adapters | Not started |
+| 7 | Ticketing & tasks | Complete |
+| 8 | CRM, sales, installations | Complete |
+| 9 | Inventory, assets, sites, towers | Complete |
+| **10** | ISP Service Lifecycle | In progress (this branch) |
 | 11 | Unified dashboards & reporting | Not started |
+| 12 | SAS Radius branch adapters | Deferred (flag stays false) |
 
 **Do not auto-start Stage 7 after Stage 6.**
 
@@ -31,7 +32,8 @@ Multi-branch ISP operations platform. Collections, Zoho Books accounting sync, a
 | [docs/CRM_INSTALLATION_MODEL.md](docs/CRM_INSTALLATION_MODEL.md) | Stage 8 CRM + installs |
 | [docs/INVENTORY_MODEL.md](docs/INVENTORY_MODEL.md) | Stage 9 immutable stock + assets |
 | [docs/STAGE_9_INVENTORY_ASSETS.md](docs/STAGE_9_INVENTORY_ASSETS.md) | Stage 9 delivery overview |
-| [docs/RADIUS_INTEGRATION_MODEL.md](docs/RADIUS_INTEGRATION_MODEL.md) | Stage 10 branch adapters |
+| [docs/RADIUS_INTEGRATION_MODEL.md](docs/RADIUS_INTEGRATION_MODEL.md) | Stage 12 branch adapters (deferred) |
+| [docs/STAGE_10_SERVICE_LIFECYCLE.md](docs/STAGE_10_SERVICE_LIFECYCLE.md) | Stage 10 service lifecycle |
 | [docs/ZOHO_ACCOUNTING_BOUNDARY.md](docs/ZOHO_ACCOUNTING_BOUNDARY.md) | Zoho SoT vs local ops |
 | [docs/openapi.yaml](docs/openapi.yaml) | OpenAPI |
 

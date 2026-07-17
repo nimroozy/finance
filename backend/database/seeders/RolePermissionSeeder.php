@@ -200,6 +200,31 @@ class RolePermissionSeeder extends Seeder
         'inventory.import',
         'inventory.alerts.manage',
         'inventory.dashboard.view',
+        // Stage 10 — Service Lifecycle (Radius intentionally deferred)
+        'services.view',
+        'services.create',
+        'services.update',
+        'services.activate',
+        'services.suspend',
+        'services.reactivate',
+        'services.cancel',
+        'services.change',
+        'services.relocate',
+        'services.renew',
+        'services.packages.view',
+        'services.packages.manage',
+        'services.locations.view',
+        'services.locations.manage',
+        'services.contracts.view',
+        'services.contracts.manage',
+        'services.finance_holds.manage',
+        'services.billing.view',
+        'services.sla.manage',
+        'services.dashboard.view',
+        'services.noc.view',
+        'services.reports.view',
+        'services.migrate',
+        'services.types.manage',
     ];
 
     public function run(): void
@@ -295,6 +320,10 @@ class RolePermissionSeeder extends Seeder
             'inventory.reports.view', 'inventory.dashboard.view',
             'inventory.products.view', 'inventory.stock.view',
             'inventory.suppliers.view',
+            // Stage 10
+            'services.view', 'services.billing.view', 'services.dashboard.view', 'services.reports.view',
+            'services.packages.view', 'services.locations.view', 'services.contracts.view',
+            'services.activate', 'services.suspend', 'services.cancel', 'services.update',
         ]);
 
         $branchManager->syncPermissions([
@@ -383,6 +412,16 @@ class RolePermissionSeeder extends Seeder
             'inventory.custody.manage', 'inventory.repairs.manage', 'inventory.maintenance.manage',
             'inventory.assets.view', 'inventory.assets.manage',
             'inventory.reports.view', 'inventory.import', 'inventory.alerts.manage', 'inventory.dashboard.view',
+            // Stage 10 — service lifecycle
+            'services.view', 'services.create', 'services.update',
+            'services.activate', 'services.suspend', 'services.reactivate', 'services.cancel',
+            'services.change', 'services.relocate', 'services.renew',
+            'services.packages.view', 'services.packages.manage',
+            'services.locations.view', 'services.locations.manage',
+            'services.contracts.view', 'services.contracts.manage',
+            'services.finance_holds.manage', 'services.billing.view', 'services.sla.manage',
+            'services.dashboard.view', 'services.noc.view', 'services.reports.view',
+            'services.migrate', 'services.types.manage',
         ]);
 
         $collector->syncPermissions([
@@ -463,6 +502,10 @@ class RolePermissionSeeder extends Seeder
             'inventory.reservations.view', 'inventory.transfers.view', 'inventory.purchasing.view',
             'inventory.equipment.view', 'inventory.assets.view',
             'inventory.reports.view', 'inventory.dashboard.view',
+            // Stage 10 — view
+            'services.view', 'services.packages.view', 'services.locations.view',
+            'services.contracts.view', 'services.billing.view',
+            'services.dashboard.view', 'services.reports.view',
         ]);
     }
 }

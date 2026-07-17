@@ -175,6 +175,7 @@ class Ticket extends Model
         'ticket_number',
         'branch_id',
         'customer_id',
+        'service_id',
         'customer_number',
         'source',
         'type_code',

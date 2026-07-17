@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\AssignmentController;
 use App\Http\Controllers\Api\V1\AuditLogController;
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\UserUiPreferenceController;
 use App\Http\Controllers\Api\V1\BranchController;
 use App\Http\Controllers\Api\V1\CashboxController;
 use App\Http\Controllers\Api\V1\CashboxTransferController;
@@ -72,6 +73,15 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
             Route::get('/me', [AuthController::class, 'me'])->name('me');
             Route::post('/change-password', [AuthController::class, 'changePassword'])->name('change-password');
+        });
+
+        Route::prefix('me')->name('me.')->group(function () {
+            Route::get('/ui-preferences', [UserUiPreferenceController::class, 'show'])->name('ui-preferences.show');
+            Route::put('/ui-preferences', [UserUiPreferenceController::class, 'update'])->name('ui-preferences.update');
+            Route::put('/ui-preferences/favorites/reorder', [UserUiPreferenceController::class, 'reorderFavorites'])->name('ui-preferences.favorites.reorder');
+            Route::post('/ui-preferences/favorites/{appId}', [UserUiPreferenceController::class, 'addFavorite'])->name('ui-preferences.favorites.add');
+            Route::delete('/ui-preferences/favorites/{appId}', [UserUiPreferenceController::class, 'removeFavorite'])->name('ui-preferences.favorites.remove');
+            Route::post('/ui-preferences/recent/{appId}', [UserUiPreferenceController::class, 'recordRecent'])->name('ui-preferences.recent');
         });
 
         Route::get('/dashboard/summary', [DashboardController::class, 'summary'])->name('dashboard.summary');
@@ -808,6 +818,55 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         Route::middleware('permission:inventory.equipment.view')->get('/inventory/customer-equipment', [\App\Http\Controllers\Api\V1\Inventory\InventoryOpsController::class, 'customerEquipmentIndex'])->name('inventory.customer-equipment.index');
         Route::middleware('permission:inventory.assets.view|inventory.assets.manage')->get('/inventory/fixed-assets', [\App\Http\Controllers\Api\V1\Inventory\InventoryOpsController::class, 'fixedAssetsIndex'])->name('inventory.fixed-assets.index');
         Route::middleware('permission:inventory.assets.manage')->post('/inventory/fixed-assets', [\App\Http\Controllers\Api\V1\Inventory\InventoryOpsController::class, 'fixedAssetsStore'])->name('inventory.fixed-assets.store');
+
+        // Stage 10 — ISP Service Lifecycle (no Radius)
+        Route::middleware('permission:services.view')->group(function () {
+            Route::get('/services', [\App\Http\Controllers\Api\V1\Services\ServiceController::class, 'index'])->name('services.index');
+            Route::get('/services/dashboard', [\App\Http\Controllers\Api\V1\Services\ServiceOpsController::class, 'dashboard'])->name('services.dashboard');
+            Route::get('/services/noc-workspace', [\App\Http\Controllers\Api\V1\Services\ServiceOpsController::class, 'noc'])->name('services.noc');
+            Route::get('/services/reports/status', [\App\Http\Controllers\Api\V1\Services\ServiceOpsController::class, 'reports'])->name('services.reports.status');
+            Route::get('/services/{id}', [\App\Http\Controllers\Api\V1\Services\ServiceController::class, 'show'])->whereNumber('id')->name('services.show');
+            Route::get('/services/{id}/timeline', [\App\Http\Controllers\Api\V1\Services\ServiceController::class, 'timeline'])->whereNumber('id')->name('services.timeline');
+            Route::get('/services/{id}/billing', [\App\Http\Controllers\Api\V1\Services\ServiceController::class, 'billing'])->whereNumber('id')->name('services.billing');
+            Route::get('/service-types', [\App\Http\Controllers\Api\V1\Services\ServiceCatalogController::class, 'types'])->name('services.types');
+            Route::get('/service-access-technologies', [\App\Http\Controllers\Api\V1\Services\ServiceCatalogController::class, 'technologies'])->name('services.technologies');
+            Route::get('/service-sla-templates', [\App\Http\Controllers\Api\V1\Services\ServiceCatalogController::class, 'slaTemplates'])->name('services.sla-templates');
+        });
+        Route::middleware('permission:services.create')->post('/services', [\App\Http\Controllers\Api\V1\Services\ServiceController::class, 'store'])->name('services.store');
+        Route::middleware('permission:services.update')->group(function () {
+            Route::put('/services/{id}', [\App\Http\Controllers\Api\V1\Services\ServiceController::class, 'update'])->whereNumber('id')->name('services.update');
+            Route::post('/services/{id}/transition', [\App\Http\Controllers\Api\V1\Services\ServiceController::class, 'transition'])->whereNumber('id')->name('services.transition');
+            Route::post('/services/{id}/change-requests', [\App\Http\Controllers\Api\V1\Services\ServiceController::class, 'changeRequest'])->whereNumber('id')->name('services.change-requests');
+            Route::post('/services/{id}/relocations', [\App\Http\Controllers\Api\V1\Services\ServiceController::class, 'relocate'])->whereNumber('id')->name('services.relocations');
+            Route::post('/services/{id}/renewals', [\App\Http\Controllers\Api\V1\Services\ServiceController::class, 'renew'])->whereNumber('id')->name('services.renewals');
+            Route::post('/services/{id}/finance-holds', [\App\Http\Controllers\Api\V1\Services\ServiceController::class, 'placeHold'])->whereNumber('id')->name('services.finance-holds');
+            Route::post('/service-finance-holds/{holdId}/release', [\App\Http\Controllers\Api\V1\Services\ServiceController::class, 'releaseHold'])->whereNumber('holdId')->name('services.finance-holds.release');
+        });
+        Route::middleware('permission:services.activate')->group(function () {
+            Route::post('/services/{id}/activate', [\App\Http\Controllers\Api\V1\Services\ServiceController::class, 'activate'])->whereNumber('id')->name('services.activate');
+            Route::post('/services/{id}/reactivate', [\App\Http\Controllers\Api\V1\Services\ServiceController::class, 'reactivate'])->whereNumber('id')->name('services.reactivate');
+        });
+        Route::middleware('permission:services.suspend')->post('/services/{id}/suspend', [\App\Http\Controllers\Api\V1\Services\ServiceController::class, 'suspend'])->whereNumber('id')->name('services.suspend');
+        Route::middleware('permission:services.cancel')->post('/services/{id}/cancel', [\App\Http\Controllers\Api\V1\Services\ServiceController::class, 'cancel'])->whereNumber('id')->name('services.cancel');
+
+        Route::middleware('permission:services.packages.view|services.view')->get('/service-packages', [\App\Http\Controllers\Api\V1\Services\ServicePackageController::class, 'index'])->name('service-packages.index');
+        Route::middleware('permission:services.packages.manage')->group(function () {
+            Route::post('/service-packages', [\App\Http\Controllers\Api\V1\Services\ServicePackageController::class, 'store'])->name('service-packages.store');
+            Route::post('/service-packages/{id}/versions', [\App\Http\Controllers\Api\V1\Services\ServicePackageController::class, 'storeVersion'])->whereNumber('id')->name('service-packages.versions');
+        });
+
+        Route::middleware('permission:services.locations.view|services.view')->get('/service-locations', [\App\Http\Controllers\Api\V1\Services\ServiceLocationController::class, 'index'])->name('service-locations.index');
+        Route::middleware('permission:services.locations.manage|services.create')->post('/service-locations', [\App\Http\Controllers\Api\V1\Services\ServiceLocationController::class, 'store'])->name('service-locations.store');
+        Route::middleware('permission:services.locations.manage|services.update')->put('/service-locations/{id}', [\App\Http\Controllers\Api\V1\Services\ServiceLocationController::class, 'update'])->whereNumber('id')->name('service-locations.update');
+
+        Route::middleware('permission:services.contracts.view|services.view')->get('/service-contracts', [\App\Http\Controllers\Api\V1\Services\ServiceOpsController::class, 'contracts'])->name('service-contracts.index');
+        Route::middleware('permission:services.contracts.manage')->post('/service-contracts', [\App\Http\Controllers\Api\V1\Services\ServiceOpsController::class, 'storeContract'])->name('service-contracts.store');
+
+        Route::middleware('permission:services.create')->post('/installations/{id}/convert-to-service', [\App\Http\Controllers\Api\V1\Services\ServiceOpsController::class, 'convertInstallation'])->whereNumber('id')->name('installations.convert-to-service');
+        Route::middleware('permission:services.migrate')->group(function () {
+            Route::post('/services/migration/dry-run', [\App\Http\Controllers\Api\V1\Services\ServiceOpsController::class, 'migrationDryRun'])->name('services.migration.dry-run');
+            Route::post('/services/migration/apply', [\App\Http\Controllers\Api\V1\Services\ServiceOpsController::class, 'migrationApply'])->name('services.migration.apply');
+        });
 
     });
 });

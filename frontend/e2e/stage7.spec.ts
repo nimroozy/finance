@@ -1,4 +1,5 @@
 import { test, expect, type Page, type Route } from "@playwright/test";
+import { clickConfirmDialog, clickMainAction } from "./helpers";
 
 const STAGE7_PERMISSIONS = [
   "dashboard.view",
@@ -508,13 +509,13 @@ test.describe("stage 7 ticketing / tasks", () => {
     const typeSelect = page.locator("main select").first();
     await typeSelect.selectOption("support");
     await page.locator('main input[required]').first().fill("Fiber down");
-    await page.getByRole("button", { name: "Create", exact: true }).click();
+    await clickMainAction(page, "Create", { exact: true });
     await expect(page).toHaveURL(/\/tickets\/99/);
 
     await page.goto("/en/tickets/10");
     await expect(page.getByRole("heading", { name: /TKT-0010/ })).toBeVisible();
     await page.getByRole("button", { name: /In Progress/i }).click();
-    await page.getByRole("button", { name: /Confirm/i }).click();
+    await clickConfirmDialog(page);
     await expect(page.getByText(/Status updated/i)).toBeVisible();
   });
 
@@ -524,14 +525,14 @@ test.describe("stage 7 ticketing / tasks", () => {
     await page.goto("/en/tasks/20");
     await expect(page.getByRole("button", { name: /^Accept$/i })).toBeVisible();
     await page.getByRole("button", { name: /^Accept$/i }).click();
-    await page.getByRole("button", { name: /Confirm/i }).click();
+    await clickConfirmDialog(page);
     await expect(page.getByText(/Task status updated|Task accepted/i)).toBeVisible();
 
     await page.getByRole("button", { name: /Start work/i }).click();
-    await page.getByRole("button", { name: /Confirm/i }).click();
+    await clickConfirmDialog(page);
     await expect(page.getByText(/Task status updated|Work started/i)).toBeVisible();
     await page.getByRole("button", { name: /^Complete$/i }).click();
-    await page.getByRole("button", { name: /Confirm/i }).click();
+    await clickConfirmDialog(page);
     await expect(page.getByText(/Task status updated|Task completed/i)).toBeVisible();
   });
 
