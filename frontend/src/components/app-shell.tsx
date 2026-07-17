@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { LoadingState } from "@/components/ui/layout";
 import { cn } from "@/lib/utils";
+import { isModuleEnabled, roadmapPlaceholders } from "@/config/feature-flags";
 
 type NavItem = {
   href: string;
@@ -56,14 +57,19 @@ const NAV_GROUPS: NavGroup[] = [
     { href: "/bank-deposits", labelKey: "bankDeposits", permissions: ["bank_deposits.view"] },
     { href: "/reconciliation", labelKey: "reconciliation", permissions: ["cash_reconciliation.view"] },
   ] },
-  { labelKey: "whatsapp", items: [
-    { href: "/whatsapp/messages", labelKey: "whatsappMessages", permissions: ["whatsapp.view"] },
-    { href: "/whatsapp/templates", labelKey: "whatsappTemplates", permissions: ["whatsapp.view"] },
-    { href: "/whatsapp/inbox", labelKey: "whatsappInbox", permissions: ["whatsapp.view"] },
-    { href: "/whatsapp/failures", labelKey: "whatsappFailures", permissions: ["whatsapp.view"] },
-    { href: "/settings/whatsapp", labelKey: "whatsappSettings", permissions: ["whatsapp.manage"] },
-    { href: "/settings/whatsapp-rules", labelKey: "whatsappRules", permissions: ["whatsapp.manage"] },
-  ] },
+  ...(isModuleEnabled("whatsapp")
+    ? [{
+        labelKey: "whatsapp" as const,
+        items: [
+          { href: "/whatsapp/messages", labelKey: "whatsappMessages", permissions: ["whatsapp.view"] },
+          { href: "/whatsapp/templates", labelKey: "whatsappTemplates", permissions: ["whatsapp.view"] },
+          { href: "/whatsapp/inbox", labelKey: "whatsappInbox", permissions: ["whatsapp.view"] },
+          { href: "/whatsapp/failures", labelKey: "whatsappFailures", permissions: ["whatsapp.view"] },
+          { href: "/settings/whatsapp", labelKey: "whatsappSettings", permissions: ["whatsapp.manage"] },
+          { href: "/settings/whatsapp-rules", labelKey: "whatsappRules", permissions: ["whatsapp.manage"] },
+        ],
+      }]
+    : []),
   { labelKey: "administration", items: [
     { href: "/branches", labelKey: "branches", permissions: ["branches.view", "branches.manage"] },
     { href: "/zoho", labelKey: "zohoStructure", permissions: ["zoho.view"] },
@@ -130,6 +136,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       .filter((group) => group.items.length > 0);
   }, [forcePassword, hasAnyPermission, isCollectorRole]);
 
+  const roadmapItems = useMemo(() => roadmapPlaceholders(), []);
+  const showRoadmap = !forcePassword && !isCollectorRole && hasAnyPermission(["dashboard.view", "settings.manage", "branches.manage"]);
+
   if (!hydrated || !token || !user) {
     return <LoadingState label={tCommon("loading")} />;
   }
@@ -170,17 +179,45 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     );
   };
 
-  const navGroups = (onNavigate?: () => void) => visibleGroups.map((group) => {
-    const active = group.items.some((item) => pathname === item.href || pathname.startsWith(`${item.href}/`));
-    return (
-      <details key={group.labelKey} open={active || undefined} className="group">
-        <summary className="cursor-pointer list-none rounded-md px-3 py-2 text-xs font-semibold uppercase tracking-wider text-muted hover:bg-sand-soft">
-          <span className="flex items-center justify-between">{t(group.labelKey as "dashboard")}<span className="transition group-open:rotate-180">⌄</span></span>
-        </summary>
-        <div className="mt-1 space-y-1 ps-2">{group.items.map((item) => navLink(item, onNavigate))}</div>
-      </details>
-    );
-  });
+  const roadmapNav = (
+    <details key="roadmap" className="group">
+      <summary className="cursor-pointer list-none rounded-md px-3 py-2 text-xs font-semibold uppercase tracking-wider text-muted hover:bg-sand-soft">
+        <span className="flex items-center justify-between">
+          {t("roadmap")}
+          <span className="transition group-open:rotate-180">⌄</span>
+        </span>
+      </summary>
+      <div className="mt-1 space-y-1 ps-2">
+        {roadmapItems.map((mod) => (
+          <div
+            key={mod.id}
+            className="rounded-md px-3 py-2 text-sm text-muted/80"
+            title={t("roadmapSoonHint")}
+          >
+            <span className="block font-medium text-muted">{t(`roadmap_${mod.id}` as "dashboard")}</span>
+            <span className="text-xs">{t("roadmapStage", { stage: mod.stage })}</span>
+          </div>
+        ))}
+      </div>
+    </details>
+  );
+
+  const navGroups = (onNavigate?: () => void) => (
+    <>
+      {visibleGroups.map((group) => {
+        const active = group.items.some((item) => pathname === item.href || pathname.startsWith(`${item.href}/`));
+        return (
+          <details key={group.labelKey} open={active || undefined} className="group">
+            <summary className="cursor-pointer list-none rounded-md px-3 py-2 text-xs font-semibold uppercase tracking-wider text-muted hover:bg-sand-soft">
+              <span className="flex items-center justify-between">{t(group.labelKey as "dashboard")}<span className="transition group-open:rotate-180">⌄</span></span>
+            </summary>
+            <div className="mt-1 space-y-1 ps-2">{group.items.map((item) => navLink(item, onNavigate))}</div>
+          </details>
+        );
+      })}
+      {showRoadmap ? roadmapNav : null}
+    </>
+  );
 
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[240px_1fr]">

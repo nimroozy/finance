@@ -48,7 +48,14 @@ export default function WhatsAppInboxPage() {
 
   return (
     <div>
-      <PageHeader title={fa ? "صندوق ورودی واتساپ" : "WhatsApp inbox"} subtitle={fa ? "زیرساخت واتساپ کلاد API" : "WhatsApp Cloud API operations"} />
+      <PageHeader
+        title={fa ? "پیام‌های ورودی واتساپ" : "WhatsApp inbound"}
+        subtitle={
+          fa
+            ? "ذخیره پایه ورودی — پشتیبانی کامل تیکت در مرحله ۷"
+            : "Basic inbound storage — full support desk arrives in Stage 7 ticketing"
+        }
+      />
       {error ? <Alert tone="danger">{error}</Alert> : null}
       {loading ? <LoadingState label={fa ? "بارگذاری…" : "Loading…"} /> : null}
       {!loading && rows.length === 0 ? <EmptyState label={fa ? "موردی موجود نیست" : "No records"} /> : null}

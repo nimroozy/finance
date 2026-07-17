@@ -1,7 +1,7 @@
 {
   "app": {
     "name": "Collections",
-    "tagline": "Multi-branch debt collection"
+    "tagline": "Multi-branch ISP operations"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -74,10 +74,23 @@
     "whatsapp": "WhatsApp",
     "whatsappMessages": "Messages",
     "whatsappTemplates": "Templates",
-    "whatsappInbox": "Inbox",
+    "whatsappInbox": "Inbound (basic)",
     "whatsappFailures": "Failures",
     "whatsappSettings": "WhatsApp settings",
-    "whatsappRules": "Notification rules"
+    "whatsappRules": "Notification rules",
+    "roadmap": "Coming later",
+    "roadmapSoonHint": "Planned module — not available yet",
+    "roadmapStage": "Stage {stage}",
+    "roadmap_ticketing": "Ticketing",
+    "roadmap_tasks": "Tasks",
+    "roadmap_crm": "CRM & leads",
+    "roadmap_installations": "Installations",
+    "roadmap_inventory": "Inventory",
+    "roadmap_assets": "Assets",
+    "roadmap_sites": "Sites & towers",
+    "roadmap_radius": "SAS Radius",
+    "roadmap_purchasing": "Purchasing",
+    "roadmap_unifiedDashboards": "Unified dashboards"
   },
   "common": {
     "loading": "Loading…",

@@ -1,7 +1,7 @@
 {
   "app": {
     "name": "وصول مطالبات",
-    "tagline": "سیستم وصول مطالبات چندشعبه‌ای"
+    "tagline": "عملیات چندشعبه‌ای ISP"
   },
   "nav": {
     "dashboard": "داشبورد",
@@ -74,10 +74,23 @@
     "whatsapp": "واتساپ",
     "whatsappMessages": "پیام‌ها",
     "whatsappTemplates": "قالب‌ها",
-    "whatsappInbox": "صندوق ورودی",
+    "whatsappInbox": "ورودی (پایه)",
     "whatsappFailures": "خطاها",
     "whatsappSettings": "تنظیمات واتساپ",
-    "whatsappRules": "قواعد اعلان"
+    "whatsappRules": "قواعد اعلان",
+    "roadmap": "مراحل بعدی",
+    "roadmapSoonHint": "ماژول برنامه‌ریزی‌شده — هنوز فعال نیست",
+    "roadmapStage": "مرحله {stage}",
+    "roadmap_ticketing": "تیکتینگ",
+    "roadmap_tasks": "وظایف",
+    "roadmap_crm": "CRM و سرنخ‌ها",
+    "roadmap_installations": "نصب‌های جدید",
+    "roadmap_inventory": "انبار",
+    "roadmap_assets": "دارایی‌ها",
+    "roadmap_sites": "سایت و دکل",
+    "roadmap_radius": "SAS Radius",
+    "roadmap_purchasing": "خرید",
+    "roadmap_unifiedDashboards": "داشبوردهای یکپارچه"
   },
   "common": {
     "loading": "در حال بارگذاری…",
