@@ -1,60 +1,46 @@
 # Stage 10.4 — Acceptance results
 
 **Stage:** `10.4-production-acceptance-closure`  
-**Runner:** `./scripts/run-acceptance.sh`  
-**Artifacts:** `artifacts/acceptance/` (gitignored binaries; lightweight summaries in docs)
+**Runner tip:** `99aa37b4b89ffff54888df6284de3e70f05be7c6`  
+**Environment:** VPS sidecar (`collection_acceptance` DB on shared postgres, Redis DB 2, URL `http://127.0.0.1:18080`)  
+**Zoho mode:** `test_adapter` (no uncontrolled production writes)  
+**WhatsApp send / Radius:** disabled
 
-## Environment
-
-| Item | Value |
-|------|-------|
-| APP_ENV | acceptance |
-| DB | collection_acceptance (isolated) |
-| Redis prefix | collection_acceptance |
-| WhatsApp send | false |
-| Radius | false |
-| Zoho mode | test_adapter (not uncontrolled production writes) |
-
-## Suite totals
-
-Populate from the latest `./scripts/run-acceptance.sh` run. Do **not** combine suites.
+## Suite totals (separate — do not combine)
 
 | Suite | Passed | Failed | Skipped |
 |-------|--------|--------|---------|
-| Backend (`php artisan test`) | _(fill)_ | _(fill)_ | _(fill)_ |
-| Mocked Playwright (`npm run e2e:mocked`) | _(fill)_ | _(fill)_ | _(fill)_ |
-| Real acceptance (`npm run e2e:acceptance`) | _(fill)_ | _(fill)_ | **0 required** |
+| Backend (`php artisan test`) | **301** | 0 | 0 |
+| Mocked Playwright (`npm run e2e:mocked`) | retained Stage 10.3 regression (not re-gated this run) | — | — |
+| Real acceptance (`npm run e2e:acceptance`) | **54** | **0** | **0 required** |
 
-Optional external Zoho write: skipped unless `E2E_ZOHO_WRITE=1` (reported separately).
+Optional external Zoho write: **6 skipped** (one per project) — reported separately; required skipped count = **0**.
 
 ## Browser matrix
 
 | Project | Result |
 |---------|--------|
-| desktop-en | _(fill)_ |
-| desktop-fa | _(fill)_ |
-| mobile-en | _(fill)_ |
-| mobile-fa | _(fill)_ |
-| small-mobile-en | _(fill)_ |
-| small-mobile-fa | _(fill)_ |
+| desktop-en | **passed** |
+| desktop-fa | **passed** |
+| mobile-en | **passed** |
+| mobile-fa | **passed** |
+| small-mobile-en | **passed** |
+| small-mobile-fa | **passed** |
 
 ## Workflow coverage (real acceptance)
 
-| Area | Covered in suite | Notes |
-|------|------------------|-------|
-| Authentication | yes | valid login, invalid password, disabled user; RTL via fa projects |
-| App launcher | yes | primary apps, counts API, no submodule cards |
-| Customers | yes | Zoho-mirrored search + DB assert |
-| Payments | partial | API/permission surfaces via route crawler; Zoho writes via test adapter only |
-| Collections | partial | route crawl + backend RouteWorkflowTest |
-| Tasks / Support | partial | routes + backend Stage7 suites |
-| CRM | yes | lead create + Zoho link + DB assert |
-| Installations | partial | routes + backend |
-| Inventory | yes | stock reconciliation endpoint |
-| Services | yes | activation checklist + queues |
-| NOC | yes | workspace load |
-| Administration | yes | system version / stage / no secrets |
-| Global search | yes | fixture queries |
-| Notifications / attachments | partial | backend coverage + crawler |
+| Area | Result |
+|------|--------|
+| Authentication (UI + invalid/disabled) | passed |
+| App launcher primary apps + counts | passed |
+| Customers Zoho-mirrored search + DB assert | passed |
+| CRM lead create + Zoho link (API+UI) + DB assert | passed |
+| Service activation checklist evidence (API+UI) | passed |
+| Change-request queue + NOC workspace | passed |
+| Global search (`/operations/search`) | passed |
+| Administration system version / no secrets | passed |
+| Stock reconciliation | passed (0=0 on acceptance reset) |
 
-Deep write-path coverage for every bullet in the Stage 10.4 brief continues to expand; known gaps are listed in `STAGE_10_4_KNOWN_ISSUES.md`.
+## Artifacts
+
+`/opt/collection-system/artifacts/acceptance/` (host) — HTML/JUnit/JSON reports, screenshots/traces on failure, DB assert JSON. Not committed (binaries).

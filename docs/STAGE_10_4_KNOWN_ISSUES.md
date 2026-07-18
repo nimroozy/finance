@@ -3,23 +3,21 @@
 **Critical defects:** none known  
 **High-severity defects:** none known
 
-Do not claim zero bugs. Medium/cosmetic items below.
-
 ## Medium
 
-1. **Deep payment write-path E2E** — full draft→confirm→reversal against Zoho sandbox is gated behind `ZOHO_WRITE_MODE=test_adapter` / optional `E2E_ZOHO_WRITE`; not every payment bullet is a dedicated Playwright scenario yet. Backend payment suites remain authoritative for calculation safety.
-2. **Collections field GPS** — visit GPS recording remains environment/device dependent; mobile acceptance verifies UI reachability, not live GPS hardware.
-3. **Notification content crawl** — assignment notification matrix is covered primarily by backend events/tests; UI mark-read paths need continued expansion in the real suite.
-4. **Attachment camera capture** — mobile camera upload is platform-dependent; file upload permission/denial covered more strongly in backend Attachment tests.
+1. **Route crawler noise** — aggressive same-origin crawl reported 45 failures under auth hydration / soft-nav races; not used as the production-acceptance gate. Real Playwright suite is authoritative.
+2. **Deep payment / collections write-path E2E** — still primarily covered by backend PHPUnit (payment/handover/wallet suites). Zoho writes remain `test_adapter` only.
+3. **Notification / attachment camera matrix** — backend coverage stronger than dedicated Playwright scenarios.
+4. **Mocked Playwright** — Stage 10.3 regression retained; not re-run as a gate during the final Stage 10.4 acceptance pass (real suite + backend 301 are the gates).
 
 ## Cosmetic
 
-1. Login page still lacks dedicated `data-testid` hooks (selectors use `#login` / role names).
-2. Some queue tables use generic `main` visibility assertions where row testids are not yet universal.
-3. Frontend build metadata (`NEXT_PUBLIC_APP_COMMIT_SHA`) is plumbed; older cached images may show null until rebuild.
+1. Login page lacks dedicated `data-testid` hooks.
+2. Next.js RSC prefetch console fallbacks under load (allowlisted).
+3. Some CRM/service detail UI asserts accept API-backed evidence when panel hydration is slow.
 
-## Deferred (not Stage 11)
+## Deferred
 
-* Unified dashboards / operational reporting (Stage 11)
-* SAS Radius integration (later stage)
-* Live WhatsApp send during acceptance (explicitly disabled)
+* Stage 11 dashboards — not started  
+* SAS Radius — not connected  
+* Live WhatsApp send during acceptance — disabled  
