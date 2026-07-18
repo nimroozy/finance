@@ -4,8 +4,8 @@
 **Branch:** `cursor/stage-10-3-functional-acceptance`  
 **VPS:** `root@209.38.194.184` (`/opt/collection-system`)  
 **Deploy stamp:** `20260718T054503Z` (pre) / `20260718T055037Z` (post)  
-**Tip SHA deployed:** `PLACEHOLDER_TIP`  
-**Production SHA:** `PLACEHOLDER_TIP`  
+**Tip SHA deployed:** `e2842ae4d6d133ac6d2ba64a31d2040653cc8cf7`  
+**Production SHA:** `e2842ae4d6d133ac6d2ba64a31d2040653cc8cf7`  
 **Code deploy SHA:** `79a0e4ebb5de10da8113a996acbb34c2d543d402`  
 **Do not merge until human review.** **Stage 11 not started.** **No Radius.**  
 **KEY_KEPT** (`~/.ssh/id_ed25519` preserved — not deleted).  
@@ -86,7 +86,7 @@ Stage **10.3 functional acceptance** is live: stage label `10.3-functional-accep
 | Check | Result |
 |-------|--------|
 | `/api/v1/health` → `deployment.stage` | **`10.3-functional-acceptance`** |
-| git_sha / commit_sha | `PLACEHOLDER_TIP` |
+| git_sha / commit_sha | `e2842ae4d6d133ac6d2ba64a31d2040653cc8cf7` |
 | DeploymentInfo / system version payload | same SHA + stage |
 | branch | `cursor/stage-10-3-functional-acceptance` |
 | migration_batch | **19** (`2026_07_17_210000_stage102_service_lifecycle_recovery`) |
@@ -124,10 +124,10 @@ Stage **10.3 functional acceptance** is live: stage label `10.3-functional-accep
 
 | Field | Value |
 |-------|-------|
-| tip SHA | `PLACEHOLDER_TIP` |
-| `.deployed-sha` | `PLACEHOLDER_TIP` |
-| health SHA | `PLACEHOLDER_TIP` |
-| system version SHA | `PLACEHOLDER_TIP` |
+| tip SHA | `e2842ae4d6d133ac6d2ba64a31d2040653cc8cf7` |
+| `.deployed-sha` | `e2842ae4d6d133ac6d2ba64a31d2040653cc8cf7` |
+| health SHA | `e2842ae4d6d133ac6d2ba64a31d2040653cc8cf7` |
+| system version SHA | `e2842ae4d6d133ac6d2ba64a31d2040653cc8cf7` |
 | stage | `10.3-functional-acceptance` |
 | COUNTS_MATCH (financial+inventory) | yes |
 | KEY_KEPT | yes |
