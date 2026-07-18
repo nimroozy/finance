@@ -2,6 +2,7 @@
 
 import { ChevronRight, ChevronLeft } from "lucide-react";
 import { useLocale } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 import { CardSkeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -61,9 +62,9 @@ export function MobileRecordCard({
 
   if (href) {
     return (
-      <a href={href} className={baseClass}>
+      <Link href={href} className={baseClass}>
         {content}
-      </a>
+      </Link>
     );
   }
 

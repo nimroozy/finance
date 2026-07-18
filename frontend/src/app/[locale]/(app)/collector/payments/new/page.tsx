@@ -232,7 +232,10 @@ export default function CollectorNewPaymentPage() {
         typeof error === "string" ? (
           <Alert>{error}</Alert>
         ) : (
-          <ErrorState error={error} />
+          <ErrorState
+            error={error}
+            onRetry={step === 1 ? () => void loadInvoices() : undefined}
+          />
         )
       ) : null}
       {gpsMsg ? <Alert tone="info">{gpsMsg}</Alert> : null}

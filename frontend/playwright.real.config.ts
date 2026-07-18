@@ -14,6 +14,7 @@ export default defineConfig({
   use: {
     baseURL,
     trace: "on-first-retry",
+    launchOptions: { executablePath: "/opt/pw-browsers/chromium" },
   },
   projects: [{ name: "desktop-chromium", use: { ...devices["Desktop Chrome"] } }],
 });
