@@ -98,10 +98,16 @@ test.describe("Stage 10.4 production acceptance", () => {
     const token = await login(page, { locale });
 
     const stamp = Date.now();
+    const me = await authedGet(page, token, "/api/v1/auth/me");
+    expect(me.ok()).toBeTruthy();
+    const meBody = await me.json();
+    const branchId = Number(meBody.data?.branches?.[0]?.id || 1);
+
     // Prefer API create + UI verify when form fields vary by viewport.
     const create = await page.request.post("/api/v1/crm/leads", {
       headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
       data: {
+        branch_id: branchId,
         contact_person: `ACCEPTANCE E2E ${stamp}`,
         phone: "0700111222",
         company: "ACCEPTANCE E2E Co",
