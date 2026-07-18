@@ -23,7 +23,60 @@ export type PickerCustomer = {
   company_name?: string | null;
   phone?: string | null;
   mobile?: string | null;
+  whatsapp_number?: string | null;
+  zoho_contact_id?: string | null;
   status?: string;
+  sync_status?: string | null;
+  branch?: { id: number; code: string; name_en: string; name_fa?: string | null } | null;
+};
+
+export type PickerCollector = {
+  id: number;
+  user_id: number;
+  employee_code?: string | null;
+  is_active: boolean;
+  active_assignments_count?: number;
+  user?: {
+    id: number;
+    name: string;
+    status?: string;
+    branches?: Array<{ id: number; code: string; name_en: string; name_fa?: string | null }>;
+  } | null;
+};
+
+export type PickerService = {
+  id: number;
+  service_number: string;
+  customer_id: number;
+  branch_id: number;
+  package_id?: number | null;
+  commercial_status: string;
+  operational_status: string;
+  customer?: { id: number; contact_name?: string | null; company_name?: string | null } | null;
+  package?: { id: number; name: string } | null;
+};
+
+export type PickerEquipment = {
+  id: number;
+  equipment_number?: string | null;
+  product_id?: number | null;
+  serial_number?: string | null;
+  mac_address?: string | null;
+  branch_id: number;
+  location_id?: number | null;
+  custodian_user_id?: number | null;
+  status?: string | null;
+  product?: { id: number; code: string; name_en: string } | null;
+  location?: { id: number; name: string } | null;
+  custodian?: { id: number; name: string } | null;
+};
+
+export type PickerProduct = {
+  id: number;
+  code: string;
+  name_en: string;
+  name_fa?: string | null;
+  category_id?: number | null;
 };
 
 export type Department = {
@@ -51,6 +104,7 @@ export type PickerBranch = {
   code: string;
   name_en: string;
   name_fa?: string | null;
+  is_active?: boolean;
 };
 
 function deptLabel(d: Department) {
@@ -93,11 +147,6 @@ export async function searchUsersAsOptions(
       }),
     ),
   };
-}
-
-/** Users holding the Collector role — used by CollectorPicker (reassignment, handovers). */
-export async function searchCollectors(q: string, branchId?: number | string) {
-  return searchUsersAsOptions(q, { branchId, role: "Collector" });
 }
 
 export async function listDepartments(branchId?: number | string) {
@@ -166,8 +215,79 @@ export async function searchBranches(q: string) {
       (b): PickerOption => ({
         id: b.id,
         label: b.name_en || b.name_fa || b.code,
-        description: b.code,
+        description: b.is_active === false ? `${b.code} · inactive` : b.code,
         meta: { branch: b },
+      }),
+    ),
+  };
+}
+
+/** Collectors — used by CollectorPicker (assignments, ownership transfer, handovers). */
+export async function searchCollectors(q: string, branchId?: number | string) {
+  const res = await apiFetch<PickerCollector[]>(
+    `/pickers/collectors${toQuery({ q: q || undefined, branch_id: branchId, limit: 25 })}`,
+  );
+  return {
+    ...res,
+    data: (res.data ?? []).map((c): PickerOption => {
+      const branchCode = c.user?.branches?.[0]?.code;
+      const parts = [c.employee_code, branchCode, c.is_active ? undefined : "inactive"].filter(Boolean);
+      return {
+        id: c.id,
+        label: c.user?.name || c.employee_code || `#${c.id}`,
+        description: parts.join(" · ") || undefined,
+        meta: { collector: c },
+      };
+    }),
+  };
+}
+
+export async function searchServices(q: string, opts?: { branchId?: number | string; customerId?: number | string }) {
+  const res = await apiFetch<PickerService[]>(
+    `/pickers/services${toQuery({ q: q || undefined, branch_id: opts?.branchId, customer_id: opts?.customerId, limit: 25 })}`,
+  );
+  return {
+    ...res,
+    data: (res.data ?? []).map(
+      (s): PickerOption => ({
+        id: s.id,
+        label: s.service_number,
+        description: [s.customer?.contact_name || s.customer?.company_name, s.package?.name]
+          .filter(Boolean)
+          .join(" · "),
+        meta: { service: s },
+      }),
+    ),
+  };
+}
+
+export async function searchEquipment(q: string, branchId?: number | string) {
+  const res = await apiFetch<PickerEquipment[]>(
+    `/pickers/equipment${toQuery({ q: q || undefined, branch_id: branchId, limit: 25 })}`,
+  );
+  return {
+    ...res,
+    data: (res.data ?? []).map(
+      (e): PickerOption => ({
+        id: e.id,
+        label: e.serial_number || e.equipment_number || e.mac_address || `#${e.id}`,
+        description: [e.product?.name_en, e.location?.name, e.custodian?.name].filter(Boolean).join(" · "),
+        meta: { equipment: e },
+      }),
+    ),
+  };
+}
+
+export async function searchProducts(q: string) {
+  const res = await apiFetch<PickerProduct[]>(`/pickers/products${toQuery({ q: q || undefined, limit: 25 })}`);
+  return {
+    ...res,
+    data: (res.data ?? []).map(
+      (p): PickerOption => ({
+        id: p.id,
+        label: p.name_en,
+        description: p.code,
+        meta: { product: p },
       }),
     ),
   };
@@ -187,7 +307,7 @@ export async function searchCustomers(q: string, branchId?: number | string) {
       (c): PickerOption => ({
         id: c.id,
         label: c.contact_name || c.company_name || c.customer_number || `#${c.id}`,
-        description: [c.customer_number, c.mobile || c.phone].filter(Boolean).join(" · "),
+        description: [c.customer_number, c.mobile || c.phone, c.branch?.code].filter(Boolean).join(" · "),
         meta: { customer: c },
       }),
     ),

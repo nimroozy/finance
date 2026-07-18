@@ -103,6 +103,10 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::get('/departments', [\App\Http\Controllers\Api\V1\PickerController::class, 'departments'])->name('departments');
             Route::get('/teams', [\App\Http\Controllers\Api\V1\PickerController::class, 'teams'])->name('teams');
             Route::get('/branches', [\App\Http\Controllers\Api\V1\PickerController::class, 'branches'])->name('branches');
+            Route::get('/collectors', [\App\Http\Controllers\Api\V1\PickerController::class, 'collectors'])->name('collectors');
+            Route::get('/services', [\App\Http\Controllers\Api\V1\PickerController::class, 'services'])->name('services');
+            Route::get('/equipment', [\App\Http\Controllers\Api\V1\PickerController::class, 'equipment'])->name('equipment');
+            Route::get('/products', [\App\Http\Controllers\Api\V1\PickerController::class, 'products'])->name('products');
         });
 
         Route::middleware('permission:users.manage|users.view')->group(function () {

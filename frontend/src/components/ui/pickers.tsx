@@ -5,6 +5,9 @@ import {
   searchBranches,
   searchCollectors,
   searchCustomers,
+  searchEquipment,
+  searchProducts,
+  searchServices,
   searchUsersAsOptions,
 } from "@/lib/pickers";
 import { EntityPicker } from "@/components/ui/entity-picker";
@@ -95,22 +98,60 @@ export function BranchPicker({ value, onChange, disabled, className }: PickerPro
   );
 }
 
-/**
- * Placeholder entity pickers for domains not in scope this pass (Stage 9
- * Inventory / Stage 10 Services). The component identity exists now so
- * later stages only need to supply a `search` implementation.
- */
-export function ServicePicker(props: PickerProps & { search: (q: string) => Promise<PickerOption[]> }) {
+/** Search services by number, or by customer name/company. */
+export function ServicePicker({
+  value,
+  onChange,
+  branchId,
+  customerId,
+  disabled,
+  className,
+}: PickerProps & { branchId?: number | string; customerId?: number | string }) {
   const t = useTranslations("pickers");
-  return <EntityPicker {...props} placeholder={t("servicePlaceholder")} />;
+  return (
+    <EntityPicker
+      value={value}
+      onChange={onChange}
+      search={async (q) => (await searchServices(q, { branchId, customerId })).data}
+      placeholder={t("servicePlaceholder")}
+      disabled={disabled}
+      className={className}
+    />
+  );
 }
 
-export function ProductPicker(props: PickerProps & { search: (q: string) => Promise<PickerOption[]> }) {
+/** Search active products by code or name. */
+export function ProductPicker({ value, onChange, disabled, className }: PickerProps) {
   const t = useTranslations("pickers");
-  return <EntityPicker {...props} placeholder={t("productPlaceholder")} />;
+  return (
+    <EntityPicker
+      value={value}
+      onChange={onChange}
+      search={async (q) => (await searchProducts(q)).data}
+      placeholder={t("productPlaceholder")}
+      disabled={disabled}
+      className={className}
+    />
+  );
 }
 
-export function EquipmentPicker(props: PickerProps & { search: (q: string) => Promise<PickerOption[]> }) {
+/** Search serialized equipment by serial number, MAC address, or equipment number. */
+export function EquipmentPicker({
+  value,
+  onChange,
+  branchId,
+  disabled,
+  className,
+}: PickerProps & { branchId?: number | string }) {
   const t = useTranslations("pickers");
-  return <EntityPicker {...props} placeholder={t("equipmentPlaceholder")} />;
+  return (
+    <EntityPicker
+      value={value}
+      onChange={onChange}
+      search={async (q) => (await searchEquipment(q, branchId)).data}
+      placeholder={t("equipmentPlaceholder")}
+      disabled={disabled}
+      className={className}
+    />
+  );
 }
