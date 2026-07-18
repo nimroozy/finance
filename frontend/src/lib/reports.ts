@@ -1,7 +1,8 @@
 import { apiDownload, apiFetch, toQuery } from "@/lib/api";
+import type { AssignmentsByCollectorRow } from "@/lib/types";
 
 export async function reportAssignmentsByCollector(branchId?: number | string) {
-  return apiFetch<unknown[]>(
+  return apiFetch<AssignmentsByCollectorRow[]>(
     `/reports/assignments-by-collector${toQuery({ branch_id: branchId })}`,
   );
 }

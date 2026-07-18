@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useParams } from "next/navigation";
 import { Link } from "@/i18n/navigation";
-import { ApiError } from "@/lib/api";
 import { downloadVisitFile } from "@/lib/evidence";
 import {
   addVisitCorrectionNote,
@@ -18,13 +17,8 @@ import { LeafletMap } from "@/components/maps/map";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { Label, TextArea } from "@/components/ui/form";
-import {
-  Alert,
-  EmptyState,
-  LoadingState,
-  PageHeader,
-  Panel,
-} from "@/components/ui/layout";
+import { Alert, LoadingState, PageHeader, Panel } from "@/components/ui/layout";
+import { ErrorState } from "@/components/ui/error-state";
 
 export default function VisitDetailPage() {
   const t = useTranslations("visitsPage");
@@ -40,7 +34,8 @@ export default function VisitDetailPage() {
   const [correction, setCorrection] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown>(null);
+  const [saveError, setSaveError] = useState<unknown>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -51,11 +46,11 @@ export default function VisitDetailPage() {
       const res = await getVisit(id);
       setVisit(res.data);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : tCommon("error"));
+      setError(err);
     } finally {
       setLoading(false);
     }
-  }, [id, tCommon]);
+  }, [id]);
 
   useEffect(() => {
     void load();
@@ -91,22 +86,22 @@ export default function VisitDetailPage() {
   async function onCorrection(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
-    setError(null);
+    setSaveError(null);
     try {
       await addVisitCorrectionNote(id, correction.trim());
       setSuccess(t("correctionSuccess"));
       setCorrection("");
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : tCommon("error"));
+      setSaveError(err);
     } finally {
       setSaving(false);
     }
   }
 
   if (loading) return <LoadingState label={tCommon("loading")} />;
-  if (!visit) {
-    return error ? <Alert>{error}</Alert> : <EmptyState label={tCommon("empty")} />;
+  if (error || !visit) {
+    return <ErrorState error={error} onRetry={() => void load()} />;
   }
 
   return (
@@ -121,9 +116,9 @@ export default function VisitDetailPage() {
         }
       />
 
-      {error ? (
+      {saveError ? (
         <div className="mb-4">
-          <Alert>{error}</Alert>
+          <ErrorState error={saveError} />
         </div>
       ) : null}
       {success ? (

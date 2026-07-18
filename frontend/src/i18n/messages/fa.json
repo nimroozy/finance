@@ -21,6 +21,7 @@
     "assignments": "ارجاع‌ها",
     "unassigned": "بدهکاران بدون ارجاع",
     "workload": "بار کاری ماموران",
+    "collectorPerformance": "عملکرد ماموران",
     "collectors": "ماموران وصول",
     "routes": "مسیرها",
     "visits": "بازدیدها",
@@ -634,6 +635,20 @@
     "updateSuccess": "مامور به‌روز شد.",
     "deactivate": "غیرفعال",
     "activate": "فعال‌سازی"
+  },
+  "collectorPerformancePage": {
+    "title": "عملکرد ماموران",
+    "subtitle": "بار کاری، وضعیت ارجاع‌ها و بدهی معوق به تفکیک هر مامور",
+    "collector": "مامور",
+    "employeeCode": "کد پرسنلی",
+    "activeAssignments": "فعال",
+    "capacity": "ظرفیت",
+    "openAssignments": "ارجاع‌های باز",
+    "closedAssignments": "ارجاع‌های بسته‌شده",
+    "outstandingDebt": "بدهی معوق",
+    "totalCollectors": "تعداد ماموران",
+    "totalActiveAssignments": "مجموع ارجاع‌های فعال",
+    "totalOutstanding": "مجموع بدهی معوق"
   },
   "routesPage": {
     "title": "مسیرها",

@@ -3,25 +3,17 @@
 import { useCallback, useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
-import { ApiError } from "@/lib/api";
-import { listBranches } from "@/lib/auth";
-import {
-  reportPaymentsSyncFailures,
-  retryPaymentSync,
-} from "@/lib/payments";
-import type { Branch, Payment } from "@/lib/types";
+import { reportPaymentsSyncFailures, retryPaymentSync } from "@/lib/payments";
+import type { Payment } from "@/lib/types";
 import { formatMoney } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth-store";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
-import { Select } from "@/components/ui/form";
-import {
-  Alert,
-  EmptyState,
-  LoadingState,
-  PageHeader,
-  Panel,
-} from "@/components/ui/layout";
+import { Alert, PageHeader } from "@/components/ui/layout";
+import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
+import { ErrorState } from "@/components/ui/error-state";
+import { BranchPicker } from "@/components/ui/pickers";
+import type { SearchableOption } from "@/components/ui/searchable-select";
 
 export default function PaymentSyncFailuresPage() {
   const t = useTranslations("paymentsPage");
@@ -30,31 +22,24 @@ export default function PaymentSyncFailuresPage() {
   const canRetry = useAuthStore((s) => s.hasPermission("payments.retry_sync"));
 
   const [rows, setRows] = useState<Payment[]>([]);
-  const [branches, setBranches] = useState<Branch[]>([]);
-  const [branchId, setBranchId] = useState("");
+  const [branch, setBranch] = useState<SearchableOption | null>(null);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown>(null);
   const [success, setSuccess] = useState<string | null>(null);
-
-  useEffect(() => {
-    void listBranches(1)
-      .then((res) => setBranches(res.data))
-      .catch(() => setBranches([]));
-  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await reportPaymentsSyncFailures(branchId || undefined);
+      const res = await reportPaymentsSyncFailures(branch ? String(branch.id) : undefined);
       setRows(res.data);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : tCommon("error"));
+      setError(err);
     } finally {
       setLoading(false);
     }
-  }, [branchId, tCommon]);
+  }, [branch]);
 
   useEffect(() => {
     void load();
@@ -68,96 +53,65 @@ export default function PaymentSyncFailuresPage() {
       setSuccess(t("retrySuccess"));
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : tCommon("error"));
+      setError(err);
     } finally {
       setBusyId(null);
     }
   }
 
+  const columns: DataTableColumn<Payment>[] = [
+    {
+      key: "customer",
+      label: t("customer"),
+      render: (row) => (
+        <Link href={`/payments/${row.uuid}`} className="font-medium text-primary hover:underline">
+          {row.customer?.contact_name || `#${row.customer_id}`}
+        </Link>
+      ),
+    },
+    { key: "amount", label: t("amount"), render: (row) => formatMoney(row.amount, row.currency, locale) },
+    { key: "syncStatus", label: t("syncStatus"), render: (row) => <StatusBadge status={row.zoho_sync_status} /> },
+    {
+      key: "lastError",
+      label: t("lastError"),
+      render: (row) => (
+        <span className="block max-w-xs truncate text-xs text-danger">{row.last_sync_error || "—"}</span>
+      ),
+    },
+    {
+      key: "actions",
+      label: tCommon("actions"),
+      render: (row) =>
+        canRetry ? (
+          <Button size="sm" disabled={busyId === row.uuid} onClick={() => void onRetry(row.uuid)}>
+            {t("retrySync")}
+          </Button>
+        ) : null,
+    },
+  ];
+
   return (
     <div>
-      <PageHeader
-        title={t("syncFailuresTitle")}
-        subtitle={t("syncFailuresSubtitle")}
-      />
+      <PageHeader title={t("syncFailuresTitle")} subtitle={t("syncFailuresSubtitle")} />
 
-      {error ? (
-        <div className="mb-4">
-          <Alert>{error}</Alert>
-        </div>
-      ) : null}
       {success ? (
         <div className="mb-4">
           <Alert tone="success">{success}</Alert>
         </div>
       ) : null}
 
-      <Panel className="mb-4 p-4 sm:max-w-xs">
-        <Select value={branchId} onChange={(e) => setBranchId(e.target.value)}>
-          <option value="">{tCommon("all")}</option>
-          {branches.map((b) => (
-            <option key={b.id} value={b.id}>
-              {locale === "fa" ? b.name_fa || b.name_en : b.name_en}
-            </option>
-          ))}
-        </Select>
-      </Panel>
-
-      <Panel>
-        {loading ? (
-          <LoadingState label={tCommon("loading")} />
-        ) : rows.length === 0 ? (
-          <EmptyState label={tCommon("empty")} />
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[800px] text-start text-sm">
-              <thead className="border-b border-border bg-sand-soft/40 text-muted">
-                <tr>
-                  <th className="px-4 py-3 font-medium">{t("customer")}</th>
-                  <th className="px-4 py-3 font-medium">{t("amount")}</th>
-                  <th className="px-4 py-3 font-medium">{t("syncStatus")}</th>
-                  <th className="px-4 py-3 font-medium">{t("lastError")}</th>
-                  <th className="px-4 py-3 font-medium">{tCommon("actions")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row) => (
-                  <tr key={row.uuid} className="border-b border-border last:border-0">
-                    <td className="px-4 py-3">
-                      <Link
-                        href={`/payments/${row.uuid}`}
-                        className="font-medium text-primary hover:underline"
-                      >
-                        {row.customer?.contact_name || `#${row.customer_id}`}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3">
-                      {formatMoney(row.amount, row.currency, locale)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <StatusBadge status={row.zoho_sync_status} />
-                    </td>
-                    <td className="max-w-xs truncate px-4 py-3 text-xs text-danger">
-                      {row.last_sync_error || "—"}
-                    </td>
-                    <td className="px-4 py-3">
-                      {canRetry ? (
-                        <Button
-                          size="sm"
-                          disabled={busyId === row.uuid}
-                          onClick={() => void onRetry(row.uuid)}
-                        >
-                          {t("retrySync")}
-                        </Button>
-                      ) : null}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Panel>
+      {error ? (
+        <ErrorState error={error} onRetry={() => void load()} />
+      ) : (
+        <DataTable
+          rows={rows}
+          columns={columns}
+          rowKey={(row) => row.uuid}
+          loading={loading}
+          emptyLabel={tCommon("empty")}
+          filters={<BranchPicker value={branch} onChange={setBranch} className="sm:max-w-xs" />}
+        />
+      )}
     </div>
   );
 }

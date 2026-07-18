@@ -611,6 +611,13 @@ export interface CollectorWorkload {
   max_active_assignments: number | null;
 }
 
+export interface AssignmentsByCollectorRow {
+  collector_id: number;
+  status: string;
+  total: number;
+  total_outstanding: string | number;
+}
+
 export interface VisitOutcome {
   code: string;
   label_en: string;

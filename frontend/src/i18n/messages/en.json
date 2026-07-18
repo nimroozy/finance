@@ -21,6 +21,7 @@
     "assignments": "Assignments",
     "unassigned": "Unassigned debtors",
     "workload": "Collector workload",
+    "collectorPerformance": "Collector performance",
     "collectors": "Collectors",
     "routes": "Routes",
     "visits": "Visits",
@@ -634,6 +635,20 @@
     "updateSuccess": "Collector updated.",
     "deactivate": "Deactivate",
     "activate": "Activate"
+  },
+  "collectorPerformancePage": {
+    "title": "Collector performance",
+    "subtitle": "Workload, assignment status mix, and outstanding debt by collector",
+    "collector": "Collector",
+    "employeeCode": "Employee code",
+    "activeAssignments": "Active",
+    "capacity": "Capacity",
+    "openAssignments": "Open assignments",
+    "closedAssignments": "Closed assignments",
+    "outstandingDebt": "Outstanding debt",
+    "totalCollectors": "Collectors",
+    "totalActiveAssignments": "Total active assignments",
+    "totalOutstanding": "Total outstanding"
   },
   "routesPage": {
     "title": "Routes",
