@@ -799,8 +799,9 @@ export interface PromiseToPay {
   superseded_by_id?: number | null;
   created_at?: string;
   updated_at?: string;
-  customer?: Pick<Customer, "id" | "contact_name" | "company_name"> | null;
+  customer?: Pick<Customer, "id" | "contact_name" | "company_name" | "customer_number"> | null;
   collector?: (Collector & { user?: CollectorUserSummary | null }) | null;
+  branch?: BranchSummary | null;
 }
 
 export interface PromiseListParams {

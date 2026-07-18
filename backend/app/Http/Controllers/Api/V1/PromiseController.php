@@ -20,7 +20,7 @@ class PromiseController extends Controller
         $this->authorize('viewAny', PromiseToPay::class);
 
         $page = PromiseToPay::query()
-            ->with(['customer:id,contact_name', 'collector.user:id,name'])
+            ->with(['customer:id,contact_name,company_name,customer_number', 'collector.user:id,name', 'branch:id,code,name_en,name_fa'])
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))
             ->when($request->filled('customer_id'), fn ($q) => $q->where('customer_id', $request->integer('customer_id')))
             ->when($request->filled('branch_id'), fn ($q) => $q->where('branch_id', $request->integer('branch_id')))

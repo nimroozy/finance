@@ -713,7 +713,9 @@
     "createSuccess": "وعده ایجاد شد.",
     "customerId": "شناسه مشتری",
     "currency": "ارز",
-    "notes": "یادداشت"
+    "notes": "یادداشت",
+    "relatedAssignment": "تعیین",
+    "create": "ثبت وعده"
   },
   "escalations": {
     "title": "ارجاع‌های ویژه",

@@ -713,7 +713,9 @@
     "createSuccess": "Promise created.",
     "customerId": "Customer ID",
     "currency": "Currency",
-    "notes": "Notes"
+    "notes": "Notes",
+    "relatedAssignment": "Assignment",
+    "create": "Record promise"
   },
   "escalations": {
     "title": "Escalations",
