@@ -2,7 +2,7 @@
 
 **Status:** MATCH  
 **Stage label:** `10.4-production-acceptance-closure`  
-**Final SHA:** `1e72f8322211bf9aad8119797704acbed32c5d9a`
+**Final SHA:** `dfd07350c3930bed755ebc774107926483972b44`
 
 ## Starting SHA (pre-implementation)
 
@@ -12,11 +12,11 @@
 
 | Probe | Value | Match |
 |-------|-------|-------|
-| GitHub branch head | `1e72f8322211bf9aad8119797704acbed32c5d9a` | yes |
-| Production sync tip / `.deployed-sha` | `1e72f8322211bf9aad8119797704acbed32c5d9a` | yes |
-| Backend `APP_COMMIT_SHA` | `1e72f8322211bf9aad8119797704acbed32c5d9a` | yes |
-| `/api/v1/health` → `deployment.commit_sha` | `1e72f8322211bf9aad8119797704acbed32c5d9a` | yes |
+| GitHub branch head | `dfd07350c3930bed755ebc774107926483972b44` | yes |
+| Production sync tip / `.deployed-sha` | `dfd07350c3930bed755ebc774107926483972b44` | yes |
+| Backend `APP_COMMIT_SHA` | `dfd07350c3930bed755ebc774107926483972b44` | yes |
+| `/api/v1/health` → `deployment.commit_sha` | `dfd07350c3930bed755ebc774107926483972b44` | yes |
 | `/api/v1/health` → `deployment.stage` | `10.4-production-acceptance-closure` | yes |
-| Frontend `FRONTEND_BUILD_ID` / health `frontend_version` | `1e72f8322211bf9aad8119797704acbed32c5d9a` | yes |
+| Frontend `FRONTEND_BUILD_ID` / health `frontend_version` | `dfd07350c3930bed755ebc774107926483972b44` | yes |
 
 **Rule:** Any later docs tip must be re-deployed before closeout.
