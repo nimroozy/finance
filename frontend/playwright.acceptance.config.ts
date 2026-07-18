@@ -17,8 +17,8 @@ export default defineConfig({
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: 0,
-  timeout: 90_000,
-  expect: { timeout: 20_000 },
+  timeout: 60_000,
+  expect: { timeout: 15_000 },
   reporter: [
     ["list"],
     ["html", { open: "never", outputFolder: path.join(artifactRoot, "reports", "html") }],

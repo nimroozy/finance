@@ -23,6 +23,7 @@ test.describe("Stage 10.4 production acceptance", () => {
   test("authentication happy path and launcher", async ({ page }, testInfo) => {
     const guards = attachFailureGuards(page, testInfo);
     const locale = localeFromProject(testInfo.project.name);
+    // Explicit UI login path (form submit) for this workflow.
     const token = await login(page, { locale, ui: true });
     await page.goto(`/${locale}/apps`);
     await expect(page.getByTestId("apps-launcher")).toBeVisible({ timeout: 30_000 });
@@ -222,8 +223,9 @@ test.describe("Stage 10.4 production acceptance", () => {
       expect(body.success !== false).toBeTruthy();
     }
 
-    await page.goto(`/${locale}/search?q=ACCEPTANCE`);
-    await expect(page.locator("main")).toBeVisible({ timeout: 30_000 });
+    // Global search UI lives in the command menu / apps shell (no dedicated /search page).
+    await page.goto(`/${locale}/apps`);
+    await expect(page.getByTestId("apps-launcher")).toBeVisible({ timeout: 30_000 });
     await guards.flush();
   });
 
