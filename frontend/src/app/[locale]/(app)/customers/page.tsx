@@ -3,20 +3,23 @@
 import { useCallback, useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
-import { ApiError } from "@/lib/api";
 import { listCustomers } from "@/lib/customers";
 import type { Customer } from "@/lib/types";
-import { formatMoney } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/form";
-import {
-  Alert,
-  EmptyState,
-  LoadingState,
-  PageHeader,
-  Panel,
-} from "@/components/ui/layout";
+import { formatDate, formatMoney } from "@/lib/utils";
+import { StatusBadge } from "@/components/status-badge";
+import { LtrValue } from "@/components/ltr-value";
+import { PageHeader } from "@/components/ui/layout";
+import { PageToolbar } from "@/components/ui/page-toolbar";
+import { Input, Select } from "@/components/ui/form";
+import { FilterBar } from "@/components/ui/filter-bar";
+import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
+import { MobileRecordCard } from "@/components/ui/record-list";
+import { BranchPicker } from "@/components/ui/pickers";
+import type { SearchableOption } from "@/components/ui/searchable-select";
+import { ErrorState } from "@/components/ui/error-state";
+
+const STATUSES = ["active", "inactive", "suspended", "archived"];
+const SYNC_STATUSES = ["synced", "syncing", "sync_failed"];
 
 export default function CustomersPage() {
   const t = useTranslations("customers");
@@ -27,17 +30,23 @@ export default function CustomersPage() {
   const [meta, setMeta] = useState({ current_page: 1, last_page: 1 });
   const [search, setSearch] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
+  const [status, setStatus] = useState("");
+  const [syncStatus, setSyncStatus] = useState("");
+  const [branch, setBranch] = useState<SearchableOption | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown>(null);
 
   const load = useCallback(
-    async (page = 1, searchValue = appliedSearch) => {
+    async (page = 1) => {
       setLoading(true);
       setError(null);
       try {
         const res = await listCustomers({
           page,
-          search: searchValue || undefined,
+          search: appliedSearch || undefined,
+          status: status || undefined,
+          sync_status: syncStatus || undefined,
+          branch_id: branch ? String(branch.id) : undefined,
         });
         setCustomers(res.data);
         setMeta({
@@ -45,144 +54,135 @@ export default function CustomersPage() {
           last_page: res.meta?.last_page ?? 1,
         });
       } catch (err) {
-        setError(err instanceof ApiError ? err.message : tCommon("error"));
+        setError(err);
       } finally {
         setLoading(false);
       }
     },
-    [appliedSearch, tCommon],
+    [appliedSearch, status, syncStatus, branch],
   );
 
   useEffect(() => {
-    void load(1, appliedSearch);
-  }, [load, appliedSearch]);
+    void load(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [appliedSearch, status, syncStatus, branch]);
 
   function onSearch(e: React.FormEvent) {
     e.preventDefault();
     setAppliedSearch(search.trim());
   }
 
+  const filtersActive = Boolean(status || syncStatus || branch);
+
+  function resetFilters() {
+    setStatus("");
+    setSyncStatus("");
+    setBranch(null);
+  }
+
+  const columns: DataTableColumn<Customer>[] = [
+    {
+      key: "contact",
+      label: t("contact"),
+      render: (row) => (
+        <Link href={`/customers/${row.id}`} className="block">
+          <p className="font-medium text-primary hover:underline">{row.contact_name || row.company_name || "—"}</p>
+          {row.company_name && row.contact_name ? <p className="text-xs text-muted">{row.company_name}</p> : null}
+        </Link>
+      ),
+    },
+    {
+      key: "number",
+      label: t("customerNumber"),
+      render: (row) => <LtrValue className="text-sm">{row.customer_number || "—"}</LtrValue>,
+    },
+    {
+      key: "phone",
+      label: t("phone"),
+      render: (row) => <LtrValue className="text-sm">{row.mobile || row.phone || "—"}</LtrValue>,
+    },
+    { key: "branch", label: t("branch"), render: (row) => row.branch?.code || "—" },
+    {
+      key: "balance",
+      label: t("balance"),
+      render: (row) => formatMoney(row.outstanding_receivable, row.currency, locale),
+    },
+    {
+      key: "sync",
+      label: t("syncStatus"),
+      render: (row) => <StatusBadge status={row.sync_status ?? undefined} />,
+    },
+    {
+      key: "lastActivity",
+      label: t("lastSynced"),
+      render: (row) => formatDate(row.last_synced_at, locale),
+    },
+    { key: "status", label: t("status"), render: (row) => <StatusBadge status={row.status} /> },
+  ];
+
   return (
     <div>
       <PageHeader title={t("title")} subtitle={t("subtitle")} />
 
-      {error ? (
-        <div className="mb-4">
-          <Alert>{error}</Alert>
-        </div>
-      ) : null}
-
-      <Panel className="mb-4 p-4">
-        <form
-          onSubmit={onSearch}
-          className="flex flex-col gap-2 sm:flex-row sm:items-center"
-        >
+      <PageToolbar>
+        <form onSubmit={onSearch} className="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center">
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={t("searchPlaceholder")}
-            className="sm:max-w-md"
+            className="sm:max-w-sm"
+            type="search"
           />
-          <Button type="submit">{tCommon("search")}</Button>
+          <FilterBar active={filtersActive} onReset={resetFilters}>
+            <BranchPicker value={branch} onChange={setBranch} className="w-40" />
+            <Select value={status} onChange={(e) => setStatus(e.target.value)} className="w-36">
+              <option value="">{t("status")}</option>
+              {STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </Select>
+            <Select value={syncStatus} onChange={(e) => setSyncStatus(e.target.value)} className="w-40">
+              <option value="">{t("syncStatus")}</option>
+              {SYNC_STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {s.replace(/_/g, " ")}
+                </option>
+              ))}
+            </Select>
+          </FilterBar>
         </form>
-      </Panel>
+      </PageToolbar>
 
-      <Panel>
-        {loading ? (
-          <LoadingState label={tCommon("loading")} />
-        ) : customers.length === 0 ? (
-          <EmptyState label={tCommon("empty")} />
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[800px] text-start text-sm">
-              <thead className="border-b border-border bg-sand-soft/40 text-muted">
-                <tr>
-                  <th className="px-4 py-3 font-medium">{t("contact")}</th>
-                  <th className="px-4 py-3 font-medium">{t("company")}</th>
-                  <th className="px-4 py-3 font-medium">{t("customerNumber")}</th>
-                  <th className="px-4 py-3 font-medium">{t("branch")}</th>
-                  <th className="px-4 py-3 font-medium">{t("balance")}</th>
-                  <th className="px-4 py-3 font-medium">{t("status")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {customers.map((customer) => (
-                  <tr
-                    key={customer.id}
-                    className="border-b border-border last:border-0"
-                  >
-                    <td className="px-4 py-3">
-                      <Link
-                        href={`/customers/${customer.id}`}
-                        className="font-medium text-primary hover:underline"
-                      >
-                        {customer.contact_name || "—"}
-                      </Link>
-                      {customer.email ? (
-                        <div className="text-xs text-muted">{customer.email}</div>
-                      ) : null}
-                    </td>
-                    <td className="px-4 py-3">
-                      {customer.company_name || "—"}
-                    </td>
-                    <td className="px-4 py-3">
-                      {customer.customer_number || "—"}
-                    </td>
-                    <td className="px-4 py-3">
-                      {customer.branch?.code || "—"}
-                    </td>
-                    <td className="px-4 py-3">
-                      {formatMoney(
-                        customer.outstanding_receivable,
-                        customer.currency,
-                        locale,
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge
-                        tone={
-                          customer.status === "active" ? "success" : "neutral"
-                        }
-                      >
-                        {customer.status}
-                      </Badge>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {meta.last_page > 1 ? (
-          <div className="flex items-center justify-between gap-3 border-t border-border px-4 py-3">
-            <p className="text-sm text-muted">
-              {tCommon("page", {
-                page: meta.current_page,
-                total: meta.last_page,
-              })}
-            </p>
-            <div className="flex gap-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={meta.current_page <= 1 || loading}
-                onClick={() => void load(meta.current_page - 1)}
-              >
-                {tCommon("previous")}
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={meta.current_page >= meta.last_page || loading}
-                onClick={() => void load(meta.current_page + 1)}
-              >
-                {tCommon("next")}
-              </Button>
-            </div>
-          </div>
-        ) : null}
-      </Panel>
+      {error ? (
+        <ErrorState error={error} onRetry={() => load(meta.current_page)} />
+      ) : (
+        <DataTable
+          rows={customers}
+          columns={columns}
+          rowKey={(row) => row.id}
+          loading={loading}
+          emptyLabel={tCommon("empty")}
+          page={meta.current_page}
+          lastPage={meta.last_page}
+          onPageChange={(page) => void load(page)}
+          mobileCard={(row) => (
+            <MobileRecordCard
+              href={`/customers/${row.id}`}
+              title={row.contact_name || row.company_name || "—"}
+              subtitle={row.customer_number ?? undefined}
+              status={<StatusBadge status={row.status} />}
+              fields={[
+                { label: t("phone"), value: row.mobile || row.phone || "—" },
+                { label: t("branch"), value: row.branch?.code || "—" },
+                { label: t("balance"), value: formatMoney(row.outstanding_receivable, row.currency, locale) },
+                { label: t("syncStatus"), value: <StatusBadge status={row.sync_status ?? undefined} /> },
+              ]}
+            />
+          )}
+        />
+      )}
     </div>
   );
 }

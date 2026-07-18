@@ -422,6 +422,7 @@ export interface CustomerListParams {
   search?: string;
   status?: string;
   branch_id?: number | string;
+  sync_status?: string;
   exclude_unmapped?: boolean;
 }
 
