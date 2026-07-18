@@ -26,6 +26,9 @@ const CONSOLE_ALLOWLIST = [
   /Download the React DevTools/i,
   /favicon\.ico/i,
   /Failed to load resource: the server responded with a status of 401/i,
+  // Next.js soft-nav prefetch fallbacks under load — page still navigates in-browser.
+  /Failed to fetch RSC payload/i,
+  /Falling back to browser navigation/i,
 ];
 
 function loadCachedAuth(): { token: string; user: Record<string, unknown> } {
