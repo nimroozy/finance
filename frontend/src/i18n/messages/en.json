@@ -2147,6 +2147,31 @@
     "resolveConfirmBody": "This does not change any ownership record — it only marks the conflict as reviewed.",
     "resolveSuccess": "Conflict marked as resolved."
   },
+  "collectorDebtorsPage": {
+    "title": "My current debtors",
+    "subtitle": "Customers currently requiring collection.",
+    "balance": "Balance",
+    "openInvoices": "Open invoices",
+    "overdue": "Overdue",
+    "overdueDays": "{days}d",
+    "empty": "No open debtors right now."
+  },
+  "collectorPermanentCustomersPage": {
+    "title": "My permanent customers",
+    "subtitle": "Customers you permanently own, even with zero balance.",
+    "permanent": "Permanent",
+    "sinceLabel": "Since",
+    "empty": "No permanent customers yet."
+  },
+  "branchReceivablesPage": {
+    "title": "Branch receivables",
+    "subtitle": "Totals from synchronized Zoho invoice balances.",
+    "receivable": "Receivable",
+    "debtors": "Debtors",
+    "owned": "Owned",
+    "unassigned": "Unassigned",
+    "empty": "No branch data available."
+  },
   "branchPaymentMappingsPage": {
     "title": "Branch Zoho payment mappings",
     "subtitle": "Map each branch to its Zoho account and payment mode before enabling live payment sync.",
