@@ -1,7 +1,6 @@
 # Stage 10.4 — Acceptance results
 
-**Branch tip at acceptance green pass / Final tip:** `f22cadc8eeb4df60917c503b6335e1137c90e36a`  
-**Environment:**** `f22cadc8eeb4df60917c503b6335e1137c90e36a` (see delivery report Final SHA after deploy)  
+**Final tip:** `862f83309dd96fee9b7747ed639dccad92497a2a`  
 **Environment:** VPS sidecar `http://127.0.0.1:18080` / DB `collection_acceptance` / Redis DB 2  
 **Zoho mode:** `test_adapter`  
 **WhatsApp send / Radius:** disabled  
