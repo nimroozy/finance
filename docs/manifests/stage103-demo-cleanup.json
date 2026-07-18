@@ -1,0 +1,197 @@
+{
+  "version": 1,
+  "stage": "10.3",
+  "reviewed_at": "2026-07-18",
+  "source_dry_run": "stage102:cleanup-demo --dry-run",
+  "notes": "Reviewed against VPS FK checks. Payments and stock_transactions are never touched. Customer 4183 archived (not deleted) due to payments.",
+  "protected": {
+    "payments": "never_delete",
+    "stock_transactions": "never_delete"
+  },
+  "items": [
+    {
+      "table": "customers",
+      "id": 7000,
+      "action": "archive",
+      "classification": "archive_only",
+      "label": "STAGE8 TEST customer - DO NOT USE",
+      "reason": "Clear STAGE8 demo; has cancelled service history — archive, do not hard-delete"
+    },
+    {
+      "table": "customers",
+      "id": 4138,
+      "action": "delete",
+      "classification": "safe_to_delete",
+      "label": "STAGE3-TEST Customer 1",
+      "reason": "Already archived; no payments/invoices/stock"
+    },
+    {
+      "table": "customers",
+      "id": 4139,
+      "action": "delete",
+      "classification": "safe_to_delete",
+      "label": "STAGE3-TEST Customer 2",
+      "reason": "Already archived; no payments/invoices/stock"
+    },
+    {
+      "table": "customers",
+      "id": 4140,
+      "action": "delete",
+      "classification": "safe_to_delete",
+      "label": "STAGE3-TEST Customer 3",
+      "reason": "Already archived; no payments/invoices/stock"
+    },
+    {
+      "table": "customers",
+      "id": 4141,
+      "action": "delete",
+      "classification": "safe_to_delete",
+      "label": "STAGE3-TEST Customer 4",
+      "reason": "Already archived; no payments/invoices/stock"
+    },
+    {
+      "table": "customers",
+      "id": 4142,
+      "action": "delete",
+      "classification": "safe_to_delete",
+      "label": "STAGE3-TEST Other Branch Customer",
+      "reason": "Already archived; no payments/invoices/stock"
+    },
+    {
+      "table": "customers",
+      "id": 4183,
+      "action": "archive",
+      "classification": "preserve_financial",
+      "label": "STAGE5 TEST CUSTOMER - DO NOT USE",
+      "reason": "Has 3 payments (reversed) + 3 invoices — ARCHIVE with [ARCHIVED TEST] prefix; never delete payments"
+    },
+    {
+      "table": "crm_leads",
+      "id": 1,
+      "action": "archive",
+      "classification": "archive_only",
+      "label": "STAGE8 TEST LEAD - DO NOT USE",
+      "reason": "Clear STAGE8 demo lead linked to customer 7000 / installation 3"
+    },
+    {
+      "table": "branches",
+      "id": 3,
+      "action": "disable_rename",
+      "classification": "disable_rename",
+      "label": "STAGE3-TEST Branch A",
+      "reason": "Only STAGE3-TEST customers and STAGE7/71 test tickets; no payments"
+    },
+    {
+      "table": "branches",
+      "id": 4,
+      "action": "disable_rename",
+      "classification": "disable_rename",
+      "label": "STAGE3-TEST Branch B",
+      "reason": "Only STAGE3-TEST customer; no payments"
+    },
+    {
+      "table": "users",
+      "id": 3,
+      "action": "disable_rename",
+      "classification": "disable_rename",
+      "label": "STAGE3-TEST Manager",
+      "reason": "Test user; no payment references"
+    },
+    {
+      "table": "users",
+      "id": 4,
+      "action": "disable_rename",
+      "classification": "disable_rename",
+      "label": "STAGE3-TEST Collector A",
+      "reason": "Test user; no payment references"
+    },
+    {
+      "table": "users",
+      "id": 5,
+      "action": "disable_rename",
+      "classification": "disable_rename",
+      "label": "STAGE3-TEST Collector B",
+      "reason": "Test user; no payment references"
+    },
+    {
+      "table": "users",
+      "id": 6,
+      "action": "disable_rename",
+      "classification": "disable_rename",
+      "label": "STAGE3-TEST Collector Other Branch",
+      "reason": "Test user; no payment references"
+    },
+    {
+      "table": "tickets",
+      "id": 2,
+      "action": "archive",
+      "classification": "archive_only",
+      "label": "STAGE7 TEST ticket - DO NOT USE",
+      "reason": "Clear STAGE7 demo ticket"
+    },
+    {
+      "table": "tickets",
+      "id": 3,
+      "action": "archive",
+      "classification": "archive_only",
+      "label": "STAGE71 TEST ticket - DO NOT USE",
+      "reason": "Clear STAGE71 demo ticket"
+    },
+    {
+      "table": "tasks",
+      "id": 1,
+      "action": "archive",
+      "classification": "archive_only",
+      "label": "STAGE7 TEST task - DO NOT USE",
+      "reason": "Clear STAGE7 demo task"
+    },
+    {
+      "table": "tasks",
+      "id": 2,
+      "action": "archive",
+      "classification": "archive_only",
+      "label": "STAGE71 TEST task - DO NOT USE",
+      "reason": "Clear STAGE71 demo task"
+    },
+    {
+      "table": "tasks",
+      "id": 3,
+      "action": "archive",
+      "classification": "archive_only",
+      "label": "01-TSK-2026-000001",
+      "reason": "Description embeds STAGE8 TEST LEAD survey — not a false positive"
+    },
+    {
+      "table": "installations",
+      "id": 1,
+      "action": "archive",
+      "classification": "archive_only",
+      "label": "STAGE7 TEST installation",
+      "reason": "Notes explicit STAGE7 TEST — DO NOT USE"
+    },
+    {
+      "table": "installations",
+      "id": 2,
+      "action": "archive",
+      "classification": "archive_only",
+      "label": "STAGE71 TEST",
+      "reason": "Clear STAGE71 demo installation"
+    },
+    {
+      "table": "installations",
+      "id": 3,
+      "action": "archive",
+      "classification": "archive_only",
+      "label": "STAGE8 TEST",
+      "reason": "Clear STAGE8 demo linked to customer 7000"
+    },
+    {
+      "table": "installations",
+      "id": 4,
+      "action": "archive",
+      "classification": "archive_only",
+      "label": "STAGE9 TEST - DO NOT USE",
+      "reason": "Archive install only; linked customer 3430 preserved"
+    }
+  ]
+}

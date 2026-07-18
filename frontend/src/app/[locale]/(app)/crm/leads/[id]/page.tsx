@@ -13,8 +13,11 @@ import {
   createFollowUp,
   createQuotation,
   getLead,
+  linkLeadZohoCustomer,
+  searchZohoMirrorCustomers,
   transitionLead,
   type Lead,
+  type ZohoMirrorCustomer,
 } from "@/lib/crm";
 import { formatDateTime } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth-store";
@@ -66,6 +69,9 @@ export default function CrmLeadDetailPage() {
   const [quoteMonthly, setQuoteMonthly] = useState("");
   const [quoteInstall, setQuoteInstall] = useState("");
   const [winReason, setWinReason] = useState("");
+  const [zohoQuery, setZohoQuery] = useState("");
+  const [zohoResults, setZohoResults] = useState<ZohoMirrorCustomer[]>([]);
+  const [zohoSearching, setZohoSearching] = useState(false);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -243,6 +249,41 @@ export default function CrmLeadDetailPage() {
     }
   }
 
+  async function onSearchZoho(e?: React.FormEvent) {
+    e?.preventDefault();
+    setZohoSearching(true);
+    setError(null);
+    try {
+      const res = await searchZohoMirrorCustomers({
+        phone: zohoQuery.trim() || lead?.phone || undefined,
+        q: zohoQuery.trim() || undefined,
+        branch_id: lead?.branch_id,
+        limit: 20,
+      });
+      setZohoResults(res.data || []);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : tCommon("error"));
+      setZohoResults([]);
+    } finally {
+      setZohoSearching(false);
+    }
+  }
+
+  async function onLinkZoho(customerId: number) {
+    if (!lead) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await linkLeadZohoCustomer(lead.id, customerId);
+      setSuccess(t("zohoLinkSuccess"));
+      await load();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : tCommon("error"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (loading) return <LoadingState label={tCommon("loading")} />;
   if (error && !lead) return <ErrorWorkspace message={error} onRetry={() => void load()} />;
   if (!lead) return <EmptyWorkspace label={t("leadNotFound")} />;
@@ -321,30 +362,70 @@ export default function CrmLeadDetailPage() {
                     }}
                   />
                 </div>
-                <Button onClick={() => void onAssign()} disabled={busy || !ownerId}>
+                <Button disabled={busy || !ownerId} onClick={() => void onAssign()}>
                   {t("assign")}
                 </Button>
               </div>
             ) : null}
-            {canConvert && !lead.converted_customer_id ? (
-              <div className="space-y-2 border-t border-border pt-4">
+          </Panel>
+
+          <Panel className="space-y-3 p-4" data-testid="zoho-link-panel">
+            <h3 className="text-sm font-semibold">{t("zohoLinkTitle")}</h3>
+            <p className="text-xs text-muted">{t("zohoLinkHint")}</p>
+            <div
+              className="text-sm"
+              data-testid="zoho-link-status"
+            >
+              {lead.converted_customer_id
+                ? t("zohoLinkedStatus", { id: lead.converted_customer_id })
+                : t("zohoNotLinked")}
+            </div>
+            {canUpdate && !lead.converted_customer_id ? (
+              <form className="grid gap-2" onSubmit={(e) => void onSearchZoho(e)}>
                 <Input
-                  placeholder={t("fields.winReason")}
+                  data-testid="zoho-search-input"
+                  value={zohoQuery}
+                  onChange={(e) => setZohoQuery(e.target.value)}
+                  placeholder={t("zohoSearchPlaceholder")}
+                />
+                <Button type="submit" variant="secondary" disabled={zohoSearching || busy} data-testid="zoho-search-submit">
+                  {t("zohoSearch")}
+                </Button>
+              </form>
+            ) : null}
+            {zohoResults.length > 0 ? (
+              <ul className="divide-y divide-border" data-testid="zoho-search-results">
+                {zohoResults.map((c) => (
+                  <li key={c.id} className="flex items-center justify-between gap-2 py-2 text-sm">
+                    <span>
+                      {c.contact_name || c.customer_number || `#${c.id}`}
+                      {c.zoho_contact_id ? ` · ${c.zoho_contact_id}` : ""}
+                    </span>
+                    {canUpdate ? (
+                      <Button
+                        size="sm"
+                        data-testid="zoho-link-customer"
+                        disabled={busy}
+                        onClick={() => void onLinkZoho(c.id)}
+                      >
+                        {t("zohoLinkAction")}
+                      </Button>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            {canConvert ? (
+              <div className="grid gap-2 border-t border-border pt-3">
+                <Input
                   value={winReason}
                   onChange={(e) => setWinReason(e.target.value)}
+                  placeholder={t("fields.winReason")}
                 />
-                <Button onClick={() => void onConvert()} disabled={busy}>
+                <Button disabled={busy || !lead.converted_customer_id} onClick={() => void onConvert()}>
                   {t("convert")}
                 </Button>
               </div>
-            ) : null}
-            {lead.converted_customer_id ? (
-              <Alert tone="success">
-                {t("convertedToCustomer", { id: lead.converted_customer_id })}
-                {lead.installation_id
-                  ? ` · ${t("installationLinked", { id: lead.installation_id })}`
-                  : ""}
-              </Alert>
             ) : null}
           </Panel>
           <Panel className="p-4">

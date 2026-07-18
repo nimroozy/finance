@@ -93,6 +93,7 @@ class Stage102ContractTest extends TestCase
             'services.create',
             'services.update',
             'services.activate',
+            'services.activate.override',
             'services.suspend',
             'services.cancel',
             'services.change',

@@ -34,7 +34,7 @@ use App\Events\Services\ServicePackageChanged;
 use App\Events\Services\ServiceReactivated;
 use App\Events\Services\ServiceRelocated;
 use App\Events\Services\ServiceSuspended;
-use App\Listeners\Crm\LogCrmPlaceholderIntegrations;
+use App\Listeners\Crm\LogCrmDomainEvents;
 use App\Listeners\EmitBusinessNotificationFromTicketEvents;
 use App\Listeners\Services\EmitBusinessNotificationFromServiceEvents;
 use App\Models\Branch;
@@ -200,11 +200,11 @@ class AppServiceProvider extends ServiceProvider
 
     private function registerCrmEventListeners(): void
     {
-        Event::listen(LeadConverted::class, [LogCrmPlaceholderIntegrations::class, 'handleConverted']);
-        Event::listen(InstallationRequestedFromCrm::class, [LogCrmPlaceholderIntegrations::class, 'handleInstallationRequested']);
-        Event::listen(SurveyCompleted::class, [LogCrmPlaceholderIntegrations::class, 'handleSurveyCompleted']);
-        Event::listen(QuotationAccepted::class, [LogCrmPlaceholderIntegrations::class, 'handleQuotationAccepted']);
-        Event::listen(FollowUpOverdue::class, [LogCrmPlaceholderIntegrations::class, 'handleFollowUpOverdue']);
+        Event::listen(LeadConverted::class, [LogCrmDomainEvents::class, 'handleConverted']);
+        Event::listen(InstallationRequestedFromCrm::class, [LogCrmDomainEvents::class, 'handleInstallationRequested']);
+        Event::listen(SurveyCompleted::class, [LogCrmDomainEvents::class, 'handleSurveyCompleted']);
+        Event::listen(QuotationAccepted::class, [LogCrmDomainEvents::class, 'handleQuotationAccepted']);
+        Event::listen(FollowUpOverdue::class, [LogCrmDomainEvents::class, 'handleFollowUpOverdue']);
     }
 
     private function registerOperationalEventListeners(): void

@@ -5,7 +5,7 @@ namespace App\Events\Inventory;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class PlaceholderZohoInventoryItemSyncRequested
+class ZohoInventoryItemSyncRequested
 {
     use Dispatchable, SerializesModels;
 

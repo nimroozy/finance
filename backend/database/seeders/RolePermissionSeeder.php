@@ -205,6 +205,7 @@ class RolePermissionSeeder extends Seeder
         'services.create',
         'services.update',
         'services.activate',
+        'services.activate.override',
         'services.suspend',
         'services.reactivate',
         'services.cancel',
@@ -323,7 +324,7 @@ class RolePermissionSeeder extends Seeder
             // Stage 10
             'services.view', 'services.billing.view', 'services.dashboard.view', 'services.reports.view',
             'services.packages.view', 'services.locations.view', 'services.contracts.view',
-            'services.activate', 'services.suspend', 'services.cancel', 'services.update',
+            'services.activate', 'services.activate.override', 'services.suspend', 'services.cancel', 'services.update',
         ]);
 
         $branchManager->syncPermissions([
@@ -414,7 +415,7 @@ class RolePermissionSeeder extends Seeder
             'inventory.reports.view', 'inventory.import', 'inventory.alerts.manage', 'inventory.dashboard.view',
             // Stage 10 — service lifecycle
             'services.view', 'services.create', 'services.update',
-            'services.activate', 'services.suspend', 'services.reactivate', 'services.cancel',
+            'services.activate', 'services.activate.override', 'services.suspend', 'services.reactivate', 'services.cancel',
             'services.change', 'services.relocate', 'services.renew',
             'services.packages.view', 'services.packages.manage',
             'services.locations.view', 'services.locations.manage',

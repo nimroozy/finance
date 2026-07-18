@@ -631,6 +631,40 @@ export async function getCrmDashboard(branchId?: number | string) {
   );
 }
 
+export type ZohoMirrorCustomer = {
+  id: number;
+  contact_name?: string | null;
+  customer_number?: string | null;
+  phone?: string | null;
+  zoho_contact_id?: string | null;
+  branch_id?: number | null;
+};
+
+export async function searchZohoMirrorCustomers(params: {
+  q?: string;
+  phone?: string;
+  name?: string;
+  zoho_contact_id?: string;
+  branch_id?: number | string;
+  limit?: number;
+}) {
+  return apiFetch<ZohoMirrorCustomer[]>(`/crm/customers/search-zoho-mirror${toQuery(params)}`);
+}
+
+export async function linkLeadZohoCustomer(
+  leadId: number | string,
+  customerId: number,
+) {
+  return apiFetch<{
+    lead_id: number;
+    converted_customer_id: number | null;
+    customer: ZohoMirrorCustomer;
+  }>(`/crm/leads/${leadId}/link-zoho-customer`, {
+    method: "POST",
+    body: JSON.stringify({ customer_id: customerId }),
+  });
+}
+
 export function crmLeadsReportUrl(
   params: {
     branch_id?: number | string;

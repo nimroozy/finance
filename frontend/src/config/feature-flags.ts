@@ -18,18 +18,18 @@ export type PlatformModule =
 
 export type ModuleFlag = {
   id: PlatformModule;
-  /** When false, hide functional nav; may still show roadmap placeholder. */
+  /** When false, hide functional nav; may still show muted roadmap entry. */
   enabled: boolean;
   /** Stage that delivers the module. */
   stage: number;
-  /** Show muted "coming soon" entry in roadmap nav group. */
+  /** Show muted planned-module entry in roadmap nav group. */
   showRoadmapPlaceholder: boolean;
 };
 
 /**
  * Stage 6–10 modules are enabled (WhatsApp, ticketing/tasks/install queue, CRM,
  * inventory/assets/sites, service lifecycle).
- * Radius remains a deferred placeholder (Stage 12).
+ * Radius remains deferred until Stage 12 adapters exist.
  */
 export const FEATURE_FLAGS: Record<PlatformModule, ModuleFlag> = {
   whatsapp: {

@@ -159,7 +159,8 @@
     "servicesContracts": "قراردادها",
     "servicesSla": "SLA خدمات",
     "servicesReports": "گزارش خدمات",
-    "nocServices": "خدمات NOC"
+    "nocServices": "خدمات NOC",
+    "servicesCancellations": "لغوها"
   },
   "common": {
     "loading": "در حال بارگذاری…",
@@ -1522,7 +1523,15 @@
       "accepted": "پذیرفته",
       "rejected": "رد شده",
       "expired": "منقضی"
-    }
+    },
+    "zohoLinkTitle": "لینک مشتری Zoho",
+    "zohoLinkHint": "آینه محلی Zoho را جستجو کنید و قبل از تبدیل، این سرنخ را لینک کنید.",
+    "zohoSearchPlaceholder": "تلفن، نام یا شناسه Zoho",
+    "zohoSearch": "جستجوی آینه Zoho",
+    "zohoLinkAction": "لینک",
+    "zohoLinkSuccess": "سرنخ به مشتری آینه Zoho لینک شد.",
+    "zohoNotLinked": "هنوز به مشتری Zoho لینک نشده است.",
+    "zohoLinkedStatus": "لینک‌شده به مشتری #{id}"
   },
   "inventory": {
     "dashboardTitle": "داشبورد انبار",
@@ -1797,7 +1806,15 @@
       "requestCancel": "Request cancellation",
       "newSla": "New SLA template",
       "deactivateSla": "Deactivate",
-      "saveSla": "Save"
+      "saveSla": "Save",
+      "overrideActivate": "فعال‌سازی با استثنا",
+      "confirmOverride": "تأیید استثنا",
+      "cancelOverride": "انصراف",
+      "approveCancellation": "تأیید لغو",
+      "recoverEquipment": "تأیید بازیابی تجهیزات",
+      "completeCancellation": "تکمیل لغو",
+      "saveContract": "ذخیره قرارداد",
+      "editSla": "ویرایش"
     },
     "metrics": {
       "total": "کل خدمات",
@@ -1850,7 +1867,11 @@
       "download": "دانلود Mbps",
       "upload": "آپلود Mbps",
       "responseMinutes": "پاسخ (دقیقه)",
-      "resolveMinutes": "حل (دقیقه)"
+      "resolveMinutes": "حل (دقیقه)",
+      "startDate": "تاریخ شروع",
+      "endDate": "تاریخ پایان",
+      "zohoReference": "مرجع Zoho",
+      "selectStatus": "انتخاب وضعیت"
     },
     "commercial": {
       "draft": "پیش‌نویس",
@@ -1899,16 +1920,21 @@
     "relocateWizardHint": "Relocation stays requested until started/completed.",
     "cancelWizardHint": "Cancellation requires approve → equipment recovery → complete.",
     "nocConfirmHint": "Operational online requires a separate NOC confirmation with reason.",
-    "checklist.zoho_linked": "Zoho linked",
-    "checklist.installation_completed": "Installation completed",
-    "checklist.inventory_reconciled": "Inventory reconciled",
-    "checklist.equipment_assigned": "Equipment assigned",
     "checklist": {
       "zoho_linked": "Zoho linked",
       "installation_completed": "Installation completed",
       "inventory_reconciled": "Inventory reconciled",
       "equipment_assigned": "Equipment assigned"
-    }
+    },
+    "activationEvidenceHint": "آیتم‌های چک‌لیست شواهد فقط‌خواندنی از API هستند — پرچم‌های کلاینت نادیده گرفته می‌شوند.",
+    "evidenceReadOnly": "شواهد",
+    "overrideActivateHint": "فقط در صورت ناقص بودن شواهد و داشتن مجوز، فعال‌سازی را نادیده بگیرید. دلیل الزامی است.",
+    "overrideActivateSuccess": "خدمت با نادیده‌گرفتن چک‌لیست فعال شد.",
+    "cancellationsTitle": "لغوها",
+    "cancellationsSubtitle": "لغوهای در انتظار و در حال انجام",
+    "emptyCancellations": "لغوی وجود ندارد",
+    "editContract": "ویرایش قرارداد",
+    "contractUpdateSuccess": "قرارداد به‌روزرسانی شد."
   },
   "apps": {
     "dashboard": "داشبورد",
@@ -1974,7 +2000,9 @@
     "group_insights": "تحلیل‌ها",
     "group_admin": "مدیریت",
     "services": "سرویس‌ها",
-    "servicesDesc": "چرخه عمر سرویس مشتری، بسته‌ها و عملیات NOC"
+    "servicesDesc": "چرخه عمر سرویس مشتری، بسته‌ها و عملیات NOC",
+    "administration": "مدیریت",
+    "administrationDesc": "کاربران، شعبه‌ها، گزارش حسابرسی و تنظیمات"
   },
   "launcher": {
     "title": "برنامه‌ها",

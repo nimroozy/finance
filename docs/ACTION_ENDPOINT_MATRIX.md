@@ -21,6 +21,7 @@ Partial matrix with verified routes. Expand as repair work continues.
 | Purchase orders list | GET | `/api/v1/inventory/purchase-orders` | `inventory.purchasing.view` | hide UI |
 | List customers | GET | `/api/v1/customers` | `customers.view` | keep |
 | Demo cleanup dry-run | CLI | `stage102:cleanup-demo --dry-run` | ops | keep |
+| Demo cleanup apply (manifest) | CLI | `stage103:cleanup-demo --manifest=… --apply` | ops | keep |
 
 Placeholder removals (no longer dispatched):
 

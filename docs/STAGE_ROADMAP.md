@@ -22,7 +22,9 @@ Unified multi-branch ISP operations so branch staff can work without daily login
 | **9** | **Inventory, assets, sites, towers** | **In progress / delivered on branch** |
 | **9.1** | **Unified app launcher, bilingual UI, UX shell** | **Complete / in 10.1 tip** |
 | **10** | **ISP service lifecycle** | **Complete / in 10.1 tip** |
-| **10.1** | **Integrated stable baseline (7→10 + 9.1)** | **In progress / tip branch** |
+| **10.1** | **Integrated stable baseline (7→10 + 9.1)** | **Complete / in 10.2 tip** |
+| **10.2** | **Production recovery (service API, search, cleanup dry-run)** | **Complete / in 10.3 tip** |
+| **10.3** | **Functional acceptance (launcher, ActivationPanel, queues, reviewed cleanup)** | **In progress / tip branch** |
 
 ## Stage 6 — WhatsApp & notifications (complete / foundation)
 
@@ -151,6 +153,24 @@ Docs: [STAGE_10_SERVICE_LIFECYCLE.md](STAGE_10_SERVICE_LIFECYCLE.md).
 Unifies Stages **7 / 7.1 / 8 / 9 / 9.1 / 10** for production deploy. Docs: [STAGE_10_1_INTEGRATED_STABLE.md](STAGE_10_1_INTEGRATED_STABLE.md), [BRANCH_INTEGRATION_HISTORY.md](BRANCH_INTEGRATION_HISTORY.md), [REGRESSION_TEST_MATRIX.md](REGRESSION_TEST_MATRIX.md), [PRODUCTION_SMOKE_TEST.md](PRODUCTION_SMOKE_TEST.md).
 
 **Hard rules:** No Stage 11. No Radius. Preserve superseded PRs #15/#16 for audit (close later as superseded). Do not mutate financial or ledger calculations.
+
+---
+
+## Stage 10.2 — Production recovery
+
+**Tip branch:** `cursor/stage-10-2-production-recovery`. Version label: `10.2-production-recovery`.
+
+Service API completeness, global search, launcher counts, branch integrity, demo-cleanup CLI (dry-run). Docs: [STAGE_10_2_PRODUCTION_RECOVERY.md](STAGE_10_2_PRODUCTION_RECOVERY.md), [STAGE_10_2_DELIVERY_REPORT.md](STAGE_10_2_DELIVERY_REPORT.md).
+
+---
+
+## Stage 10.3 — Functional acceptance
+
+**Tip branch:** `cursor/stage-10-3-functional-acceptance`. Version label: `10.3-functional-acceptance`.
+
+Functional acceptance of launcher, ActivationPanel evidence UI, service queues, AcceptanceSeeder (non-prod), reviewed demo cleanup apply. Docs: [STAGE_10_3_FUNCTIONAL_ACCEPTANCE.md](STAGE_10_3_FUNCTIONAL_ACCEPTANCE.md), [STAGE_10_3_DELIVERY_REPORT.md](STAGE_10_3_DELIVERY_REPORT.md), [PRODUCTION_SHA_VERIFICATION.md](PRODUCTION_SHA_VERIFICATION.md).
+
+**Hard rules:** No Stage 11. No Radius. No live WhatsApp. No uncontrolled Zoho writes. Do not seed AcceptanceSeeder on production. Preserve SSH deploy keys (**KEY_KEPT**).
 
 ---
 

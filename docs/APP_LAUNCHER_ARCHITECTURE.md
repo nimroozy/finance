@@ -90,16 +90,20 @@ Resolving “current app”: `resolveAppFromPath(pathname)` maps the route into 
 
 ## Main apps vs submodules
 
-**Prefer main apps on the launcher grid.** Deep modules (package catalog, SLA templates, stock counts, purchase orders, etc.) belong in **app context nav** (`APP_CONTEXT_NAV`), not as separate launcher cards.
+**Prefer main apps on the launcher grid.** Deep modules belong in **app context nav** (`APP_CONTEXT_NAV`), not as separate launcher cards.
 
-Examples:
+Primary launcher apps (`PRIMARY_LAUNCHER_APP_IDS` / Stage 10.3):
+
+Customers, Payments, Collections, Tasks, Support, NOC, CRM, Installations, Inventory, Services, Reports, Administration.
 
 | Launcher (main) | Context nav (submodules) |
 |-----------------|--------------------------|
-| Services | Pending install/activation, packages, SLA, NOC workspace |
-| Inventory | Products, receiving, counts, reservations |
-| Purchasing | Requests, orders (card itself hidden while `purchasing` feature flag is false) |
-| CRM | Leads list entry points; follow-ups / quotations stay under CRM nav |
+| CRM | Leads, quotations, follow-ups, pipeline |
+| Inventory | Equipment, transfers, purchasing, repairs, sites |
+| Services | Packages, contracts, SLA, change requests, relocations, cancellations |
+| Administration | Users, branches, audit, settings, Zoho |
+
+Catalog entries for submodules keep `showOnLauncher: false` so deep links and favorites still resolve; `matchPrefixes` live on the parent app for shell context.
 
 Purchasing remains gated by `featureFlag: "purchasing"` (`enabled: false` until Stage 11).
 

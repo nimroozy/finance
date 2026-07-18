@@ -178,6 +178,7 @@ class Stage10ServiceLifecycleTest extends TestCase
             'idempotency_key' => 'act-1',
             'checklist' => $checklist,
             'skip_checklist' => true,
+            'reason' => 'Stage10 test override',
         ])->assertOk()
             ->assertJsonPath('data.commercial_status', Service::COMMERCIAL_ACTIVE)
             ->assertJsonPath('data.operational_status', Service::OPERATIONAL_READY);
@@ -191,6 +192,7 @@ class Stage10ServiceLifecycleTest extends TestCase
             'idempotency_key' => 'act-1',
             'checklist' => $checklist,
             'skip_checklist' => true,
+            'reason' => 'Stage10 test override',
         ])->assertOk();
 
         $this->assertSame(1, $service->activations()->count());
@@ -489,6 +491,7 @@ class Stage10ServiceLifecycleTest extends TestCase
             'idempotency_key' => 'act-'.$branchCode,
             'skip_checklist' => true,
             'checklist' => [],
+            'reason' => 'Stage10 test override',
         ])->assertOk();
 
         $this->postJson("/api/v1/services/{$service->id}/noc-confirm-online", [
