@@ -77,8 +77,14 @@ export async function login(
     },
     { token, user },
   );
+  // Hydrate auth store via launcher before deep-linking into detail pages.
   await page.goto(`/${locale}/apps`);
   await expect(page.getByTestId("apps-launcher")).toBeVisible({ timeout: 30_000 });
+  await expect
+    .poll(async () => page.evaluate(() => !!localStorage.getItem("auth-storage")), {
+      timeout: 10_000,
+    })
+    .toBeTruthy();
   return token;
 }
 
