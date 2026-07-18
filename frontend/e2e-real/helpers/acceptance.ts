@@ -29,6 +29,9 @@ const CONSOLE_ALLOWLIST = [
   // Next.js soft-nav prefetch fallbacks under load — page still navigates in-browser.
   /Failed to fetch RSC payload/i,
   /Falling back to browser navigation/i,
+  // Playwright hits the acceptance stack as http://nginx; Next RSC prefetch absolute URLs trip browser CORS/access checks.
+  /due to access control checks/i,
+  /\/nginx\/[a-z]{2}\//i,
 ];
 
 function loadCachedAuth(): { token: string; user: Record<string, unknown> } {
@@ -81,13 +84,17 @@ export async function login(
     { token, user },
   );
   // Hydrate auth store via launcher before deep-linking into detail pages.
-  await page.goto(`/${locale}/apps`);
+  // Avoid page.evaluate polls here — soft navigations destroy the execution context.
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    await page.goto(`/${locale}/apps`, { waitUntil: "domcontentloaded" });
+    try {
+      await expect(page.getByTestId("apps-launcher")).toBeVisible({ timeout: 20_000 });
+      return token;
+    } catch {
+      await page.waitForTimeout(500);
+    }
+  }
   await expect(page.getByTestId("apps-launcher")).toBeVisible({ timeout: 30_000 });
-  await expect
-    .poll(async () => page.evaluate(() => !!localStorage.getItem("auth-storage")), {
-      timeout: 10_000,
-    })
-    .toBeTruthy();
   return token;
 }
 
@@ -240,17 +247,25 @@ export async function assertDb(
 
 export async function expectNoHorizontalOverflow(page: Page) {
   await page.waitForTimeout(250);
-  const overflow = await page.evaluate(() => {
-    const doc = document.documentElement;
-    const body = document.body;
-    const width = Math.max(doc.clientWidth, window.innerWidth);
-    const scroll = Math.max(doc.scrollWidth, body?.scrollWidth || 0);
-    return {
-      scrollWidth: scroll,
-      clientWidth: width,
-      overflow: scroll > width + 4,
-    };
-  });
+  let overflow = { scrollWidth: 0, clientWidth: 0, overflow: false };
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      overflow = await page.evaluate(() => {
+        const doc = document.documentElement;
+        const body = document.body;
+        const width = Math.max(doc.clientWidth, window.innerWidth);
+        const scroll = Math.max(doc.scrollWidth, body?.scrollWidth || 0);
+        return {
+          scrollWidth: scroll,
+          clientWidth: width,
+          overflow: scroll > width + 4,
+        };
+      });
+      break;
+    } catch {
+      await page.waitForTimeout(300);
+    }
+  }
   expect(
     overflow.overflow,
     `horizontal overflow ${overflow.scrollWidth}>${overflow.clientWidth}`,

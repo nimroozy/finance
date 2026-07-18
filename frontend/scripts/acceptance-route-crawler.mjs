@@ -66,6 +66,8 @@ const CONSOLE_ALLOWLIST = [
   /Falling back to browser navigation/i,
   /Failed to fetch/i,
   /net::ERR_/i,
+  /due to access control checks/i,
+  /\/nginx\/[a-z]{2}\//i,
 ];
 
 const results = [];

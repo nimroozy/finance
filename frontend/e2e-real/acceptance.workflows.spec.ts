@@ -86,9 +86,11 @@ test.describe("Stage 10.4 acceptance workflows", () => {
     // May succeed with empty branches; must not 500.
     expect([200, 401, 403, 422]).toContain(nobranch.status());
 
-    const token = await login(page, { locale });
-    const logout = await authedPost(page, token, "/api/v1/auth/logout");
+    // Use a dedicated token so logout does not invalidate the suite-wide admin token.
+    const sessionToken = await apiLogin(page, process.env.E2E_USER || "ACCEPTANCE-admin");
+    const logout = await authedPost(page, sessionToken, "/api/v1/auth/logout");
     expect(logout.ok()).toBeTruthy();
+    await page.goto(`/${locale}/login`);
     await page.evaluate(() => localStorage.removeItem("auth-storage"));
 
     await page.goto(`/${locale}/settings/system-version`);
