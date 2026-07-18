@@ -6,7 +6,12 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${ROOT_DIR}"
 
-COMPOSE=(docker compose -f docker-compose.acceptance.yml --env-file .env.acceptance --profile acceptance)
+# ACCEPTANCE_SIDECAR=1 → reuse host postgres/redis (VPS low-memory path)
+if [[ "${ACCEPTANCE_SIDECAR:-0}" == "1" ]]; then
+  COMPOSE=(docker compose -f docker-compose.acceptance.sidecar.yml --env-file .env.acceptance)
+else
+  COMPOSE=(docker compose -f docker-compose.acceptance.yml --env-file .env.acceptance --profile acceptance)
+fi
 RESULTS_DIR="${ROOT_DIR}/artifacts/acceptance"
 SUMMARY_JSON="${RESULTS_DIR}/summary.json"
 mkdir -p "${RESULTS_DIR}"/{screenshots,traces,reports,junit,db,routes,console}
@@ -59,8 +64,22 @@ ensure_app_key() {
   fi
 }
 
+ensure_acceptance_database() {
+  if [[ "${ACCEPTANCE_SIDECAR:-0}" != "1" ]]; then
+    return 0
+  fi
+  log "Ensuring collection_acceptance database exists on shared postgres"
+  local pg_user="${ACCEPTANCE_PG_USER:-collection}"
+  docker compose -f docker-compose.yml exec -T postgres \
+    psql -U "${pg_user}" -d postgres -tc "SELECT 1 FROM pg_database WHERE datname='collection_acceptance'" \
+    | grep -q 1 \
+    || docker compose -f docker-compose.yml exec -T postgres \
+      psql -U "${pg_user}" -d postgres -c "CREATE DATABASE collection_acceptance OWNER ${pg_user};"
+}
+
 start_stack() {
-  log "Starting acceptance Docker stack"
+  log "Starting acceptance Docker stack (sidecar=${ACCEPTANCE_SIDECAR:-0})"
+  ensure_acceptance_database
   "${COMPOSE[@]}" build
   "${COMPOSE[@]}" up -d
   log "Waiting for backend health"
@@ -75,6 +94,7 @@ start_stack() {
 
 reset_database() {
   log "Resetting acceptance database (migrate:fresh + seeders)"
+  "${COMPOSE[@]}" exec -T backend php artisan migrate --force
   "${COMPOSE[@]}" exec -T backend php artisan acceptance:reset --force
 }
 
