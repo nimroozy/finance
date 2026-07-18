@@ -37,7 +37,7 @@ class AcceptanceVerifyController extends Controller
     public function assertRecord(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'entity' => ['required', 'string', 'in:customer,lead,service,user,audit'],
+            'entity' => ['required', 'string', 'in:'.implode(',', AcceptanceDbAssertions::ENTITIES)],
             'key' => ['required', 'string'],
             'value' => ['required'],
             'expect' => ['sometimes', 'array'],

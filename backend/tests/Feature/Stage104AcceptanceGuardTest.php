@@ -32,6 +32,13 @@ class Stage104AcceptanceGuardTest extends TestCase
         ]);
 
         $res->assertOk()->assertJsonPath('success', true);
+
+        $this->postJson('/api/v1/acceptance/assert', [
+            'entity' => 'user',
+            'key' => 'username',
+            'value' => 'ACCEPTANCE-collector',
+            'expect' => ['status' => 'active'],
+        ])->assertOk()->assertJsonPath('success', true);
     }
 
     public function test_stock_reconciliation_endpoint(): void

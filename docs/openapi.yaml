@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Collection Management System API
-  version: 1.9.1
+  version: 1.9.2
   license:
     name: Proprietary
     url: https://finance.mns.af
@@ -155,7 +155,7 @@ paths:
               type: object
               required: [entity, key, value]
               properties:
-                entity: { type: string, enum: [customer, lead, service, user, audit] }
+                entity: { type: string, enum: [customer, lead, service, user, audit, ticket, task, payment, assignment, product] }
                 key: { type: string }
                 value: {}
                 expect: { type: object, additionalProperties: true }

@@ -8,7 +8,7 @@ use Illuminate\Console\Command;
 class AcceptanceAssertCommand extends Command
 {
     protected $signature = 'acceptance:assert
-        {--entity= : customer|lead|service|user|audit}
+        {--entity= : customer|lead|service|user|audit|ticket|task|payment|assignment|product}
         {--key= : column}
         {--value= : value}
         {--expect=* : field=value expectations}

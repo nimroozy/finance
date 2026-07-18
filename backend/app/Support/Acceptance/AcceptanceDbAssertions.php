@@ -5,13 +5,31 @@ namespace App\Support\Acceptance;
 use App\Models\AuditLog;
 use App\Models\Crm\Lead;
 use App\Models\Customer;
+use App\Models\CustomerAssignment;
+use App\Models\Inventory\Product;
+use App\Models\Payment;
 use App\Models\Services\Service;
+use App\Models\Tickets\Task;
+use App\Models\Tickets\Ticket;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 class AcceptanceDbAssertions
 {
+    public const ENTITIES = [
+        'customer',
+        'lead',
+        'service',
+        'user',
+        'audit',
+        'ticket',
+        'task',
+        'payment',
+        'assignment',
+        'product',
+    ];
+
     /**
      * @param  array<string, mixed>  $expect
      * @return array{ok: bool, entity: string, record: ?array<string, mixed>, mismatches: list<string>, message: string}
@@ -24,6 +42,11 @@ class AcceptanceDbAssertions
             'service' => Service::query()->withoutGlobalScopes()->where($key, $value)->first(),
             'user' => User::query()->where($key, $value)->first(),
             'audit' => AuditLog::query()->where($key, $value)->latest('id')->first(),
+            'ticket' => Ticket::query()->withoutGlobalScopes()->where($key, $value)->first(),
+            'task' => Task::query()->withoutGlobalScopes()->where($key, $value)->first(),
+            'payment' => Payment::query()->withoutGlobalScopes()->where($key, $value)->first(),
+            'assignment' => CustomerAssignment::query()->withoutGlobalScopes()->where($key, $value)->first(),
+            'product' => Product::query()->withoutGlobalScopes()->where($key, $value)->first(),
             default => null,
         };
 

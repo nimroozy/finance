@@ -98,6 +98,84 @@ export async function authedGet(page: Page, token: string, url: string) {
   });
 }
 
+export async function authedPost(
+  page: Page,
+  token: string,
+  url: string,
+  data?: Record<string, unknown>,
+) {
+  return page.request.post(url, {
+    headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+    data,
+    timeout: 30_000,
+  });
+}
+
+/** API login for alternate acceptance users (collector, etc.). */
+export async function apiLogin(
+  page: Page,
+  username: string,
+  password = process.env.E2E_PASSWORD || "AcceptancePass1!",
+): Promise<string> {
+  const res = await page.request.post("/api/v1/auth/login", {
+    data: { login: username, password, device_name: "acceptance-e2e" },
+    headers: { Accept: "application/json" },
+  });
+  if (!res.ok()) {
+    throw new Error(`apiLogin(${username}) failed: ${res.status()} ${await res.text()}`);
+  }
+  const body = await res.json();
+  const token = body.data?.token as string | undefined;
+  if (!token) throw new Error(`apiLogin(${username}) returned no token`);
+  return token;
+}
+
+export async function ensureActiveAssignment(
+  page: Page,
+  adminToken: string,
+  customerId: number,
+  collectorId: number,
+): Promise<number> {
+  const list = await authedGet(
+    page,
+    adminToken,
+    `/api/v1/assignments?customer_id=${customerId}&per_page=50`,
+  );
+  if (list.ok()) {
+    const rows = ((await list.json()).data || []) as Array<{
+      id: number;
+      is_active?: boolean;
+      collector_id?: number;
+      status?: string;
+    }>;
+    for (const row of rows) {
+      if (!row.is_active) continue;
+      if (Number(row.collector_id) === Number(collectorId)) {
+        return Number(row.id);
+      }
+      const cancel = await authedPost(page, adminToken, `/api/v1/assignments/${row.id}/cancel`, {
+        reason: "ACCEPTANCE reset for workflow",
+      });
+      if (!cancel.ok()) {
+        throw new Error(`cancel assignment ${row.id}: ${await cancel.text()}`);
+      }
+    }
+  }
+
+  const create = await authedPost(page, adminToken, "/api/v1/assignments", {
+    customer_id: customerId,
+    collector_id: collectorId,
+    priority: "high",
+  });
+  if (!create.ok()) {
+    throw new Error(`create assignment: ${await create.text()}`);
+  }
+  const created = await create.json();
+  const id = Number(created.data?.assignment?.id || created.data?.id);
+  if (!id) throw new Error("assignment create returned no id");
+  return id;
+}
+
 export function attachFailureGuards(page: Page, testInfo: TestInfo) {
   const consoleErrors: string[] = [];
   const networkErrors: Array<{ url: string; status: number }> = [];
