@@ -462,20 +462,12 @@ class Stage103CleanupDemoCommand extends Command
      */
     private function writeMarkdownReport(array $report, string $manifestPath): string
     {
-        $candidates = [
-            base_path('../docs/STAGE_10_3_CLEANUP_RESULT.md'),
-            base_path('docs/STAGE_10_3_CLEANUP_RESULT.md'),
-            dirname($manifestPath).'/../STAGE_10_3_CLEANUP_RESULT.md',
-            storage_path('app/STAGE_10_3_CLEANUP_RESULT.md'),
-        ];
-        $path = storage_path('app/STAGE_10_3_CLEANUP_RESULT.md');
-        foreach ($candidates as $c) {
-            $dir = dirname($c);
-            if (is_dir($dir) && is_writable($dir)) {
-                $path = $c;
-                break;
-            }
-        }
+        // Environment-specific output only. This must never target
+        // docs/STAGE_10_3_CLEANUP_RESULT.md: that file is the historical
+        // Stage 10.3 production cleanup record, and acceptance/demo runs of
+        // this command previously overwrote it with per-run output (see
+        // docs/STAGE_10_3_CLEANUP_RESULT.md history and Stage 10.5 repair).
+        $path = storage_path('app/stage103-cleanup-result.md');
 
         $lines = [];
         $lines[] = '# Stage 10.3 — Demo cleanup result';
