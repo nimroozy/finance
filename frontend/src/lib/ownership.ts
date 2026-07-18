@@ -224,6 +224,10 @@ export function listOwnershipConflicts(params?: { page?: number }) {
   return apiFetchList<OwnershipConflict>(`/ownership-conflicts${toQuery(params ?? {})}`);
 }
 
+export function resolveOwnershipConflict(id: number) {
+  return apiFetch<OwnershipConflict>(`/ownership-conflicts/${id}/resolve`, { method: "POST", body: "{}" });
+}
+
 export function branchReceivables() {
   return apiFetch<BranchReceivableRow[]>("/reports/branch-receivables");
 }

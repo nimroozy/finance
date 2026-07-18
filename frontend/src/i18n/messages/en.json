@@ -2141,7 +2141,11 @@
     "customer": "Customer",
     "type": "Conflict type",
     "status": "Status",
-    "empty": "No open ownership conflicts."
+    "empty": "No open ownership conflicts.",
+    "resolve": "Resolve",
+    "resolveConfirmTitle": "Mark this conflict as resolved?",
+    "resolveConfirmBody": "This does not change any ownership record — it only marks the conflict as reviewed.",
+    "resolveSuccess": "Conflict marked as resolved."
   },
   "branchPaymentMappingsPage": {
     "title": "Branch Zoho payment mappings",
