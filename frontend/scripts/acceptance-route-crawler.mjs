@@ -51,7 +51,7 @@ const seedPaths = [
   "/services/change-requests",
   "/noc/services",
   "/notifications",
-  "/reports",
+  "/reports/collection",
   "/users",
   "/settings",
   "/settings/system-version",
