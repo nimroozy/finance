@@ -4,12 +4,12 @@
 **Branch:** `cursor/stage-10-4-production-acceptance-closure`  
 **PR target:** `cursor/stage-10-3-functional-acceptance`  
 **Stage label:** `10.4-production-acceptance-closure`  
-**Final SHA:** `d21575f0b75e5450fa183f5df690248418755cc6`  
+**Final SHA:** `f22cadc8eeb4df60917c503b6335e1137c90e36a`  
 
 ## Starting point
 
 * Expected / actual starting SHA: `87f04ab63c0c4ffa50e7cdc264ad35212938d01f` — **MATCH**  
-* Prior stage `d21575f0b75e5450fa183f5df690248418755cc6` — **MATCH**  
+* Prior stage `f22cadc8eeb4df60917c503b6335e1137c90e36a` — **MATCH**  
 * Prior stage: `10.3-functional-acceptance`
 
 ## What shipped
@@ -43,7 +43,7 @@ desktop-en/fa, mobile-en/fa, small-mobile-en/fa — **all passed**.
 
 | Probe | Value |
 |-------|-------|
-| Production / health / `.deployed-sha` / `APP_COMMIT_SHA` / frontend_version | `d21575f0b75e5450fa183f5df690248418755cc6` |
+| Production / health / `.deployed-sha` / `APP_COMMIT_SHA` / frontend_version | `f22cadc8eeb4df60917c503b6335e1137c90e36a` |
 | Stage | `10.4-production-acceptance-closure` |
 | Pre backup | `/opt/collection-backups/20260718T091544Z-stage10-4-final-predeploy/` |
 | Post backup | see SHA verification after deploy |
