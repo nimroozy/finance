@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { ApiError } from "@/lib/api";
 import { listBranches } from "@/lib/auth";
 import { listCollectors } from "@/lib/collectors";
 import {
@@ -18,8 +17,8 @@ import type {
 import { formatDateTime, formatMoney } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/form";
+import { ErrorState } from "@/components/ui/error-state";
 import {
-  Alert,
   EmptyState,
   LoadingState,
   PageHeader,
@@ -38,17 +37,26 @@ export default function ManagerWalletsPage() {
   const [wallet, setWallet] = useState<CollectorWallet | null>(null);
   const [rows, setRows] = useState<CollectorWalletTransaction[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown>(null);
+  const [filtersLoading, setFiltersLoading] = useState(true);
+  const [filtersError, setFiltersError] = useState<unknown>(null);
 
-  useEffect(() => {
-    void Promise.all([listCollectors({ per_page: 100 }), listBranches(1)])
+  function loadFilters() {
+    setFiltersLoading(true);
+    setFiltersError(null);
+    Promise.all([listCollectors({ per_page: 100 }), listBranches(1)])
       .then(([c, b]) => {
         setCollectors(c.data);
         setBranches(b.data);
         if (c.data[0]) setCollectorId(String(c.data[0].id));
         if (b.data[0]) setBranchId(String(b.data[0].id));
       })
-      .catch(() => undefined);
+      .catch((err) => setFiltersError(err))
+      .finally(() => setFiltersLoading(false));
+  }
+
+  useEffect(() => {
+    loadFilters();
   }, []);
 
   async function load() {
@@ -70,7 +78,7 @@ export default function ManagerWalletsPage() {
       setWallet(w.data);
       setRows(tx.data);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : tCommon("error"));
+      setError(err);
       setWallet(null);
       setRows([]);
     } finally {
@@ -82,32 +90,37 @@ export default function ManagerWalletsPage() {
     <div className="space-y-4">
       <PageHeader title={t("title")} subtitle={t("subtitle")} />
 
-      {error ? <Alert>{error}</Alert> : null}
+      {filtersError ? (
+        <ErrorState error={filtersError} onRetry={loadFilters} />
+      ) : (
+        <Panel className="grid gap-3 p-4 sm:grid-cols-3">
+          <Select
+            value={collectorId}
+            onChange={(e) => setCollectorId(e.target.value)}
+            disabled={filtersLoading}
+          >
+            <option value="">{t("collectorId")}</option>
+            {collectors.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.user?.name || c.employee_code || `#${c.id}`}
+              </option>
+            ))}
+          </Select>
+          <Select value={branchId} onChange={(e) => setBranchId(e.target.value)} disabled={filtersLoading}>
+            <option value="">{tCommon("branch")}</option>
+            {branches.map((b) => (
+              <option key={b.id} value={b.id}>
+                {locale === "fa" ? b.name_fa || b.name_en : b.name_en}
+              </option>
+            ))}
+          </Select>
+          <Button onClick={() => void load()} disabled={loading || filtersLoading}>
+            {t("load")}
+          </Button>
+        </Panel>
+      )}
 
-      <Panel className="grid gap-3 p-4 sm:grid-cols-3">
-        <Select
-          value={collectorId}
-          onChange={(e) => setCollectorId(e.target.value)}
-        >
-          <option value="">{t("collectorId")}</option>
-          {collectors.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.user?.name || c.employee_code || `#${c.id}`}
-            </option>
-          ))}
-        </Select>
-        <Select value={branchId} onChange={(e) => setBranchId(e.target.value)}>
-          <option value="">{tCommon("branch")}</option>
-          {branches.map((b) => (
-            <option key={b.id} value={b.id}>
-              {locale === "fa" ? b.name_fa || b.name_en : b.name_en}
-            </option>
-          ))}
-        </Select>
-        <Button onClick={() => void load()} disabled={loading}>
-          {t("load")}
-        </Button>
-      </Panel>
+      {error ? <ErrorState error={error} onRetry={() => void load()} /> : null}
 
       {loading ? <LoadingState label={tCommon("loading")} /> : null}
 
