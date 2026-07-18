@@ -4,8 +4,9 @@
 **Branch:** `cursor/stage-10-3-functional-acceptance`  
 **VPS:** `root@209.38.194.184` (`/opt/collection-system`)  
 **Deploy stamp:** `20260718T054503Z` (pre) / `20260718T055037Z` (post)  
-**Tip SHA deployed:** `79a0e4ebb5de10da8113a996acbb34c2d543d402` _(updated to final tip after this report commit)_  
-**Production SHA:**   
+**Tip SHA deployed:** `PLACEHOLDER_TIP`  
+**Production SHA:** `PLACEHOLDER_TIP`  
+**Code deploy SHA:** `79a0e4ebb5de10da8113a996acbb34c2d543d402`  
 **Do not merge until human review.** **Stage 11 not started.** **No Radius.**  
 **KEY_KEPT** (`~/.ssh/id_ed25519` preserved — not deleted).  
 **AcceptanceSeeder:** **skipped on production** (RolePermissionSeeder only).
@@ -72,11 +73,11 @@ Stage **10.3 functional acceptance** is live: stage label `10.3-functional-accep
 
 1. BEFORE `APP_COMMIT_SHA` = `fea840530c287b7bdc906b855706c4cf84203178` (10.2 tip); no host `.deployed-sha`
 2. Pre backup + financial/inventory counts
-3. `./scripts/sync-to-vps.sh` from tip `79a0e4e…`
+3. `./scripts/sync-to-vps.sh` from code tip `79a0e4e…`
 4. VPS `./scripts/deploy.sh` — migrate **Nothing to migrate**; RolePermissionSeeder; admin install skipped; **AcceptanceSeeder not run**
-5. Wrote host `.deployed-sha` = `79a0e4e…`; set `APP_STAGE=10.3-functional-acceptance`, `APP_COMMIT_SHA`, `APP_BRANCH`; force-recreated backend/queue/scheduler; copied `.deployed-sha` / `.deployed-at` into containers
+5. Wrote host `.deployed-sha`; set `APP_STAGE=10.3-functional-acceptance`, `APP_COMMIT_SHA`, `APP_BRANCH`; force-recreated backend/queue/scheduler; copied `.deployed-sha` / `.deployed-at` into containers
 6. Four-way verify; smoke routes **200**; post counts; post backup
-7. This delivery report commit → re-sync tip → update `.deployed-sha` / `APP_COMMIT_SHA` to new tip
+7. Delivery report tip commits → re-sync tip → update `.deployed-sha` / `APP_COMMIT_SHA` to final tip
 
 ---
 
@@ -85,8 +86,8 @@ Stage **10.3 functional acceptance** is live: stage label `10.3-functional-accep
 | Check | Result |
 |-------|--------|
 | `/api/v1/health` → `deployment.stage` | **`10.3-functional-acceptance`** |
-| git_sha / commit_sha (health) | `79a0e4ebb5de10da8113a996acbb34c2d543d402` (= tip before report; updated after re-sync) |
-| DeploymentInfo / system version payload | same SHA + stage (via `DeploymentInfo::toArray`) |
+| git_sha / commit_sha | `PLACEHOLDER_TIP` |
+| DeploymentInfo / system version payload | same SHA + stage |
 | branch | `cursor/stage-10-3-functional-acceptance` |
 | migration_batch | **19** (`2026_07_17_210000_stage102_service_lifecycle_recovery`) |
 | `/en/apps` | **200** |
@@ -123,10 +124,10 @@ Stage **10.3 functional acceptance** is live: stage label `10.3-functional-accep
 
 | Field | Value |
 |-------|-------|
-| tip SHA |  |
-| `.deployed-sha` | _(same)_ |
-| health SHA |  |
-| system version SHA |  |
+| tip SHA | `PLACEHOLDER_TIP` |
+| `.deployed-sha` | `PLACEHOLDER_TIP` |
+| health SHA | `PLACEHOLDER_TIP` |
+| system version SHA | `PLACEHOLDER_TIP` |
 | stage | `10.3-functional-acceptance` |
 | COUNTS_MATCH (financial+inventory) | yes |
 | KEY_KEPT | yes |
