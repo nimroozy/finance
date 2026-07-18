@@ -663,7 +663,13 @@
     "openMaps": "Open in maps",
     "navigate": "Navigate",
     "noStops": "No stops.",
-    "missingLocation": "Location not available"
+    "missingLocation": "Location not available",
+    "startedAt": "Started",
+    "completedAt": "Completed",
+    "currentStop": "Current stop",
+    "completedStops": "Completed stops",
+    "remainingStops": "Remaining stops",
+    "duplicateStop": "This customer is already a stop on this route."
   },
   "visitsPage": {
     "title": "Visits",

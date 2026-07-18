@@ -663,7 +663,13 @@
     "openMaps": "باز کردن در نقشه",
     "navigate": "مسیریابی",
     "noStops": "توقفی نیست.",
-    "missingLocation": "موقعیت در دسترس نیست"
+    "missingLocation": "موقعیت در دسترس نیست",
+    "startedAt": "شروع شد",
+    "completedAt": "تکمیل شد",
+    "currentStop": "توقف فعلی",
+    "completedStops": "توقف‌های تکمیل‌شده",
+    "remainingStops": "توقف‌های باقی‌مانده",
+    "duplicateStop": "این مشتری قبلاً به‌عنوان توقف در این مسیر اضافه شده است."
   },
   "visitsPage": {
     "title": "بازدیدها",
