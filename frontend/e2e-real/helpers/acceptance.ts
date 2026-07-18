@@ -1,4 +1,4 @@
-import { expect, type APIRequestContext, type Page, type TestInfo } from "@playwright/test";
+import { expect, type Page, type TestInfo } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -28,41 +28,36 @@ const CONSOLE_ALLOWLIST = [
   /Failed to load resource: the server responded with a status of 401/i,
 ];
 
-export async function apiLogin(
-  request: APIRequestContext,
-  opts: { user?: string; password?: string } = {},
-): Promise<{ token: string; user: Record<string, unknown> }> {
-  const user = opts.user || process.env.E2E_USER || "";
-  const password = opts.password || process.env.E2E_PASSWORD || "";
-  expect(user, "E2E_USER required").toBeTruthy();
-  expect(password, "E2E_PASSWORD required").toBeTruthy();
-
-  const res = await request.post("/api/v1/auth/login", {
-    data: { login: user, password, device_name: "acceptance" },
-    timeout: 20_000,
-  });
-  expect(res.ok(), await res.text()).toBeTruthy();
-  const body = await res.json();
-  const token = body?.data?.token as string;
-  expect(token).toBeTruthy();
-  return { token, user: body.data.user };
+function loadCachedAuth(): { token: string; user: Record<string, unknown> } {
+  if (process.env.E2E_TOKEN) {
+    return {
+      token: process.env.E2E_TOKEN,
+      user: JSON.parse(process.env.E2E_USER_JSON || "{}"),
+    };
+  }
+  const file = path.join(artifactRoot, "auth", "token.json");
+  if (fs.existsSync(file)) {
+    return JSON.parse(fs.readFileSync(file, "utf8"));
+  }
+  throw new Error("Missing E2E_TOKEN — globalSetup did not seed auth");
 }
 
 /**
- * Authenticate for acceptance.
- * - ui=true: exercise the real login form, then obtain a bearer token for API asserts
- * - ui=false: inject Sanctum token into localStorage and open /apps
+ * Authenticate for acceptance using the globalSetup token by default
+ * (avoids login rate-limiter 429 storms across the six-project matrix).
+ * Set ui=true to also exercise the login form once.
  */
 export async function login(
   page: Page,
   opts: { locale?: "en" | "fa"; user?: string; password?: string; ui?: boolean } = {},
 ) {
   const locale = opts.locale || "en";
-  const useUi = opts.ui === true; // default API+inject (stable); UI path opted in
-  const loginName = opts.user || process.env.E2E_USER || "";
-  const password = opts.password || process.env.E2E_PASSWORD || "";
+  const useUi = opts.ui === true;
+  const { token, user } = loadCachedAuth();
 
   if (useUi) {
+    const loginName = opts.user || process.env.E2E_USER || "";
+    const password = opts.password || process.env.E2E_PASSWORD || "";
     await page.goto(`/${locale}/login`);
     await page.evaluate(() => localStorage.removeItem("auth-storage"));
     await page.reload();
@@ -70,24 +65,20 @@ export async function login(
     await page.locator('input[type="password"]').first().fill(password);
     await page.getByRole("button", { name: /sign in|log in|login|ورود/i }).first().click();
     await expect(page).not.toHaveURL(/\/login/, { timeout: 30_000 });
+    return token;
   }
 
-  const { token, user } = await apiLogin(page.request, opts);
-
-  if (!useUi) {
-    await page.addInitScript(
-      ({ token: t, user: u }) => {
-        localStorage.setItem(
-          "auth-storage",
-          JSON.stringify({ state: { token: t, user: u }, version: 0 }),
-        );
-      },
-      { token, user },
-    );
-    await page.goto(`/${locale}/apps`);
-    await expect(page.getByTestId("apps-launcher")).toBeVisible({ timeout: 30_000 });
-  }
-
+  await page.addInitScript(
+    ({ token: t, user: u }) => {
+      localStorage.setItem(
+        "auth-storage",
+        JSON.stringify({ state: { token: t, user: u }, version: 0 }),
+      );
+    },
+    { token, user },
+  );
+  await page.goto(`/${locale}/apps`);
+  await expect(page.getByTestId("apps-launcher")).toBeVisible({ timeout: 30_000 });
   return token;
 }
 

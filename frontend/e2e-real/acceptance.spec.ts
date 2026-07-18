@@ -199,9 +199,9 @@ test.describe("Stage 10.4 production acceptance", () => {
     await page.goto(`/${locale}/services/change-requests`);
     await expect(page.getByTestId("services-change-requests")).toBeVisible({ timeout: 30_000 });
 
-    const noc = await authedGet(page, token, "/api/v1/services/noc");
+    const noc = await authedGet(page, token, "/api/v1/services/noc-workspace");
     expect(noc.ok()).toBeTruthy();
-    await page.goto(`/${locale}/services/noc`);
+    await page.goto(`/${locale}/noc/services`);
     await expect(page.locator("main")).toBeVisible({ timeout: 30_000 });
     await expectNoHorizontalOverflow(page);
     await guards.flush();

@@ -172,6 +172,10 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Service::class, ServicePolicy::class);
 
         RateLimiter::for('login', function (Request $request) {
+            if (app()->environment('acceptance', 'testing')) {
+                return \Illuminate\Cache\RateLimiting\Limit::none();
+            }
+
             return Limit::perMinute(5)->by($request->input('login', $request->ip()));
         });
 
