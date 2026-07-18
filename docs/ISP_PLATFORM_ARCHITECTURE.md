@@ -31,29 +31,29 @@ Do **not** create a second independent general ledger.
 
 ## Recommended domains
 
-| Domain | Responsibility |
-|--------|----------------|
-| Identity | Users, roles, permissions, departments, auth |
-| Branches | Branch master data, HQ flags, isolation rules |
-| Customers | Local customer operational profile, mapping, ownership |
-| CRM | Leads, opportunities, follow-ups |
-| Sales | Quotes, ownership, targets, lost reasons |
-| Installations | New install workflow, surveys, activation handoff |
-| Tickets | Customer/internal tickets, SLA, escalation |
-| Tasks | Multi-department work items (separate from tickets) |
-| Inventory | Products, serials, warehouses, immutable stock txns |
-| Assets | Fixed assets, custodians, maintenance |
-| Sites | Customer and network site records |
-| Towers | Tower/site infrastructure |
-| Purchasing | Suppliers, POs, receipts (Zoho-backed accounting) |
-| Finance | Local finance workflows that sync to Zoho |
-| Collections | Assignments, visits, payments, wallets, handovers |
-| Zoho Integration | OAuth, sync, mapping, payment push, reconciliation |
-| Radius Integration | Branch-aware adapters, cached views, queued commands |
-| WhatsApp | Cloud API connection, templates, outbound, webhooks |
-| Notifications | Channel orchestration (in-app, WhatsApp, future email/SMS) |
-| Reporting | Operational and management dashboards |
-| Audit | Immutable action history across domains |
+| Domain | Responsibility | Stage status |
+|--------|----------------|--------------|
+| Identity | Users, roles, permissions, departments, auth | Delivered |
+| Branches | Branch master data, HQ flags, isolation rules | Delivered |
+| Customers | Local customer operational profile, mapping, ownership | Delivered |
+| CRM | Leads, opportunities, follow-ups | Stage 8 (not started) |
+| Sales | Quotes, ownership, targets, lost reasons | Stage 8 (not started) |
+| Installations | Queue pipeline (Stage 7); CRM-grade install (Stage 8) | **Stage 7 queue delivered**; Stage 8 deferred |
+| Tickets | Customer/internal tickets, SLA, escalation, intake | **Stage 7 delivered** |
+| Tasks | Multi-department work items (separate from tickets) | **Stage 7 delivered** |
+| Inventory | Products, serials, warehouses, immutable stock txns | Stage 9 |
+| Assets | Fixed assets, custodians, maintenance | Stage 9 |
+| Sites | Customer and network site records | Stage 9 |
+| Towers | Tower/site infrastructure | Stage 9 |
+| Purchasing | Suppliers, POs, receipts (Zoho-backed accounting) | After 9 |
+| Finance | Local finance workflows that sync to Zoho | Partial (collections) |
+| Collections | Assignments, visits, payments, wallets, handovers | Delivered |
+| Zoho Integration | OAuth, sync, mapping, payment push, reconciliation | Delivered |
+| Radius Integration | Branch-aware adapters, cached views, queued commands | Stage 10 |
+| WhatsApp | Cloud API connection, templates, outbound, webhooks | **Stage 6 complete / foundation** |
+| Notifications | Channel orchestration (in-app, WhatsApp, future email/SMS) | Stage 6 foundation |
+| Reporting | Operational and management dashboards | Stage 7 ops dashboards partial; Stage 11 full |
+| Audit | Immutable action history across domains | Delivered |
 
 Detailed contracts: [DOMAIN_BOUNDARIES.md](DOMAIN_BOUNDARIES.md).
 
@@ -87,16 +87,18 @@ Users may belong to one or more departments.
 
 Tasks (Stage 7+) may be assigned to **branch**, **department**, **team**, or **individual user**.
 
-## WhatsApp staff bot (planned)
+## WhatsApp staff bot (Stage 7)
 
-Commands / interactive actions (Stage 7+ with Ticketing/Tasks):
+Commands / interactive actions delivered with Ticketing/Tasks:
 
-- My tasks / My tickets / Pending installations / Today visits / My handovers
-- Start task / Complete task / Escalate / Open customer
+- My tasks / My tickets / Start task / Complete task / Escalate / Open customer
+- Pending installations remain queue-oriented (Stage 7); CRM pipeline is Stage 8
 
-Sensitive actions require secure application links, signed interactive actions, or additional authentication.
+Sensitive actions require secure application links, signed interactive actions, or one-time staff action tokens.
 
 Never send passwords. Avoid unnecessary customer financial detail on WhatsApp.
+
+Details: [WHATSAPP_TICKET_INTAKE.md](WHATSAPP_TICKET_INTAKE.md).
 
 ## Integration coupling rules
 
@@ -105,14 +107,21 @@ Never send passwords. Avoid unnecessary customer financial detail on WhatsApp.
 | Calling Meta Graph API inside payment confirmation DB transaction | Emit `BusinessNotificationRequested` → orchestrator → queue |
 | Calling Zoho inside inventory stock mutation transaction | Emit inventory event → Zoho posting job |
 | Calling Radius inside ticket resolve transaction | Emit activation/suspend command → Radius queue |
-| Embedding ticket creation inside WhatsApp webhook TX | Store inbound → emit event → Ticketing listener (Stage 7) |
+| Embedding ticket creation inside WhatsApp webhook TX | Store inbound → emit event → Ticketing listener (Stage 7 delivered) |
 
 ## Related documents
 
 - [STAGE_ROADMAP.md](STAGE_ROADMAP.md)
+- [STAGE_7_TICKETING_TASKS.md](STAGE_7_TICKETING_TASKS.md)
 - [DOMAIN_BOUNDARIES.md](DOMAIN_BOUNDARIES.md)
 - [ZOHO_ACCOUNTING_BOUNDARY.md](ZOHO_ACCOUNTING_BOUNDARY.md)
 - [TICKETING_MODEL.md](TICKETING_MODEL.md)
+- [TICKET_WORKFLOW.md](TICKET_WORKFLOW.md)
+- [TASK_WORKFLOW.md](TASK_WORKFLOW.md)
+- [SLA_ESCALATION.md](SLA_ESCALATION.md)
+- [WHATSAPP_TICKET_INTAKE.md](WHATSAPP_TICKET_INTAKE.md)
+- [INSTALLATION_QUEUE.md](INSTALLATION_QUEUE.md)
+- [FIELD_MOBILE_WORKFLOW.md](FIELD_MOBILE_WORKFLOW.md)
 - [CRM_INSTALLATION_MODEL.md](CRM_INSTALLATION_MODEL.md)
 - [INVENTORY_MODEL.md](INVENTORY_MODEL.md)
 - [RADIUS_INTEGRATION_MODEL.md](RADIUS_INTEGRATION_MODEL.md)

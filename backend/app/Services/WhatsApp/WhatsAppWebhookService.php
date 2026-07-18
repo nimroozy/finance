@@ -2,6 +2,7 @@
 
 namespace App\Services\WhatsApp;
 
+use App\Events\InboundMessageReceived;
 use App\Models\Customer;
 use App\Models\WhatsApp\WhatsAppConnection;
 use App\Models\WhatsApp\WhatsAppConversation;
@@ -152,7 +153,7 @@ class WhatsAppWebhookService
             $conversation->update(['last_message_at' => $receivedAt]);
         }
 
-        WhatsAppInboundMessage::firstOrCreate(
+        $inboundRecord = WhatsAppInboundMessage::firstOrCreate(
             ['meta_message_id' => $message['id']],
             [
                 'conversation_id' => $conversation?->id,
@@ -168,6 +169,14 @@ class WhatsAppWebhookService
             WhatsAppOptOut::firstOrCreate(
                 ['phone_e164' => $phone],
                 ['source' => 'inbound', 'reason' => $body, 'opted_out_at' => now()],
+            );
+        }
+
+        // Ticketing intake runs after commit via ShouldQueueAfterCommit listener.
+        if ($inboundRecord->wasRecentlyCreated) {
+            InboundMessageReceived::dispatch(
+                (int) $inboundRecord->id,
+                $inboundRecord->conversation_id ? (int) $inboundRecord->conversation_id : null,
             );
         }
     }

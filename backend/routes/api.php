@@ -491,5 +491,105 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         });
         Route::middleware('permission:whatsapp.send_test')
             ->post('/whatsapp/send-test', [WhatsAppController::class, 'sendTest']);
+
+        // --- Stage 7: Ticketing / Tasks / Installations / SLA ---
+        Route::middleware('permission:tickets.view|tickets.view_all_branch|tickets.view_all')->group(function () {
+            Route::get('/tickets', [\App\Http\Controllers\Api\V1\TicketController::class, 'index'])->name('tickets.index');
+            Route::get('/tickets/{id}', [\App\Http\Controllers\Api\V1\TicketController::class, 'show'])->whereNumber('id')->name('tickets.show');
+        });
+        Route::middleware('permission:tickets.create')->post('/tickets', [\App\Http\Controllers\Api\V1\TicketController::class, 'store'])->name('tickets.store');
+        Route::middleware('permission:tickets.update')->group(function () {
+            Route::put('/tickets/{id}', [\App\Http\Controllers\Api\V1\TicketController::class, 'update'])->whereNumber('id')->name('tickets.update');
+            Route::post('/tickets/{id}/transition', [\App\Http\Controllers\Api\V1\TicketController::class, 'transition'])->whereNumber('id')->name('tickets.transition');
+            Route::post('/tickets/{id}/watchers', [\App\Http\Controllers\Api\V1\TicketController::class, 'watchers'])->whereNumber('id')->name('tickets.watchers');
+        });
+        Route::middleware('permission:tickets.assign')->post('/tickets/{id}/assign', [\App\Http\Controllers\Api\V1\TicketController::class, 'assign'])->whereNumber('id')->name('tickets.assign');
+        Route::middleware('permission:tickets.resolve')->post('/tickets/{id}/resolve', [\App\Http\Controllers\Api\V1\TicketController::class, 'resolve'])->whereNumber('id')->name('tickets.resolve');
+        Route::middleware('permission:tickets.close')->post('/tickets/{id}/close', [\App\Http\Controllers\Api\V1\TicketController::class, 'close'])->whereNumber('id')->name('tickets.close');
+        Route::middleware('permission:tickets.reopen')->post('/tickets/{id}/reopen', [\App\Http\Controllers\Api\V1\TicketController::class, 'reopen'])->whereNumber('id')->name('tickets.reopen');
+
+        Route::middleware('permission:tickets.view|ticket_types.manage')->get('/ticket-types', [\App\Http\Controllers\Api\V1\TicketTypeController::class, 'index'])->name('ticket-types.index');
+        Route::middleware('permission:ticket_types.manage')->group(function () {
+            Route::post('/ticket-types', [\App\Http\Controllers\Api\V1\TicketTypeController::class, 'store'])->name('ticket-types.store');
+            Route::put('/ticket-types/{id}', [\App\Http\Controllers\Api\V1\TicketTypeController::class, 'update'])->whereNumber('id')->name('ticket-types.update');
+        });
+
+        Route::middleware('permission:tasks.view')->group(function () {
+            Route::get('/tasks', [\App\Http\Controllers\Api\V1\TaskController::class, 'index'])->name('tasks.index');
+            Route::get('/tasks/my', [\App\Http\Controllers\Api\V1\TaskController::class, 'my'])->name('tasks.my');
+            Route::get('/tasks/{id}', [\App\Http\Controllers\Api\V1\TaskController::class, 'show'])->whereNumber('id')->name('tasks.show');
+        });
+        Route::middleware('permission:tasks.create')->post('/tasks', [\App\Http\Controllers\Api\V1\TaskController::class, 'store'])->name('tasks.store');
+        Route::middleware('permission:tasks.assign')->post('/tasks/{id}/offer', [\App\Http\Controllers\Api\V1\TaskController::class, 'offer'])->whereNumber('id')->name('tasks.offer');
+        Route::middleware('permission:tasks.accept')->group(function () {
+            Route::post('/tasks/{id}/accept', [\App\Http\Controllers\Api\V1\TaskController::class, 'accept'])->whereNumber('id')->name('tasks.accept');
+            Route::post('/tasks/{id}/reject', [\App\Http\Controllers\Api\V1\TaskController::class, 'reject'])->whereNumber('id')->name('tasks.reject');
+        });
+        Route::middleware('permission:tasks.complete')->group(function () {
+            Route::post('/tasks/{id}/start-travel', [\App\Http\Controllers\Api\V1\TaskController::class, 'startTravel'])->whereNumber('id')->name('tasks.start-travel');
+            Route::post('/tasks/{id}/arrive', [\App\Http\Controllers\Api\V1\TaskController::class, 'arrive'])->whereNumber('id')->name('tasks.arrive');
+            Route::post('/tasks/{id}/start', [\App\Http\Controllers\Api\V1\TaskController::class, 'start'])->whereNumber('id')->name('tasks.start');
+            Route::post('/tasks/{id}/complete', [\App\Http\Controllers\Api\V1\TaskController::class, 'complete'])->whereNumber('id')->name('tasks.complete');
+            Route::post('/tasks/{id}/block', [\App\Http\Controllers\Api\V1\TaskController::class, 'block'])->whereNumber('id')->name('tasks.block');
+        });
+        Route::middleware('permission:tasks.verify')->post('/tasks/{id}/verify', [\App\Http\Controllers\Api\V1\TaskController::class, 'verify'])->whereNumber('id')->name('tasks.verify');
+        Route::middleware('permission:tasks.reassign')->post('/tasks/{id}/reassign', [\App\Http\Controllers\Api\V1\TaskController::class, 'reassign'])->whereNumber('id')->name('tasks.reassign');
+        Route::middleware('permission:tasks.cancel')->post('/tasks/{id}/cancel', [\App\Http\Controllers\Api\V1\TaskController::class, 'cancel'])->whereNumber('id')->name('tasks.cancel');
+
+        Route::middleware('permission:tickets.view|tasks.view')->group(function () {
+            Route::get('/work-logs', [\App\Http\Controllers\Api\V1\WorkLogController::class, 'index'])->name('work-logs.index');
+            Route::post('/work-logs', [\App\Http\Controllers\Api\V1\WorkLogController::class, 'store'])->name('work-logs.store');
+            Route::get('/departments', [\App\Http\Controllers\Api\V1\DepartmentController::class, 'index'])->name('departments.index');
+        });
+
+        Route::middleware('permission:attachments.upload')->post('/attachments', [\App\Http\Controllers\Api\V1\AttachmentController::class, 'upload'])->name('attachments.upload');
+        Route::get('/attachments/{attachment}/download', [\App\Http\Controllers\Api\V1\AttachmentController::class, 'download'])
+            ->name('attachments.download');
+
+        Route::middleware('permission:sla.manage|tickets.view')->get('/sla-policies', [\App\Http\Controllers\Api\V1\SlaPolicyController::class, 'index'])->name('sla-policies.index');
+        Route::middleware('permission:sla.manage')->group(function () {
+            Route::post('/sla-policies', [\App\Http\Controllers\Api\V1\SlaPolicyController::class, 'store'])->name('sla-policies.store');
+            Route::put('/sla-policies/{id}', [\App\Http\Controllers\Api\V1\SlaPolicyController::class, 'update'])->whereNumber('id')->name('sla-policies.update');
+        });
+
+        Route::middleware('permission:escalations.view')->get('/escalations', [\App\Http\Controllers\Api\V1\EscalationController::class, 'index'])->name('escalations.index');
+        Route::middleware('permission:escalations.manage')->group(function () {
+            Route::post('/escalations', [\App\Http\Controllers\Api\V1\EscalationController::class, 'store'])->name('escalations.store');
+            Route::post('/escalations/{id}/acknowledge', [\App\Http\Controllers\Api\V1\EscalationController::class, 'acknowledge'])->whereNumber('id')->name('escalations.acknowledge');
+        });
+
+        Route::middleware('permission:installations.view')->group(function () {
+            Route::get('/installations', [\App\Http\Controllers\Api\V1\InstallationController::class, 'index'])->name('installations.index');
+            Route::get('/installations/{id}', [\App\Http\Controllers\Api\V1\InstallationController::class, 'show'])->whereNumber('id')->name('installations.show');
+        });
+        Route::middleware('permission:installations.create')->post('/installations', [\App\Http\Controllers\Api\V1\InstallationController::class, 'store'])->name('installations.store');
+        Route::middleware('permission:installations.update')->post('/installations/{id}/transition', [\App\Http\Controllers\Api\V1\InstallationController::class, 'transition'])->whereNumber('id')->name('installations.transition');
+
+        Route::middleware('permission:whatsapp.ticket_intake|tickets.view')->get('/ticket-intake', [\App\Http\Controllers\Api\V1\TicketIntakeController::class, 'index'])->name('ticket-intake.index');
+        Route::middleware('permission:whatsapp.ticket_intake|tickets.create')->post('/ticket-intake/{id}/create-ticket', [\App\Http\Controllers\Api\V1\TicketIntakeController::class, 'createTicket'])->whereNumber('id')->name('ticket-intake.create-ticket');
+        Route::middleware('permission:whatsapp.ticket_intake')->post('/ticket-intake/{id}/dismiss', [\App\Http\Controllers\Api\V1\TicketIntakeController::class, 'dismiss'])->whereNumber('id')->name('ticket-intake.dismiss');
+
+        Route::middleware('permission:tickets.view|dashboard.view')->get('/operations/dashboard/support', [\App\Http\Controllers\Api\V1\OperationsDashboardController::class, 'support'])->name('operations.dashboard.support');
+        Route::middleware('permission:tasks.view|dashboard.view')->get('/operations/dashboard/technical', [\App\Http\Controllers\Api\V1\OperationsDashboardController::class, 'technical'])->name('operations.dashboard.technical');
+        Route::middleware('permission:escalations.view|dashboard.view')->get('/operations/dashboard/noc', [\App\Http\Controllers\Api\V1\OperationsDashboardController::class, 'noc'])->name('operations.dashboard.noc');
+        Route::middleware('permission:installations.view|dashboard.view')->get('/operations/dashboard/finance', [\App\Http\Controllers\Api\V1\OperationsDashboardController::class, 'finance'])->name('operations.dashboard.finance');
+        Route::middleware('permission:dashboard.view')->get('/operations/dashboard/manager', [\App\Http\Controllers\Api\V1\OperationsDashboardController::class, 'manager'])->name('operations.dashboard.manager');
+
+        Route::middleware('permission:tickets.view|tasks.view|installations.view')->get('/operations/search', \App\Http\Controllers\Api\V1\OperationsSearchController::class)->name('operations.search');
+        Route::middleware('permission:tickets.view')->get('/operations/reports/tickets', [\App\Http\Controllers\Api\V1\OperationsReportController::class, 'tickets'])->name('operations.reports.tickets');
+        Route::middleware('permission:tasks.view')->get('/operations/reports/tasks', [\App\Http\Controllers\Api\V1\OperationsReportController::class, 'tasks'])->name('operations.reports.tasks');
+        Route::middleware('permission:tickets.view|customers.view')->get('/customers/{customer}/timeline', [\App\Http\Controllers\Api\V1\CustomerTimelineController::class, 'show'])->whereNumber('customer')->name('customers.timeline');
+
+        Route::middleware('permission:task_templates.manage|tasks.view')->get('/task-templates', [\App\Http\Controllers\Api\V1\TaskTemplateController::class, 'index'])->name('task-templates.index');
+        Route::middleware('permission:task_templates.manage')->group(function () {
+            Route::post('/task-templates', [\App\Http\Controllers\Api\V1\TaskTemplateController::class, 'store'])->name('task-templates.store');
+            Route::put('/task-templates/{id}', [\App\Http\Controllers\Api\V1\TaskTemplateController::class, 'update'])->whereNumber('id')->name('task-templates.update');
+        });
+
+        Route::middleware('permission:escalations.manage|sla.manage')->group(function () {
+            Route::get('/escalation-rules', [\App\Http\Controllers\Api\V1\EscalationRuleController::class, 'index'])->name('escalation-rules.index');
+            Route::post('/escalation-rules', [\App\Http\Controllers\Api\V1\EscalationRuleController::class, 'store'])->name('escalation-rules.store');
+            Route::put('/escalation-rules/{id}', [\App\Http\Controllers\Api\V1\EscalationRuleController::class, 'update'])->whereNumber('id')->name('escalation-rules.update');
+        });
     });
 });

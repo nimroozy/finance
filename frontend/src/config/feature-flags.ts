@@ -38,15 +38,15 @@ export const FEATURE_FLAGS: Record<PlatformModule, ModuleFlag> = {
   },
   ticketing: {
     id: "ticketing",
-    enabled: false,
+    enabled: true,
     stage: 7,
-    showRoadmapPlaceholder: true,
+    showRoadmapPlaceholder: false,
   },
   tasks: {
     id: "tasks",
-    enabled: false,
+    enabled: true,
     stage: 7,
-    showRoadmapPlaceholder: true,
+    showRoadmapPlaceholder: false,
   },
   crm: {
     id: "crm",
@@ -56,9 +56,9 @@ export const FEATURE_FLAGS: Record<PlatformModule, ModuleFlag> = {
   },
   installations: {
     id: "installations",
-    enabled: false,
-    stage: 8,
-    showRoadmapPlaceholder: true,
+    enabled: true,
+    stage: 7,
+    showRoadmapPlaceholder: false,
   },
   inventory: {
     id: "inventory",

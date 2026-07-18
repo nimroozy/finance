@@ -16,13 +16,14 @@ Unified multi-branch ISP operations so branch staff can work without daily login
 | 4 | Payments, receipts, wallets, Zoho payment sync | Complete |
 | 5 | Cash handovers / cashboxes | Complete |
 | 5.1–5.3 | Sync hardening, ownership, prefix mapping, cleanup | Complete |
-| **6** | **WhatsApp Cloud API + notification orchestration** | **In progress / foundation deployed** |
+| **6** | **WhatsApp Cloud API + notification orchestration** | **Complete / foundation** |
+| **7** | **Ticketing, tasks, installation queue** | **In progress / delivered on branch** |
 
-## Stage 6 — WhatsApp & notifications (current)
+## Stage 6 — WhatsApp & notifications (complete / foundation)
 
 **Objective:** Official WhatsApp Business Cloud API foundation and notification orchestration.
 
-**In scope**
+**Delivered**
 
 - Connection, webhooks, templates, outbound messages, delivery status
 - Internal staff notifications
@@ -32,42 +33,44 @@ Unified multi-branch ISP operations so branch staff can work without daily login
 - Phone normalization, opt-out, safe retry
 - Domain event → orchestrator → queue (no Meta calls inside payment/handover TX)
 
-**Out of scope (defer)**
+**Consumed by Stage 7:** inbound message events, staff notifications, WhatsApp delivery for ticket/task intents.
 
-- Complete support inbox / contact-center UX → **Stage 7 Ticketing**
-- Staff bot task commands → **Stage 7**
-- WhatsApp-created tickets → **Stage 7**
-
-**Exit criteria:** See Stage 6 completion conditions in the Stage 6 delivery brief (mocked tests, webhook, templates sync path, no financial calc changes). Live Meta verification when credentials are configured.
+**Exit criteria:** Stage 6 completion conditions met (mocked tests, webhook, templates sync path, no financial calc changes). Live Meta verification when credentials are configured.
 
 ---
 
-## Stage 7 — Ticketing and task management
+## Stage 7 — Ticketing and task management (in progress / delivered on branch)
 
-**Do not begin until Stage 6 is accepted and architecture docs are reviewed.**
+**Overview:** [STAGE_7_TICKETING_TASKS.md](STAGE_7_TICKETING_TASKS.md).
 
-**Required**
+**Delivered / in scope on this branch**
 
-- Customer tickets, internal tickets, WhatsApp-created tickets
-- Categories, priorities, SLA, assignment, escalation
-- Work logs, attachments, resolution, customer confirmation
-- Multi-department tasks, task dependencies
-- WhatsApp task notifications + staff bot commands
+- Customer tickets, internal tickets, WhatsApp intake → tickets
+- Categories, priorities, severities, sources, SLA, assignment, escalation
+- Work logs, attachments, resolution, customer confirmation, reopen
+- Multi-department tasks (field/office), dependencies, templates, verify
+- WhatsApp task notifications + staff bot commands (signed tokens)
+- **Installation queue** (operational status pipeline only)
+- Operations dashboards, search, ticket/task reports, customer timeline
 - Branch isolation
 
 **Hard rule:** Separate **tickets** from **tasks**. One ticket may create multiple departmental tasks.
 
-Model: [TICKETING_MODEL.md](TICKETING_MODEL.md).
+**Clarification — installation queue vs CRM:** Stage 7 owns the installation **queue** (request → field → confirmation statuses). Full CRM (leads, opportunities, quotations, sales targets) and the commercial installation workflow remain **Stage 8**. Stage 8 has **not** started.
+
+Model: [TICKETING_MODEL.md](TICKETING_MODEL.md). Queue notes: [INSTALLATION_QUEUE.md](INSTALLATION_QUEUE.md).
 
 ---
 
 ## Stage 8 — CRM, sales pipeline, new installations
 
+**Not started.** Do not begin until Stage 7 is accepted.
+
 **Required**
 
 - Leads, opportunities, follow-ups, site surveys, quotations
 - Sales ownership, lost reasons, sales targets
-- Installation requests → finance approval → equipment reservation → technical assignment
+- Installation requests → finance approval → equipment reservation → technical assignment (CRM-grade; builds on Stage 7 queue)
 - Radius activation + Zoho customer/invoice creation (queued)
 - Customer acceptance
 - Branch sales reports

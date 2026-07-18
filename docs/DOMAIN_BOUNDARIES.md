@@ -73,9 +73,21 @@ Each domain owns its tables, services, permissions, API resources, domain events
 
 ---
 
-## Installations (Stage 8)
+## Installations
 
-**Owns:** installation requests, surveys, finance approval gates, technical assignment, customer acceptance.
+### Queue (Stage 7 — delivered)
+
+**Owns:** installation queue records, status pipeline transitions, optional task-template expansion for field work.
+
+**Exposes:** `/installations`, `/installations/{id}/transition`.
+
+**Events:** `InstallationStatusChanged`.
+
+**Must not:** implement CRM leads/quotes, Zoho invoice creation, inventory reservation, or live Radius activation — those remain later stages. See [INSTALLATION_QUEUE.md](INSTALLATION_QUEUE.md).
+
+### CRM-grade install (Stage 8 — not started)
+
+**Owns:** installation requests tied to won opportunities, surveys, finance approval gates, technical assignment orchestration with accounting/Radius handoff.
 
 **Events:** `InstallationRequested`, `InstallationApproved`, `InstallationCompleted`.
 
@@ -83,23 +95,27 @@ Each domain owns its tables, services, permissions, API resources, domain events
 
 ---
 
-## Tickets (Stage 7)
+## Tickets (Stage 7 — delivered)
 
-**Owns:** customer/internal tickets, categories, priorities, SLA clocks, escalations, work logs, attachments, resolution, customer confirmation.
+**Owns:** customer/internal tickets, ticket types, categories, priorities/severities/sources, SLA clocks, escalations & rules, work logs, attachments, resolution, customer confirmation, reopen, WhatsApp intake suggestions.
 
-**Events:** `TicketOpened`, `TicketEscalated`, `TicketResolved`.
+**Exposes:** `/tickets`, `/ticket-types`, `/ticket-intake`, `/sla-policies`, `/escalations`, `/escalation-rules`, `/work-logs`, `/attachments`, operations dashboards/search/reports for tickets.
 
-**Inbound WhatsApp:** Notifications/WhatsApp stores message → emits `InboundMessageReceived` → Ticketing creates ticket when rules match (Stage 7).
+**Events:** `TicketOpened`, `TicketAssigned`, `TicketStatusChanged`, `TicketEscalated`, `TicketResolved`, `TicketClosed`, `TicketReopened`.
+
+**Inbound WhatsApp:** Notifications/WhatsApp stores message → emits inbound event → Ticketing creates intake suggestion / ticket when rules match.
 
 ---
 
-## Tasks (Stage 7)
+## Tasks (Stage 7 — delivered)
 
-**Owns:** departmental tasks, dependencies, assignees (branch/department/team/user).
+**Owns:** departmental tasks (field/office), offer/accept workflow, travel/arrive, dependencies, templates, verification, reassign/cancel.
 
-**Rule:** Separate from tickets. One ticket may spawn many tasks.
+**Exposes:** `/tasks`, `/tasks/my`, task action endpoints, `/task-templates`.
 
-**Events:** `TaskCreated`, `TaskStarted`, `TaskCompleted`.
+**Rule:** Separate from tickets. One ticket may spawn many tasks. Installations may also spawn tasks via templates.
+
+**Events:** `TaskCreated`, `TaskOffered`, `TaskAccepted`, `TaskRejected`, `TaskStarted`, `TaskCompleted`, `TaskBlocked`, `TaskVerified`, `TaskReassigned`.
 
 ---
 
@@ -155,13 +171,13 @@ Each domain owns its tables, services, permissions, API resources, domain events
 
 ---
 
-## WhatsApp (Stage 6)
+## WhatsApp (Stage 6 — complete / foundation)
 
 **Owns:** connection, templates, outbound messages, delivery events, webhook ingress, basic inbound storage, opt-outs, phone normalization.
 
-**Must not:** implement full support desk (Stage 7 Ticketing).
+**Must not:** implement full support desk business rules (Stage 7 Ticketing owns intake → ticket).
 
-**Emits:** delivery/inbound events for Notifications and future Ticketing.
+**Emits:** delivery/inbound events for Notifications and Ticketing intake.
 
 ---
 
