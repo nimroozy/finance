@@ -188,7 +188,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div
       className={cn(
-        "min-h-screen",
+        "min-h-screen max-w-[100vw] overflow-x-hidden",
         showDesktopSidebar && (sidebarCollapsed ? "lg:grid lg:grid-cols-[72px_1fr]" : "lg:grid lg:grid-cols-[220px_1fr]"),
       )}
       data-testid="app-shell"

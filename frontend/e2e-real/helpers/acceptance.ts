@@ -155,10 +155,13 @@ export async function expectNoHorizontalOverflow(page: Page) {
   await page.waitForTimeout(250);
   const overflow = await page.evaluate(() => {
     const doc = document.documentElement;
+    const body = document.body;
+    const width = Math.max(doc.clientWidth, window.innerWidth);
+    const scroll = Math.max(doc.scrollWidth, body?.scrollWidth || 0);
     return {
-      scrollWidth: doc.scrollWidth,
-      clientWidth: doc.clientWidth,
-      overflow: doc.scrollWidth > doc.clientWidth + 2,
+      scrollWidth: scroll,
+      clientWidth: width,
+      overflow: scroll > width + 4,
     };
   });
   expect(

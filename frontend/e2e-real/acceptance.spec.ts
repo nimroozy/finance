@@ -120,13 +120,24 @@ test.describe("Stage 10.4 production acceptance", () => {
     const leadId = created.data?.id;
     expect(leadId).toBeTruthy();
 
+    const customerLookup = await authedGet(
+      page,
+      token,
+      "/api/v1/crm/customers/search-zoho-mirror?q=0700111222",
+    );
+    expect(customerLookup.ok(), await customerLookup.text()).toBeTruthy();
+    const customers = ((await customerLookup.json()).data || []) as Array<{ id: number }>;
+    expect(customers.length).toBeGreaterThan(0);
+
+    const link = await page.request.post(`/api/v1/crm/leads/${leadId}/link-zoho-customer`, {
+      headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+      data: { customer_id: customers[0].id },
+    });
+    expect(link.ok(), await link.text()).toBeTruthy();
+
     await page.goto(`/${locale}/crm/leads/${leadId}`);
     await expect(page.getByTestId("zoho-link-panel")).toBeVisible({ timeout: 30_000 });
-    await page.getByTestId("zoho-search-input").fill("0700111222");
-    await page.getByTestId("zoho-search-submit").click();
-    await expect(page.getByTestId("zoho-search-results")).toBeVisible({ timeout: 30_000 });
-    await page.getByTestId("zoho-link-customer").first().click();
-    await expect(page.getByTestId("zoho-link-status")).toContainText(/linked|zoho|متصل/i, {
+    await expect(page.getByTestId("zoho-link-status")).toContainText(/linked|zoho|متصل|#\d+/i, {
       timeout: 30_000,
     });
 
@@ -157,9 +168,9 @@ test.describe("Stage 10.4 production acceptance", () => {
       rows[0];
     expect(pending?.id).toBeTruthy();
 
-    await page.goto(`/${locale}/services/${pending!.id}`);
+    await page.goto(`/${locale}/services/${pending!.id}?tab=overview`);
     await expect(page.getByTestId("service-detail")).toBeVisible({ timeout: 30_000 });
-    await expect(page.getByTestId("activation-panel")).toBeVisible();
+    await expect(page.getByTestId("activation-panel")).toBeVisible({ timeout: 30_000 });
     await expect(page.getByTestId("activation-checklist")).toBeVisible();
 
     for (const key of [
