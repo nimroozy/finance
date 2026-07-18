@@ -2210,5 +2210,27 @@
     "validate": "اعتبارسنجی",
     "save": "ذخیره نگاشت",
     "empty": "هنوز نگاشت شعبه‌ای وجود ندارد."
+  },
+  "handoversPage": {
+    "title": "تحویل‌های نقدی",
+    "subtitle": "بررسی و تأیید تحویل نقد از جمع‌آوری‌کنندگان",
+    "empty": "هیچ تحویلی وجود ندارد.",
+    "collector": "جمع‌آوری‌کننده",
+    "cashbox": "صندوق نقدی",
+    "amount": "مبلغ اعلام‌شده",
+    "paymentCount": "تعداد پرداخت‌ها",
+    "status": "وضعیت",
+    "submittedAt": "زمان ارسال",
+    "verifiedAt": "زمان تأیید",
+    "review": "بررسی",
+    "reviewTitle": "بررسی تحویل",
+    "selectedTotal": "مجموع انتخاب‌شده",
+    "countedAmount": "مبلغ شمارش‌شده",
+    "notes": "یادداشت",
+    "approve": "تأیید",
+    "reject": "رد",
+    "branchCashboxes": "صندوق‌های شعبه",
+    "approveSuccess": "تحویل تأیید شد.",
+    "rejectSuccess": "تحویل رد شد."
   }
 }

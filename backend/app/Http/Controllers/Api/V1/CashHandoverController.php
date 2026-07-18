@@ -15,7 +15,7 @@ class CashHandoverController extends Controller
     public function index(Request $request)
     {
         $page = CashHandoverRequest::query()
-            ->with('items')
+            ->with(['items', 'collector.user:id,name', 'cashbox:id,name', 'branch:id,code,name_en,name_fa'])
             ->latest()
             ->paginate($request->integer('per_page', 20));
 

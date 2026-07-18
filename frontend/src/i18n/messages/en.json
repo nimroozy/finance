@@ -2210,5 +2210,27 @@
     "validate": "Validate",
     "save": "Save mapping",
     "empty": "No branch mappings yet."
+  },
+  "handoversPage": {
+    "title": "Cash handovers",
+    "subtitle": "Review and approve collector cash handovers",
+    "empty": "No handovers.",
+    "collector": "Collector",
+    "cashbox": "Cashbox",
+    "amount": "Declared amount",
+    "paymentCount": "Payments",
+    "status": "Status",
+    "submittedAt": "Submitted",
+    "verifiedAt": "Verified",
+    "review": "Review",
+    "reviewTitle": "Review handover",
+    "selectedTotal": "Selected total",
+    "countedAmount": "Counted amount",
+    "notes": "Notes",
+    "approve": "Approve",
+    "reject": "Reject",
+    "branchCashboxes": "Branch cashboxes",
+    "approveSuccess": "Handover approved.",
+    "rejectSuccess": "Handover rejected."
   }
 }

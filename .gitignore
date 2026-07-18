@@ -60,3 +60,4 @@ frontend/test-results/
 frontend/playwright-report/
 artifacts/
 .env.acceptance
+dump.rdb
