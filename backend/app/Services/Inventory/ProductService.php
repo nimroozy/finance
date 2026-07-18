@@ -2,7 +2,7 @@
 
 namespace App\Services\Inventory;
 
-use App\Events\Inventory\PlaceholderZohoInventoryItemSyncRequested;
+use App\Events\Inventory\ZohoInventoryItemSyncRequested;
 use App\Models\Inventory\Product;
 use App\Models\User;
 use App\Services\AuditLogger;
@@ -53,7 +53,7 @@ class ProductService
             ]);
 
             $this->audit->log('inventory.product.created', $product, null, $product->toArray());
-            PlaceholderZohoInventoryItemSyncRequested::dispatch($product->id);
+            ZohoInventoryItemSyncRequested::dispatch($product->id);
 
             return $product;
         });

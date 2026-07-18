@@ -2,7 +2,7 @@
 
 namespace App\Services\Inventory;
 
-use App\Events\Inventory\PlaceholderZohoPurchaseSyncRequested;
+use App\Events\Inventory\ZohoPurchaseSyncRequested;
 use App\Models\Inventory\PurchaseOrder;
 use App\Models\Inventory\PurchaseOrderItem;
 use App\Models\Inventory\PurchaseRequest;
@@ -111,7 +111,7 @@ class PurchasingService
         $po->approved_by = $actor?->id;
         $po->save();
 
-        PlaceholderZohoPurchaseSyncRequested::dispatch($po->id, (int) $po->branch_id);
+        ZohoPurchaseSyncRequested::dispatch($po->id, (int) $po->branch_id);
 
         return $po;
     }

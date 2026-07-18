@@ -10,11 +10,11 @@ use App\Events\Crm\SurveyCompleted;
 use Illuminate\Support\Facades\Log;
 
 /**
- * CRM domain event logging (name retained for compatibility).
- * Radius / Zoho-create placeholder handlers were removed in Stage 10.2 —
- * conversion links existing Zoho-mirrored customers only.
+ * CRM domain event logging for conversion, installation request, survey,
+ * quotation, and follow-up overdue. Does not enqueue Radius activation or
+ * Zoho customer-create side effects (link existing Zoho-mirrored customers only).
  */
-class LogCrmPlaceholderIntegrations
+class LogCrmDomainEvents
 {
     public function handleConverted(LeadConverted $event): void
     {
