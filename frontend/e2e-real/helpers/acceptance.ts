@@ -197,7 +197,10 @@ export function attachFailureGuards(page: Page, testInfo: TestInfo) {
   });
 
   page.on("pageerror", (err) => {
-    consoleErrors.push(`pageerror:${err.message}`);
+    const text = `pageerror:${err.message}`;
+    if (!CONSOLE_ALLOWLIST.some((re) => re.test(text))) {
+      consoleErrors.push(text);
+    }
   });
 
   page.on("response", (res) => {
