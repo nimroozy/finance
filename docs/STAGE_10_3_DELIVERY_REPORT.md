@@ -5,7 +5,7 @@
 **VPS:** `root@209.38.194.184` (`/opt/collection-system`)  
 **Deploy stamp:** `20260718T054503Z` (pre) / `20260718T055037Z` (post)  
 **Tip SHA deployed:** `79a0e4ebb5de10da8113a996acbb34c2d543d402` _(updated to final tip after this report commit)_  
-**Production SHA:** _(same as tip after re-sync)_  
+**Production SHA:**   
 **Do not merge until human review.** **Stage 11 not started.** **No Radius.**  
 **KEY_KEPT** (`~/.ssh/id_ed25519` preserved — not deleted).  
 **AcceptanceSeeder:** **skipped on production** (RolePermissionSeeder only).
@@ -123,10 +123,10 @@ Stage **10.3 functional acceptance** is live: stage label `10.3-functional-accep
 
 | Field | Value |
 |-------|-------|
-| tip SHA | _(see final tip after report commit + re-sync)_ |
+| tip SHA |  |
 | `.deployed-sha` | _(same)_ |
-| health SHA | _(same)_ |
-| system version SHA | _(same)_ |
+| health SHA |  |
+| system version SHA |  |
 | stage | `10.3-functional-acceptance` |
 | COUNTS_MATCH (financial+inventory) | yes |
 | KEY_KEPT | yes |
