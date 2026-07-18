@@ -139,3 +139,9 @@ Protected: payments and stock_transactions never deleted by this command.
 | KEY_KEPT | yes |
 | demo cleanup --apply | skipped (ambiguous dry-run candidates) |
 
+---
+
+## Follow-up: Stage 10.3 cleanup applied
+
+Ambiguous Stage 10.2 dry-run candidates were **human-reviewed** and applied under Stage 10.3 via `stage103:cleanup-demo --apply` with manifest `docs/manifests/stage103-demo-cleanup.json` (2026-07-18). Payments and stock_transactions unchanged. See [STAGE_10_3_CLEANUP_RESULT.md](STAGE_10_3_CLEANUP_RESULT.md) and [STAGE_10_3_DEMO_DATA_REVIEW.md](STAGE_10_3_DEMO_DATA_REVIEW.md).
+

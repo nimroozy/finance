@@ -26,7 +26,7 @@ return [
     |
     */
 
-    'stage' => env('APP_STAGE', '10.2-production-recovery'),
+    'stage' => env('APP_STAGE', '10.3-functional-acceptance'),
 
     /*
     |--------------------------------------------------------------------------
