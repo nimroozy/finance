@@ -19,9 +19,11 @@ function localeFromProject(name: string): "en" | "fa" {
 }
 
 async function fixtureIds(page: import("@playwright/test").Page, token: string) {
-  const customers = await authedGet(page, token, "/api/v1/customers?search=ACCEPTANCE-ZOHO-1");
+  const customers = await authedGet(page, token, "/api/v1/customers?search=ACC-CUST-001");
   expect(customers.ok()).toBeTruthy();
-  const customer = ((await customers.json()).data || [])[0];
+  const customerRows = ((await customers.json()).data || []) as Array<Record<string, unknown>>;
+  const customer =
+    customerRows.find((c) => c.zoho_contact_id === "ACCEPTANCE-ZOHO-1") || customerRows[0];
   expect(customer?.id).toBeTruthy();
 
   const collectors = await authedGet(page, token, "/api/v1/collectors?per_page=50");
