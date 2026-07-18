@@ -5,15 +5,14 @@
 
 ## Medium
 
-1. **Route crawler noise** — aggressive same-origin crawl reported 45 failures under auth hydration / soft-nav races; not used as the production-acceptance gate. Real Playwright suite is authoritative.
-2. **Deep payment / collections write-path E2E** — still primarily covered by backend PHPUnit (payment/handover/wallet suites). Zoho writes remain `test_adapter` only.
-3. **Notification / attachment camera matrix** — backend coverage stronger than dedicated Playwright scenarios.
-4. **Mocked Playwright** — Stage 10.3 regression retained; not re-run as a gate during the final Stage 10.4 acceptance pass (real suite + backend 301 are the gates).
+1. **Customer search by Zoho contact ID / phone** — list search matches name/customer number (`ACC-CUST-001`) but not `ACCEPTANCE-ZOHO-1` or phone in the current customers index filter. Real acceptance uses supported search keys; global search API still covers Zoho ID/phone fixtures.
+2. **Deep installation / inventory transfer / custody / repair / stock-count matrix** — covered primarily by backend Stage 9 PHPUnit; Playwright exercises product create + goods receipt + stock reconcile identity.
+3. **Mocked Playwright optional skips** — two `health endpoint is reachable via same host when configured` skips when health host is unset (optional).
 
 ## Cosmetic
 
 1. Login page lacks dedicated `data-testid` hooks.
-2. Next.js RSC prefetch console fallbacks under load (allowlisted).
+2. Next.js RSC prefetch against Docker hostname `nginx` emits allowlisted access-control pageerrors under Playwright.
 3. Some CRM/service detail UI asserts accept API-backed evidence when panel hydration is slow.
 
 ## Deferred
@@ -21,3 +20,4 @@
 * Stage 11 dashboards — not started  
 * SAS Radius — not connected  
 * Live WhatsApp send during acceptance — disabled  
+* Live Zoho write — optional (`E2E_ZOHO_WRITE=1`), skipped in required suite  

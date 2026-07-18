@@ -24,7 +24,8 @@ Unified multi-branch ISP operations so branch staff can work without daily login
 | **10** | **ISP service lifecycle** | **Complete / in 10.1 tip** |
 | **10.1** | **Integrated stable baseline (7→10 + 9.1)** | **Complete / in 10.2 tip** |
 | **10.2** | **Production recovery (service API, search, cleanup dry-run)** | **Complete / in 10.3 tip** |
-| **10.3** | **Functional acceptance (launcher, ActivationPanel, queues, reviewed cleanup)** | **In progress / tip branch** |
+| **10.3** | **Functional acceptance (launcher, ActivationPanel, queues, reviewed cleanup)** | **Complete / in 10.4 tip** |
+| **10.4** | **Production acceptance closure (isolated stack, real E2E matrix, SHA closure)** | **Complete / tip branch** |
 
 ## Stage 6 — WhatsApp & notifications (complete / foundation)
 

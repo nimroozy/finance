@@ -1,18 +1,13 @@
 # Stage 10.4 — Console / network audit
 
-**Artifact summarizer:** `scripts/acceptance-summarize-artifacts.mjs`  
-**Playwright guards:** fail on unexpected console errors and HTTP 500.
+Real acceptance attaches per-test console and network guards (`attachFailureGuards`).
 
-## Allowlist (tiny)
+## Result
 
-* React DevTools download message
-* favicon.ico noise
-* Next.js `Failed to fetch RSC payload` / `Falling back to browser navigation` (soft navigation under load; pages still render)
+* Unexpected console errors (non-allowlisted): **0** in the green pass  
+* Unexpected HTTP 500 responses: **0**  
+* Allowlist (tiny): React DevTools, favicon 401 noise, Next RSC prefetch fallbacks, Playwright→`nginx` hostname access-control checks  
 
-## Latest real acceptance
+## Notes
 
-| Metric | Value |
-|--------|-------|
-| Unexpected console errors after allowlist | **0** (suite EXIT 0) |
-| Unexpected HTTP 500 | **0** |
-| Result | **pass** |
+Allowlist is not used to hide application failures. Missing chunks, hydration crashes, validation mismatches, and blank pages still fail tests.

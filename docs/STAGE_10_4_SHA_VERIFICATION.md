@@ -1,8 +1,8 @@
 # Stage 10.4 — Final SHA verification
 
-**Status:** MATCH  
+**Status:** MATCH (after final tip deploy)  
 **Stage label:** `10.4-production-acceptance-closure`  
-**Final SHA:** `bcca2d99e4f547f088c90ad79c1885ed4cb00aaf`
+**Final SHA:** `d21575f0b75e5450fa183f5df690248418755cc6`
 
 ## Starting SHA (pre-implementation)
 
@@ -10,6 +10,14 @@
 
 ## Final probes
 
-Confirmed equal across GitHub tip, `.deployed-sha`, `APP_COMMIT_SHA`, `/api/v1/health` `commit_sha` / `frontend_version`, stage `10.4-production-acceptance-closure`.
+Confirmed equal across:
+
+| Probe | Value |
+|-------|-------|
+| GitHub branch head | `d21575f0b75e5450fa183f5df690248418755cc6` |
+| Host `.deployed-sha` | `d21575f0b75e5450fa183f5df690248418755cc6` |
+| Backend `APP_COMMIT_SHA` | `d21575f0b75e5450fa183f5df690248418755cc6` |
+| `/api/v1/health` `commit_sha` / `frontend_version` | `d21575f0b75e5450fa183f5df690248418755cc6` |
+| Stage | `10.4-production-acceptance-closure` |
 
 Acceptance endpoints return **404** in production. AcceptanceSeeder users on production: **0**.

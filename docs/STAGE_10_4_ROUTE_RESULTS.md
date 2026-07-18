@@ -1,16 +1,18 @@
 # Stage 10.4 — Route crawler results
 
-**Tool:** `frontend/scripts/acceptance-route-crawler.mjs`  
-**Artifact:** `artifacts/acceptance/routes/route-results.json`
+**Runner:** `frontend/scripts/acceptance-route-crawler.mjs`  
+**Auth:** API login + `auth-storage` init (not fragile UI login)  
+**Locales:** en, fa  
+**Viewports:** desktop 1440×900, mobile 390×844, small-mobile 320×700  
 
-## Latest run
+## Result
 
 | Metric | Value |
 |--------|-------|
-| Role | ACCEPTANCE-admin |
-| Locales × viewports | en/fa × desktop/mobile/small-mobile |
-| Failures recorded | 45 (aggressive link expansion; many soft-nav / auth hydration races) |
+| Failures | **0** |
+| Routes recorded | **192** |
+| Exit code | **0** |
 
-The crawler is a secondary signal. **Required production acceptance is the real Playwright suite (54 passed, 0 required skipped).** Known crawler noise is tracked in `STAGE_10_4_KNOWN_ISSUES.md`.
+Seeds use real App Router paths (`/assignments`, `/noc/services`, `/crm/dashboard`, `/inventory/dashboard`, `/reports/collection`, `/users`, …). Dynamic `/{id}` detail routes are not auto-expanded.
 
-See also `docs/FUNCTIONAL_ROUTE_AUDIT.md`.
+Harmless Next RSC `http://nginx/...` access-control prefetch noise is allowlisted; blank pages, 404, 500, and unexpected console errors still fail the crawler.

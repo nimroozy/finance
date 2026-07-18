@@ -1,22 +1,23 @@
-# Stage 10.4 — Stock ledger reconciliation
+# Stage 10.4 — Stock reconciliation
 
-**Helper:** `App\Support\Acceptance\AcceptanceDbAssertions::stockReconciliation()`  
-**CLI:** `php artisan acceptance:assert --stock`  
-**Acceptance DB result (reset fixtures):**
+## Acceptance DB (after inventory workflow receive × 6 projects)
 
 | Field | Value |
 |-------|-------|
-| opening | 0.000 |
-| closing | 0.000 |
-| computed_closing | 0.000 |
-| ok | **true** |
-| transaction_count | 0 |
+| Opening | 0.000 |
+| Closing (sum on_hand) | 30.000 |
+| Computed closing | 30.000 |
+| Result | **MATCH** |
+| Receipts | 30 |
+| Transaction count | 6 |
 
-## Production inventory (deploy gate)
+Formula: `opening + receipts + inbound_transfers + adj_in - fulfilled - outbound_transfers - write_offs - adj_out = closing`
+
+## Production (pre/post final tip deploy)
 
 | Metric | Pre | Post |
 |--------|-----|------|
-| inventory_stock_transactions | 14 | _(fill after deploy)_ |
-| inventory_on_hand_sum | 18.000 | _(fill after deploy)_ |
+| inventory_stock_transactions | 14 | 14 |
+| on_hand | 18.000 | 18.000 |
 
-Immutable ledger rules unchanged in Stage 10.4.
+Production ledger unchanged by Stage 10.4 acceptance (isolated DB).

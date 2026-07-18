@@ -4,16 +4,17 @@
 **Branch:** `cursor/stage-10-4-production-acceptance-closure`  
 **PR target:** `cursor/stage-10-3-functional-acceptance`  
 **Stage label:** `10.4-production-acceptance-closure`  
-**Final SHA:** `bcca2d99e4f547f088c90ad79c1885ed4cb00aaf`
+**Final SHA:** `d21575f0b75e5450fa183f5df690248418755cc6`  
 
 ## Starting point
 
-* Expected / actual starting SHA: `bcca2d99e4f547f088c90ad79c1885ed4cb00aaf` — **MATCH**  
+* Expected / actual starting SHA: `87f04ab63c0c4ffa50e7cdc264ad35212938d01f` — **MATCH**  
+* Prior stage `d21575f0b75e5450fa183f5df690248418755cc6` — **MATCH**  
 * Prior stage: `10.3-functional-acceptance`
 
 ## What shipped
 
-Isolated acceptance environment (full compose + VPS sidecar), fail-closed `./scripts/run-acceptance.sh`, acceptance-only verify API/CLI with production blocks, six-project real Playwright matrix (**54 passed / 0 required skipped**), route crawler, console/network guards, DB/stock asserts, stage label `10.4-production-acceptance-closure`, docs `STAGE_10_4_*`.
+Isolated acceptance environment (full compose + VPS sidecar), fail-closed `./scripts/run-acceptance.sh` (PHPUnit + Playwright Docker path for host-without-Node), acceptance-only verify API/CLI with production blocks, expanded AcceptanceSeeder fixtures (collector, invoice, ticket types, inventory locations), six-project real Playwright matrix (**108 passed / 0 required skipped**), hardened route crawler (**0 failures / 192 routes**), console/network guards, DB/stock asserts, stage label `10.4-production-acceptance-closure`, docs `STAGE_10_4_*`.
 
 ## Acceptance environment
 
@@ -31,7 +32,8 @@ Isolated acceptance environment (full compose + VPS sidecar), fail-closed `./scr
 | Suite | Passed | Failed | Skipped |
 |-------|--------|--------|---------|
 | Backend | 301 | 0 | 0 |
-| Real acceptance | 54 | 0 | **0 required** (+6 optional Zoho) |
+| Mocked Playwright | 60 | 0 | 2 optional |
+| Real acceptance | 108 | 0 | **0 required** (+6 optional Zoho) |
 
 ## Browser matrix
 
@@ -41,10 +43,10 @@ desktop-en/fa, mobile-en/fa, small-mobile-en/fa — **all passed**.
 
 | Probe | Value |
 |-------|-------|
-| Production / health / `.deployed-sha` / `APP_COMMIT_SHA` / frontend_version | `bcca2d99e4f547f088c90ad79c1885ed4cb00aaf` |
+| Production / health / `.deployed-sha` / `APP_COMMIT_SHA` / frontend_version | `d21575f0b75e5450fa183f5df690248418755cc6` |
 | Stage | `10.4-production-acceptance-closure` |
-| Pre backup | `/opt/collection-backups/20260718T075711Z-stage10-4-predeploy/` |
-| Post backup | `/opt/collection-backups/20260718T080756Z-stage10-4-postdeploy/` |
+| Pre backup | `/opt/collection-backups/20260718T091544Z-stage10-4-final-predeploy/` |
+| Post backup | see SHA verification after deploy |
 | payments / handovers / wallets / cashboxes / reversals | 3 / 1 / 3 / 2 / 3 — **MATCH** |
 | inventory txns / on_hand | 14 / 18.000 — **MATCH** |
 | `/api/v1/acceptance/*` in production | **404** |
