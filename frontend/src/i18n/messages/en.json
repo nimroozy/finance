@@ -772,7 +772,11 @@
     "visitHistory": "Visit history",
     "invoices": "Invoices",
     "priority": "Priority",
-    "startPayment": "Start payment"
+    "startPayment": "Start payment",
+    "recordPromise": "Record promise",
+    "openCustomer": "Open customer",
+    "branch": "Branch",
+    "noLocation": "No location"
   },
   "collectorNotifications": {
     "title": "Notifications",

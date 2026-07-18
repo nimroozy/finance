@@ -772,7 +772,11 @@
     "visitHistory": "سابقه بازدید",
     "invoices": "فاکتورها",
     "priority": "اولویت",
-    "startPayment": "شروع پرداخت"
+    "startPayment": "شروع پرداخت",
+    "recordPromise": "ثبت وعده",
+    "openCustomer": "باز کردن مشتری",
+    "branch": "شعبه",
+    "noLocation": "موقعیتی نیست"
   },
   "collectorNotifications": {
     "title": "اعلان‌ها",
