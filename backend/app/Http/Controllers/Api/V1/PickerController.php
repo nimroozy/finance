@@ -28,7 +28,7 @@ class PickerController extends Controller
 
         $user = Auth::user();
         $query = Customer::query()
-            ->select(['id', 'branch_id', 'customer_number', 'contact_name', 'company_name', 'phone', 'mobile', 'status'])
+            ->select(['id', 'branch_id', 'customer_number', 'contact_name', 'company_name', 'phone', 'mobile', 'whatsapp_number', 'zoho_contact_id', 'status'])
             ->when(! $user->isSuperAdmin() && ! $user->isCentralFinanceAdmin(), function ($q) use ($user) {
                 $q->whereIn('branch_id', $user->branchIds());
             })
@@ -41,7 +41,9 @@ class PickerController extends Controller
                     ->orWhere('contact_name', 'like', $search)
                     ->orWhere('company_name', 'like', $search)
                     ->orWhere('phone', 'like', $search)
-                    ->orWhere('mobile', 'like', $search);
+                    ->orWhere('mobile', 'like', $search)
+                    ->orWhere('whatsapp_number', 'like', $search)
+                    ->orWhere('zoho_contact_id', 'like', $search);
             });
         }
 
@@ -56,7 +58,9 @@ class PickerController extends Controller
             Auth::user()->can('tickets.assign')
             || Auth::user()->can('tasks.assign')
             || Auth::user()->can('users.view')
-            || Auth::user()->can('users.manage'),
+            || Auth::user()->can('users.manage')
+            || Auth::user()->can('assignments.manage')
+            || Auth::user()->can('collectors.view'),
             403
         );
 
@@ -73,6 +77,9 @@ class PickerController extends Controller
             })
             ->when($request->filled('department_id'), function ($q) use ($request) {
                 $q->whereHas('departments', fn ($dq) => $dq->where('departments.id', $request->integer('department_id')));
+            })
+            ->when($request->filled('role'), function ($q) use ($request) {
+                $q->role($request->string('role')->toString());
             });
 
         if ($request->filled('q')) {

@@ -64,13 +64,14 @@ function teamLabel(t: Team) {
 /** Lightweight assignee search via `GET /pickers/users`. */
 export async function searchUsers(
   q: string,
-  opts?: { branchId?: number | string; departmentId?: number | string; limit?: number },
+  opts?: { branchId?: number | string; departmentId?: number | string; role?: string; limit?: number },
 ) {
   return apiFetch<PickerUser[]>(
     `/pickers/users${toQuery({
       q: q || undefined,
       branch_id: opts?.branchId,
       department_id: opts?.departmentId,
+      role: opts?.role,
       limit: opts?.limit ?? 25,
     })}`,
   );
@@ -78,7 +79,7 @@ export async function searchUsers(
 
 export async function searchUsersAsOptions(
   q: string,
-  opts?: { branchId?: number | string; departmentId?: number | string },
+  opts?: { branchId?: number | string; departmentId?: number | string; role?: string },
 ) {
   const res = await searchUsers(q, opts);
   return {
@@ -92,6 +93,11 @@ export async function searchUsersAsOptions(
       }),
     ),
   };
+}
+
+/** Users holding the Collector role — used by CollectorPicker (reassignment, handovers). */
+export async function searchCollectors(q: string, branchId?: number | string) {
+  return searchUsersAsOptions(q, { branchId, role: "Collector" });
 }
 
 export async function listDepartments(branchId?: number | string) {

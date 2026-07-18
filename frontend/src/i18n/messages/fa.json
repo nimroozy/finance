@@ -2038,5 +2038,28 @@
     "expandSidebar": "گسترش نوار کناری",
     "collapseSidebar": "جمع کردن نوار کناری",
     "navLabel": "ناوبری"
+  },
+  "errors": {
+    "genericTitle": "مشکلی پیش آمد",
+    "genericBody": "درخواست ناکام شد. لطفاً دوباره تلاش کنید.",
+    "connectionTitle": "مشکل در اتصال",
+    "connectionBody": "اتصال به سرور برقرار نشد. اتصال اینترنت خود را بررسی و دوباره تلاش کنید.",
+    "permissionTitle": "شما دسترسی ندارید",
+    "permissionBody": "حساب کاربری شما اجازه مشاهده این بخش را ندارد. در صورت اشتباه بودن، به مدیر خود اطلاع دهید.",
+    "conflictTitle": "این مورد در جای دیگر تغییر کرد",
+    "conflictBody": "شخص دیگری این رکورد را به‌روزرسانی کرده است. صفحه را دوباره بارگذاری و تلاش کنید.",
+    "validationTitle": "فیلدهای مشخص شده را بررسی کنید",
+    "validationBody": "برخی فیلدها پیش از ذخیره باید اصلاح شوند.",
+    "notFoundTitle": "یافت نشد",
+    "notFoundBody": "این رکورد دیگر وجود ندارد یا جابجا شده است."
+  },
+  "pickers": {
+    "customerPlaceholder": "جستجو با نام، شماره تماس، شماره مشتری یا شناسه زوهو",
+    "collectorPlaceholder": "جستجوی جمع‌آوری‌کننده با نام",
+    "userPlaceholder": "جستجوی کارمند با نام",
+    "branchPlaceholder": "جستجوی شعبه",
+    "servicePlaceholder": "جستجوی سرویس",
+    "productPlaceholder": "جستجوی محصول",
+    "equipmentPlaceholder": "جستجوی تجهیزات"
   }
 }

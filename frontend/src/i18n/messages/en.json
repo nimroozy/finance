@@ -2038,5 +2038,28 @@
     "expandSidebar": "Expand sidebar",
     "collapseSidebar": "Collapse sidebar",
     "navLabel": "Navigation"
+  },
+  "errors": {
+    "genericTitle": "Something went wrong",
+    "genericBody": "The request failed. Please try again.",
+    "connectionTitle": "Connection problem",
+    "connectionBody": "Could not reach the server. Check your connection and try again.",
+    "permissionTitle": "You don't have access",
+    "permissionBody": "Your account doesn't have permission to view this. Contact your manager if you think this is a mistake.",
+    "conflictTitle": "This changed elsewhere",
+    "conflictBody": "Someone already updated this record. Reload and try again.",
+    "validationTitle": "Check the highlighted fields",
+    "validationBody": "Some fields need to be corrected before this can be saved.",
+    "notFoundTitle": "Not found",
+    "notFoundBody": "This record no longer exists or was moved."
+  },
+  "pickers": {
+    "customerPlaceholder": "Search by name, phone, customer number, or Zoho ID",
+    "collectorPlaceholder": "Search collectors by name",
+    "userPlaceholder": "Search staff by name",
+    "branchPlaceholder": "Search branches",
+    "servicePlaceholder": "Search services",
+    "productPlaceholder": "Search products",
+    "equipmentPlaceholder": "Search equipment"
   }
 }

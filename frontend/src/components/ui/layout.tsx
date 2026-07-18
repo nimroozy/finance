@@ -64,6 +64,9 @@ export function Alert({
   );
 }
 
+/** Alias for the shared component library naming (Stage 10.5A). */
+export const InlineAlert = Alert;
+
 export function LoadingState({ label }: { label: string }) {
   return (
     <div className="flex min-h-40 items-center justify-center text-sm text-muted">
