@@ -812,6 +812,7 @@
     "preview": "پیش‌نمایش",
     "previewTitle": "پیش‌نمایش",
     "confirmPay": "تأیید پرداخت",
+    "confirmPaySummary": "مبلغ {amount} از {customer} دریافت شود؟ این عملیات قابل بازگشت نیست.",
     "submitting": "در حال ارسال…",
     "gpsOptional": "ثبت موقعیت (اختیاری)",
     "gpsOk": "موقعیت ثبت شد.",

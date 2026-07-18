@@ -812,6 +812,7 @@
     "preview": "Preview",
     "previewTitle": "Preview",
     "confirmPay": "Confirm payment",
+    "confirmPaySummary": "Collect {amount} from {customer}? This cannot be undone.",
     "submitting": "Submitting…",
     "gpsOptional": "Capture GPS (optional)",
     "gpsOk": "Location captured.",
