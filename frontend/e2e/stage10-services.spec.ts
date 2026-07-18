@@ -308,7 +308,7 @@ async function mockStage10Api(page: Page, user = MOCK_USER) {
         package_id: body.package_id ? Number(body.package_id) : 5,
         commercial_status: "draft",
         operational_status: "not_provisioned",
-        mrr: body.mrr ?? 1200,
+        mrr: typeof body.mrr === "number" ? body.mrr : 1200,
       };
       servicesById[41] = created;
       await fulfillJson(route, created, undefined, 201);
