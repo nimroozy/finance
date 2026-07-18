@@ -2066,6 +2066,7 @@
   "shell": {
     "launcher": "Apps",
     "openLauncher": "Open app launcher",
+    "accountMenu": "Account menu",
     "allApps": "All apps",
     "workspace": "Workspace",
     "search": "Search",

@@ -105,7 +105,7 @@ export default function VisitsPage() {
           onPageChange={(page) => void load(page)}
           filters={
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:flex-wrap">
-              <Select value={outcome} onChange={(e) => setOutcome(e.target.value)} className="sm:max-w-xs">
+              <Select value={outcome} onChange={(e) => setOutcome(e.target.value)} className="sm:max-w-xs" aria-label={t("outcome")}>
                 <option value="">{tCommon("all")}</option>
                 {outcomes.map((o) => (
                   <option key={o.code} value={o.code}>

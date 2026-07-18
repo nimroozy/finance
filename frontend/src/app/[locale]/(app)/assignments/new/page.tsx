@@ -91,8 +91,9 @@ export default function NewAssignmentPage() {
             <FieldError>{fieldErrors.customer_id?.[0]}</FieldError>
           </div>
           <div>
-            <Label>{t("collector")}</Label>
+            <Label htmlFor="collector">{t("collector")}</Label>
             <Select
+              id="collector"
               value={collectorId}
               onChange={(e) => setCollectorId(e.target.value)}
               required
@@ -107,8 +108,9 @@ export default function NewAssignmentPage() {
             <FieldError>{fieldErrors.collector_id?.[0]}</FieldError>
           </div>
           <div>
-            <Label>{t("priority")}</Label>
+            <Label htmlFor="priority">{t("priority")}</Label>
             <Select
+              id="priority"
               value={priority}
               onChange={(e) => setPriority(e.target.value)}
             >
@@ -120,16 +122,18 @@ export default function NewAssignmentPage() {
             </Select>
           </div>
           <div>
-            <Label>{t("dueDate")}</Label>
+            <Label htmlFor="dueDate">{t("dueDate")}</Label>
             <Input
+              id="dueDate"
               type="date"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
             />
           </div>
           <div>
-            <Label>{t("notes")}</Label>
+            <Label htmlFor="notes">{t("notes")}</Label>
             <TextArea
+              id="notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
             />

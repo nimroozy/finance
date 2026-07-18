@@ -135,7 +135,7 @@ export default function CustomersPage() {
           />
           <FilterBar active={filtersActive} onReset={resetFilters}>
             <BranchPicker value={branch} onChange={setBranch} className="w-40" />
-            <Select value={status} onChange={(e) => setStatus(e.target.value)} className="w-36">
+            <Select value={status} onChange={(e) => setStatus(e.target.value)} className="w-36" aria-label={t("status")}>
               <option value="">{t("status")}</option>
               {STATUSES.map((s) => (
                 <option key={s} value={s}>
@@ -143,7 +143,7 @@ export default function CustomersPage() {
                 </option>
               ))}
             </Select>
-            <Select value={syncStatus} onChange={(e) => setSyncStatus(e.target.value)} className="w-40">
+            <Select value={syncStatus} onChange={(e) => setSyncStatus(e.target.value)} className="w-40" aria-label={t("syncStatus")}>
               <option value="">{t("syncStatus")}</option>
               {SYNC_STATUSES.map((s) => (
                 <option key={s} value={s}>

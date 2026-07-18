@@ -146,16 +146,25 @@ html[dir="rtl"] body {
   font-family: var(--font-system-arabic);
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
-}
+/*
+ * Base element resets belong in @layer base so Tailwind utility classes
+ * (text-white, text-primary, …) still win. Unlayered rules override every
+ * cascade layer, which previously made `a { color: inherit }` beat
+ * `text-white` on the active nav item — dark text on the dark primary
+ * background (1.39:1 contrast).
+ */
+@layer base {
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
 
-button,
-input,
-select,
-textarea {
-  font: inherit;
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
 }
 
 :focus-visible {

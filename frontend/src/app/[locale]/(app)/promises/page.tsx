@@ -170,7 +170,7 @@ export default function PromisesPage() {
           lastPage={meta.last_page}
           onPageChange={(page) => void load(page)}
           filters={
-            <Select value={status} onChange={(e) => setStatus(e.target.value)} className="sm:max-w-xs">
+            <Select value={status} onChange={(e) => setStatus(e.target.value)} className="sm:max-w-xs" aria-label={t("status")}>
               <option value="">{tCommon("all")}</option>
               {["active", "due_soon", "due_today", "overdue", "fulfilled", "cancelled", "superseded"].map((s) => (
                 <option key={s} value={s}>

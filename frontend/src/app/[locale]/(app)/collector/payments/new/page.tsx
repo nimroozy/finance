@@ -252,8 +252,9 @@ export default function CollectorNewPaymentPage() {
         <Panel className="space-y-4 p-4">
           {assignments.length > 0 ? (
             <div>
-              <Label>{t("selectAssignment")}</Label>
+              <Label htmlFor="assignment">{t("selectAssignment")}</Label>
               <Select
+                id="assignment"
                 value={assignmentId}
                 onChange={(e) => {
                   const id = e.target.value;
@@ -377,8 +378,9 @@ export default function CollectorNewPaymentPage() {
       {step === 3 ? (
         <Panel className="space-y-4 p-4">
           <div>
-            <Label>{t("method")}</Label>
+            <Label htmlFor="method">{t("method")}</Label>
             <Select
+              id="method"
               value={methodId}
               onChange={(e) => setMethodId(e.target.value)}
               className="h-12"

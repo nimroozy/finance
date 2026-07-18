@@ -165,7 +165,7 @@ export default function AssignmentsPage() {
           onPageChange={(page) => void load(page)}
           filters={
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:flex-wrap">
-              <Select value={status} onChange={(e) => setStatus(e.target.value)} className="sm:max-w-xs">
+              <Select value={status} onChange={(e) => setStatus(e.target.value)} className="sm:max-w-xs" aria-label={t("status")}>
                 <option value="">{tCommon("all")}</option>
                 {STATUSES.map((s) => (
                   <option key={s} value={s}>

@@ -252,6 +252,7 @@ export function AppHeader({
               variant="ghost"
               size="sm"
               className="h-9 w-9 shrink-0 gap-2 p-0 sm:w-auto sm:px-3"
+              aria-label={t("accountMenu")}
               aria-expanded={userOpen}
               aria-haspopup="menu"
               onClick={() => setUserOpen((v) => !v)}

@@ -98,7 +98,7 @@ export default function RoutesPage() {
           lastPage={meta.last_page}
           onPageChange={(page) => void load(page)}
           filters={
-            <Select value={status} onChange={(e) => setStatus(e.target.value)} className="sm:max-w-xs">
+            <Select value={status} onChange={(e) => setStatus(e.target.value)} className="sm:max-w-xs" aria-label={t("status")}>
               <option value="">{tCommon("all")}</option>
               {["draft", "published", "in_progress", "completed", "cancelled"].map((s) => (
                 <option key={s} value={s}>
