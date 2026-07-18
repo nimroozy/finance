@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Services;
 
 use App\Http\Controllers\Controller;
+use App\Models\Services\ServiceCancellation;
 use App\Models\Services\ServiceChangeRequest;
 use App\Models\Services\ServiceContract;
 use App\Models\Services\ServiceFinanceHold;
@@ -135,6 +136,32 @@ class ServiceOpsController extends Controller
             ->orderByDesc('id');
 
         return ApiResponse::paginated($query->paginate($request->integer('per_page', 25)));
+    }
+
+    public function cancellations(Request $request): JsonResponse
+    {
+        abort_unless(Auth::user()?->can('services.cancel') || Auth::user()?->can('services.view'), 403);
+
+        $query = ServiceCancellation::query()
+            ->with(['service:id,service_number,customer_id,branch_id,commercial_status'])
+            ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))
+            ->when($request->filled('service_id'), fn ($q) => $q->where('service_id', $request->integer('service_id')))
+            ->when($request->filled('branch_id'), function ($q) use ($request) {
+                $q->whereHas('service', fn ($sq) => $sq->where('branch_id', $request->integer('branch_id')));
+            })
+            ->orderByDesc('id');
+
+        return ApiResponse::paginated($query->paginate($request->integer('per_page', 25)));
+    }
+
+    public function showContract(int $id): JsonResponse
+    {
+        abort_unless(Auth::user()?->can('services.contracts.view') || Auth::user()?->can('services.view'), 403);
+        $contract = ServiceContract::query()
+            ->with(['customer:id,contact_name,customer_number', 'service:id,service_number'])
+            ->findOrFail($id);
+
+        return ApiResponse::success($contract);
     }
 
     public function storeContract(Request $request): JsonResponse

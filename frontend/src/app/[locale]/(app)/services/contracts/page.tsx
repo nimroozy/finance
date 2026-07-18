@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { ApiError } from "@/lib/api";
 import {
   createServiceContract,
@@ -96,11 +97,26 @@ export default function ServiceContractsPage() {
     {
       key: "number",
       label: t("columns.contractNumber"),
-      render: (row) => row.contract_number || `#${row.id}`,
+      render: (row) => (
+        <Link href={`/services/contracts/${row.id}`} className="text-primary hover:underline">
+          {row.contract_number || `#${row.id}`}
+        </Link>
+      ),
     },
     { key: "customer", label: t("columns.customer"), render: (row) => String(row.customer_id) },
     { key: "status", label: t("columns.status"), render: (row) => row.status || "—" },
     { key: "fee", label: t("columns.mrr"), render: (row) => String(row.recurring_fee ?? "—") },
+    {
+      key: "actions",
+      label: tCommon("actions"),
+      render: (row) => (
+        <Link href={`/services/contracts/${row.id}`}>
+          <Button size="sm" variant="secondary">
+            {tCommon("edit")}
+          </Button>
+        </Link>
+      ),
+    },
   ];
 
   return (
@@ -148,11 +164,11 @@ export default function ServiceContractsPage() {
               </select>
             </label>
             <label className="block space-y-1">
-              <span className="text-sm font-medium">Start</span>
+              <span className="text-sm font-medium">{t("fields.startDate")}</span>
               <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
             </label>
             <label className="block space-y-1">
-              <span className="text-sm font-medium">End</span>
+              <span className="text-sm font-medium">{t("fields.endDate")}</span>
               <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
             </label>
             <label className="block space-y-1">

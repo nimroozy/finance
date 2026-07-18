@@ -311,6 +311,7 @@ class Stage102ServiceLifecycleTest extends TestCase
         $this->postJson("/api/v1/services/{$service->id}/activate", [
             'idempotency_key' => 'act-'.$branchCode,
             'skip_checklist' => true,
+            'reason' => 'Stage102 test override',
         ])->assertOk();
         $this->postJson("/api/v1/services/{$service->id}/noc-confirm-online", [
             'reason' => 'test',

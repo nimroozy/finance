@@ -5,9 +5,11 @@ import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { ApiError } from "@/lib/api";
 import {
-  advanceChangeRequest,
-  listChangeRequests,
-  type ServiceChangeRequest,
+  approveCancellation,
+  completeCancellation,
+  listCancellations,
+  recoverCancellationEquipment,
+  type ServiceCancellation,
 } from "@/lib/services";
 import {
   EmptyWorkspace,
@@ -19,10 +21,10 @@ import { Button } from "@/components/ui/button";
 import { Alert, LoadingState } from "@/components/ui/layout";
 import { StatusBadge } from "@/components/status-badge";
 
-export default function ChangeRequestsPage() {
+export default function CancellationsPage() {
   const t = useTranslations("services");
   const tCommon = useTranslations("common");
-  const [rows, setRows] = useState<ServiceChangeRequest[]>([]);
+  const [rows, setRows] = useState<ServiceCancellation[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +33,7 @@ export default function ChangeRequestsPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await listChangeRequests({ per_page: 50 });
+      const res = await listCancellations({ per_page: 50 });
       setRows(res.data);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : tCommon("error"));
@@ -45,11 +47,13 @@ export default function ChangeRequestsPage() {
     void load();
   }, [load]);
 
-  async function advance(id: number, step: string) {
+  async function run(id: number, action: "approve" | "recover" | "complete") {
     setBusy(id);
     setError(null);
     try {
-      await advanceChangeRequest(id, { step });
+      if (action === "approve") await approveCancellation(id);
+      else if (action === "recover") await recoverCancellationEquipment(id, {});
+      else await completeCancellation(id);
       await load();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : tCommon("error"));
@@ -58,7 +62,7 @@ export default function ChangeRequestsPage() {
     }
   }
 
-  const columns: DataTableColumn<ServiceChangeRequest>[] = [
+  const columns: DataTableColumn<ServiceCancellation>[] = [
     {
       key: "service",
       label: t("columns.service"),
@@ -85,30 +89,25 @@ export default function ChangeRequestsPage() {
       key: "actions",
       label: tCommon("actions"),
       render: (row) => (
-        <div className="flex flex-wrap gap-2">
-          {row.status === "requested" || row.status === "pending" ? (
+        <div className="flex flex-wrap gap-2" data-testid={`cancellation-row-${row.id}`}>
+          {row.status === "requested" ? (
+            <Button size="sm" disabled={busy === row.id} onClick={() => void run(row.id, "approve")}>
+              {t("actions.approveCancellation")}
+            </Button>
+          ) : null}
+          {row.status === "equipment_recovery" || row.status === "approved" ? (
+            <Button size="sm" disabled={busy === row.id} onClick={() => void run(row.id, "recover")}>
+              {t("actions.recoverEquipment")}
+            </Button>
+          ) : null}
+          {row.status !== "completed" && row.status !== "rejected" ? (
             <Button
               size="sm"
-              data-testid="change-request-row"
+              variant="secondary"
               disabled={busy === row.id}
-              onClick={() => void advance(row.id, "technical")}
+              onClick={() => void run(row.id, "complete")}
             >
-              {t("actions.technicalReview")}
-            </Button>
-          ) : null}
-          {row.status === "finance_review" ? (
-            <Button size="sm" disabled={busy === row.id} onClick={() => void advance(row.id, "finance")}>
-              {t("actions.financeReview")}
-            </Button>
-          ) : null}
-          {row.status === "approved" ? (
-            <Button size="sm" disabled={busy === row.id} onClick={() => void advance(row.id, "apply")}>
-              {t("actions.applyChange")}
-            </Button>
-          ) : null}
-          {row.status === "applied" ? (
-            <Button size="sm" variant="secondary" disabled={busy === row.id} onClick={() => void advance(row.id, "close")}>
-              {t("actions.closeChange")}
+              {t("actions.completeCancellation")}
             </Button>
           ) : null}
         </div>
@@ -117,12 +116,12 @@ export default function ChangeRequestsPage() {
   ];
 
   return (
-    <div className="space-y-4" data-testid="services-change-requests">
-      <WorkspaceHeader title={t("changeRequestsTitle")} subtitle={t("changeRequestsSubtitle")} />
+    <div className="space-y-4" data-testid="services-cancellations">
+      <WorkspaceHeader title={t("cancellationsTitle")} subtitle={t("cancellationsSubtitle")} />
       {error ? <Alert tone="danger">{error}</Alert> : null}
       {loading ? <LoadingState label={tCommon("loading")} /> : null}
       {error && !rows.length ? <ErrorWorkspace message={error} onRetry={() => void load()} /> : null}
-      {!loading && rows.length === 0 ? <EmptyWorkspace label={t("emptyChangeRequests")} /> : null}
+      {!loading && rows.length === 0 ? <EmptyWorkspace label={t("emptyCancellations")} /> : null}
       {!loading && rows.length > 0 ? (
         <DataTable columns={columns} rows={rows} rowKey={(r) => r.id} />
       ) : null}

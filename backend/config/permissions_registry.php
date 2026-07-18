@@ -10,6 +10,7 @@ return [
         'services.create',
         'services.update',
         'services.activate',
+        'services.activate.override',
         'services.suspend',
         'services.reactivate',
         'services.cancel',

@@ -7,6 +7,7 @@ import {
   APP_CATALOG,
   APP_GROUP_ORDER,
   isAppVisible,
+  isPrimaryLauncherApp,
   resolveLauncherRoles,
   sortAppsForRoles,
   type AppGroupId,
@@ -59,7 +60,9 @@ export default function AppsLauncherPage() {
   const roles = useMemo(() => resolveLauncherRoles(user?.roles), [user?.roles]);
 
   const visibleApps = useMemo(() => {
-    const list = APP_CATALOG.filter((app) => isAppVisible(app, hasAnyPermission));
+    const list = APP_CATALOG.filter(
+      (app) => isPrimaryLauncherApp(app.id) && isAppVisible(app, hasAnyPermission),
+    );
     return sortAppsForRoles(list, roles);
   }, [hasAnyPermission, roles]);
 

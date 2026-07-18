@@ -217,7 +217,18 @@ test.describe("Stage 9.1 launcher", () => {
     await expect(page.getByTestId("app-card-support")).toBeVisible();
     await expect(page.getByTestId("app-card-tasks")).toBeVisible();
     await expect(page.getByTestId("app-card-inventory")).toHaveCount(0);
-    await expect(page.getByTestId("app-card-users")).toHaveCount(0);
+    await expect(page.getByTestId("app-card-administration")).toHaveCount(0);
+  });
+
+  test("primary launcher apps only — submodules hidden from grid", async ({ page }) => {
+    await setupLauncherMocks(page);
+    await page.goto("/en/apps");
+    await expect(page.getByTestId("apps-launcher")).toBeVisible();
+    await expect(page.getByTestId("apps-all").getByTestId("app-card-customers")).toBeVisible();
+    await expect(page.getByTestId("apps-all").getByTestId("app-card-administration")).toBeVisible();
+    await expect(page.getByTestId("apps-all").getByTestId("app-card-leads")).toHaveCount(0);
+    await expect(page.getByTestId("apps-all").getByTestId("app-card-equipment")).toHaveCount(0);
+    await expect(page.getByTestId("apps-all").getByTestId("app-card-users")).toHaveCount(0);
   });
 
   test("favorites toggle and recent recording", async ({ page }) => {

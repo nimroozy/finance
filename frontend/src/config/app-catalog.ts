@@ -27,6 +27,7 @@ import {
   FileText,
   CalendarClock,
   Cable,
+  Shield,
 } from "lucide-react";
 import { isModuleEnabled, type PlatformModule } from "@/config/feature-flags";
 
@@ -64,7 +65,29 @@ export type CatalogApp = {
   matchPrefixes: string[];
   /** Lower = earlier for that persona. Missing = 999. */
   roleDefaultOrder: Partial<Record<LauncherRole, number>>;
+  /** When false, omitted from /apps primary grid (deep links + context nav still work). */
+  showOnLauncher?: boolean;
 };
+
+/** Primary launcher apps (Stage 10.3 simplification). */
+export const PRIMARY_LAUNCHER_APP_IDS = [
+  "customers",
+  "payments",
+  "collections",
+  "tasks",
+  "support",
+  "noc",
+  "crm",
+  "installations",
+  "inventory",
+  "services",
+  "reports",
+  "administration",
+] as const;
+
+export function isPrimaryLauncherApp(appId: string): boolean {
+  return (PRIMARY_LAUNCHER_APP_IDS as readonly string[]).includes(appId);
+}
 
 /**
  * Unified app catalog (Stage 9.1 launcher).
@@ -79,8 +102,9 @@ export const APP_CATALOG: CatalogApp[] = [
     permissions: ["dashboard.view"],
     nameKey: "dashboard",
     descriptionKey: "dashboardDesc",
-    matchPrefixes: ["/dashboard"],
+    matchPrefixes: [],
     roleDefaultOrder: { admin: 1, manager: 1, support: 8, noc: 8, sales: 10, inventory: 10 },
+    showOnLauncher: false,
   },
   {
     id: "payments",
@@ -206,8 +230,9 @@ export const APP_CATALOG: CatalogApp[] = [
     featureFlag: "crm",
     nameKey: "leads",
     descriptionKey: "leadsDesc",
-    matchPrefixes: ["/crm/leads", "/crm/pipeline"],
+    matchPrefixes: [],
     roleDefaultOrder: { sales: 2, manager: 10, admin: 11 },
+    showOnLauncher: false,
   },
   {
     id: "quotations",
@@ -218,8 +243,9 @@ export const APP_CATALOG: CatalogApp[] = [
     featureFlag: "crm",
     nameKey: "quotations",
     descriptionKey: "quotationsDesc",
-    matchPrefixes: ["/crm/quotations"],
+    matchPrefixes: [],
     roleDefaultOrder: { sales: 5, manager: 11, admin: 12 },
+    showOnLauncher: false,
   },
   {
     id: "followups",
@@ -230,8 +256,9 @@ export const APP_CATALOG: CatalogApp[] = [
     featureFlag: "crm",
     nameKey: "followups",
     descriptionKey: "followupsDesc",
-    matchPrefixes: ["/crm/follow-ups"],
+    matchPrefixes: [],
     roleDefaultOrder: { sales: 6, manager: 12, admin: 13 },
+    showOnLauncher: false,
   },
   {
     id: "inventory",
@@ -242,7 +269,18 @@ export const APP_CATALOG: CatalogApp[] = [
     featureFlag: "inventory",
     nameKey: "inventory",
     descriptionKey: "inventoryDesc",
-    matchPrefixes: ["/inventory/dashboard", "/inventory/products", "/inventory/receiving", "/inventory/counts", "/inventory/reservations"],
+    matchPrefixes: [
+      "/inventory",
+      "/customer-equipment",
+      "/custody",
+      "/assets",
+      "/maintenance",
+      "/purchasing",
+      "/suppliers",
+      "/sites",
+      "/towers",
+      "/repairs",
+    ],
     roleDefaultOrder: { inventory: 1, manager: 13, admin: 14 },
   },
   {
@@ -254,8 +292,9 @@ export const APP_CATALOG: CatalogApp[] = [
     featureFlag: "inventory",
     nameKey: "equipment",
     descriptionKey: "equipmentDesc",
-    matchPrefixes: ["/inventory/equipment", "/customer-equipment", "/custody", "/assets", "/maintenance"],
+    matchPrefixes: [],
     roleDefaultOrder: { inventory: 2, manager: 14, admin: 15 },
+    showOnLauncher: false,
   },
   {
     id: "warehouses",
@@ -266,8 +305,9 @@ export const APP_CATALOG: CatalogApp[] = [
     featureFlag: "inventory",
     nameKey: "warehouses",
     descriptionKey: "warehousesDesc",
-    matchPrefixes: ["/inventory/stock"],
+    matchPrefixes: [],
     roleDefaultOrder: { inventory: 3, manager: 15, admin: 16 },
+    showOnLauncher: false,
   },
   {
     id: "transfers",
@@ -278,8 +318,9 @@ export const APP_CATALOG: CatalogApp[] = [
     featureFlag: "inventory",
     nameKey: "transfers",
     descriptionKey: "transfersDesc",
-    matchPrefixes: ["/inventory/transfers"],
+    matchPrefixes: [],
     roleDefaultOrder: { inventory: 4, manager: 16, admin: 17 },
+    showOnLauncher: false,
   },
   {
     id: "purchasing",
@@ -290,8 +331,9 @@ export const APP_CATALOG: CatalogApp[] = [
     featureFlag: "purchasing",
     nameKey: "purchasing",
     descriptionKey: "purchasingDesc",
-    matchPrefixes: ["/purchasing", "/suppliers"],
+    matchPrefixes: [],
     roleDefaultOrder: { inventory: 5, manager: 17, admin: 18 },
+    showOnLauncher: false,
   },
   {
     id: "sites",
@@ -302,8 +344,9 @@ export const APP_CATALOG: CatalogApp[] = [
     featureFlag: "sites",
     nameKey: "sites",
     descriptionKey: "sitesDesc",
-    matchPrefixes: ["/sites", "/towers"],
+    matchPrefixes: [],
     roleDefaultOrder: { inventory: 6, noc: 5, manager: 18, admin: 19 },
+    showOnLauncher: false,
   },
   {
     id: "repairs",
@@ -314,8 +357,9 @@ export const APP_CATALOG: CatalogApp[] = [
     featureFlag: "assets",
     nameKey: "repairs",
     descriptionKey: "repairsDesc",
-    matchPrefixes: ["/repairs"],
+    matchPrefixes: [],
     roleDefaultOrder: { inventory: 7, manager: 19, admin: 20 },
+    showOnLauncher: false,
   },
   {
     id: "whatsapp",
@@ -326,8 +370,9 @@ export const APP_CATALOG: CatalogApp[] = [
     featureFlag: "whatsapp",
     nameKey: "whatsapp",
     descriptionKey: "whatsappDesc",
-    matchPrefixes: ["/whatsapp"],
+    matchPrefixes: [],
     roleDefaultOrder: { support: 6, sales: 7, manager: 20, admin: 21 },
+    showOnLauncher: false,
   },
   {
     id: "notifications",
@@ -337,8 +382,9 @@ export const APP_CATALOG: CatalogApp[] = [
     permissions: ["notifications.view"],
     nameKey: "notifications",
     descriptionKey: "notificationsDesc",
-    matchPrefixes: ["/notifications", "/collector/notifications", "/alerts"],
+    matchPrefixes: [],
     roleDefaultOrder: { collector: 3, support: 7, noc: 6, manager: 21, admin: 22 },
+    showOnLauncher: false,
   },
   {
     id: "reports",
@@ -359,8 +405,9 @@ export const APP_CATALOG: CatalogApp[] = [
     permissions: ["branches.view", "branches.manage"],
     nameKey: "branches",
     descriptionKey: "branchesDesc",
-    matchPrefixes: ["/branches"],
+    matchPrefixes: [],
     roleDefaultOrder: { admin: 23, manager: 23 },
+    showOnLauncher: false,
   },
   {
     id: "users",
@@ -370,8 +417,9 @@ export const APP_CATALOG: CatalogApp[] = [
     permissions: ["users.view", "users.manage"],
     nameKey: "users",
     descriptionKey: "usersDesc",
-    matchPrefixes: ["/users", "/roles"],
+    matchPrefixes: [],
     roleDefaultOrder: { admin: 24 },
+    showOnLauncher: false,
   },
   {
     id: "audit",
@@ -381,8 +429,9 @@ export const APP_CATALOG: CatalogApp[] = [
     permissions: ["audit.view"],
     nameKey: "audit",
     descriptionKey: "auditDesc",
-    matchPrefixes: ["/audit-logs"],
+    matchPrefixes: [],
     roleDefaultOrder: { admin: 25 },
+    showOnLauncher: false,
   },
   {
     id: "settings",
@@ -392,8 +441,28 @@ export const APP_CATALOG: CatalogApp[] = [
     permissions: ["settings.manage"],
     nameKey: "settings",
     descriptionKey: "settingsDesc",
-    matchPrefixes: ["/settings", "/zoho"],
+    matchPrefixes: [],
     roleDefaultOrder: { admin: 26, manager: 24 },
+    showOnLauncher: false,
+  },
+  {
+    id: "administration",
+    href: "/users",
+    icon: Shield,
+    group: "admin",
+    permissions: [
+      "users.view",
+      "users.manage",
+      "branches.view",
+      "branches.manage",
+      "audit.view",
+      "settings.manage",
+      "roles.view",
+    ],
+    nameKey: "administration",
+    descriptionKey: "administrationDesc",
+    matchPrefixes: ["/users", "/roles", "/branches", "/audit-logs", "/settings", "/zoho"],
+    roleDefaultOrder: { admin: 23, manager: 23 },
   },
 ];
 
@@ -512,6 +581,7 @@ export const APP_CONTEXT_NAV: Record<string, AppNavItem[]> = {
     { href: "/services/finance-hold", labelKey: "servicesFinanceHold", permissions: ["services.view", "services.finance_holds.manage"] },
     { href: "/services/change-requests", labelKey: "servicesChangeRequests", permissions: ["services.view", "services.change"] },
     { href: "/services/relocations", labelKey: "servicesRelocations", permissions: ["services.view", "services.relocate"] },
+    { href: "/services/cancellations", labelKey: "servicesCancellations", permissions: ["services.view", "services.cancel"] },
     { href: "/services/packages", labelKey: "servicesPackages", permissions: ["services.packages.view", "services.view"] },
     { href: "/services/contracts", labelKey: "servicesContracts", permissions: ["services.contracts.view", "services.view"] },
     { href: "/services/sla", labelKey: "servicesSla", permissions: ["services.sla.manage", "services.view"] },
@@ -542,9 +612,16 @@ export const APP_CONTEXT_NAV: Record<string, AppNavItem[]> = {
     { href: "/inventory/dashboard", labelKey: "inventoryDashboard", permissions: ["inventory.dashboard.view", "dashboard.view"] },
     { href: "/inventory/products", labelKey: "inventoryProducts", permissions: ["inventory.products.view"] },
     { href: "/inventory/stock", labelKey: "inventoryStock", permissions: ["inventory.stock.view"] },
+    { href: "/inventory/equipment", labelKey: "inventoryEquipment", permissions: ["inventory.equipment.view"] },
+    { href: "/inventory/transfers", labelKey: "inventoryTransfers", permissions: ["inventory.transfers.view"] },
     { href: "/inventory/reservations", labelKey: "inventoryReservations", permissions: ["inventory.reservations.view"] },
     { href: "/inventory/receiving", labelKey: "inventoryReceiving", permissions: ["inventory.receiving.manage"] },
     { href: "/inventory/counts", labelKey: "inventoryCounts", permissions: ["inventory.stock.count", "inventory.stock.view"] },
+    { href: "/purchasing/requests", labelKey: "purchaseRequests", permissions: ["inventory.purchasing.view"] },
+    { href: "/purchasing/orders", labelKey: "purchaseOrders", permissions: ["inventory.purchasing.view"] },
+    { href: "/repairs", labelKey: "inventoryRepairs", permissions: ["inventory.repairs.manage"] },
+    { href: "/sites", labelKey: "inventorySites", permissions: ["inventory.sites.view"] },
+    { href: "/customer-equipment", labelKey: "inventoryCustomerEquipment", permissions: ["inventory.equipment.view"] },
   ],
   equipment: [
     { href: "/inventory/equipment", labelKey: "inventoryEquipment", permissions: ["inventory.equipment.view"] },
@@ -590,6 +667,15 @@ export const APP_CONTEXT_NAV: Record<string, AppNavItem[]> = {
     { href: "/zoho", labelKey: "zohoStructure", permissions: ["zoho.view"] },
     { href: "/settings/system-version", labelKey: "systemVersion", permissions: ["dashboard.view"] },
   ],
+  administration: [
+    { href: "/users", labelKey: "users", permissions: ["users.view", "users.manage"] },
+    { href: "/roles", labelKey: "roles", permissions: ["roles.view"] },
+    { href: "/branches", labelKey: "branches", permissions: ["branches.view", "branches.manage"] },
+    { href: "/audit-logs", labelKey: "auditLogs", permissions: ["audit.view"] },
+    { href: "/settings", labelKey: "settings", permissions: ["settings.manage"] },
+    { href: "/zoho", labelKey: "zohoStructure", permissions: ["zoho.view"] },
+    { href: "/settings/system-version", labelKey: "systemVersion", permissions: ["dashboard.view"] },
+  ],
 };
 
 /** Mobile bottom-nav candidates per persona (max 5 shown after permission filter). */
@@ -597,8 +683,8 @@ export const BOTTOM_NAV_BY_ROLE: Record<LauncherRole, string[]> = {
   collector: ["collections", "payments", "notifications", "tasks", "apps"],
   support: ["support", "tasks", "customers", "whatsapp", "apps"],
   noc: ["noc", "services", "tasks", "support", "apps"],
-  sales: ["crm", "leads", "customers", "installations", "apps"],
-  inventory: ["inventory", "warehouses", "transfers", "equipment", "apps"],
-  manager: ["dashboard", "collections", "payments", "reports", "apps"],
-  admin: ["dashboard", "reports", "users", "settings", "apps"],
+  sales: ["crm", "customers", "installations", "tasks", "apps"],
+  inventory: ["inventory", "tasks", "reports", "apps"],
+  manager: ["reports", "collections", "payments", "services", "apps"],
+  admin: ["reports", "administration", "customers", "services", "apps"],
 };

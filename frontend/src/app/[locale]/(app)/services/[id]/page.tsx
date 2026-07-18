@@ -7,7 +7,6 @@ import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/lib/api";
 import { listCustomerEquipment, type CustomerEquipment } from "@/lib/inventory";
 import {
-  ACTIVATION_CHECKLIST,
   activateService,
   cancelService,
   confirmServiceOnline,
@@ -43,6 +42,7 @@ import {
   type StatusTransition,
   type TimelineItem,
 } from "@/components/ops";
+import { ActivationPanel } from "@/components/services/activation-panel";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { Input, Select, TextArea } from "@/components/ui/form";
@@ -79,6 +79,7 @@ export default function ServiceDetailPage() {
   const canNocConfirm = useAuthStore(
     (s) => s.hasPermission("services.noc.view") || s.hasPermission("services.activate"),
   );
+  const canOverrideActivate = useAuthStore((s) => s.hasPermission("services.activate.override"));
   const canBilling = useAuthStore((s) => s.hasPermission("services.billing.view") || s.hasPermission("services.view"));
 
   const initialTab = searchParams.get("tab") || "overview";
@@ -99,7 +100,6 @@ export default function ServiceDetailPage() {
   const [relocateLocationId, setRelocateLocationId] = useState("");
   const [holdReason, setHoldReason] = useState("");
   const [checklist, setChecklist] = useState<ActivationChecklist | null>(null);
-  const [nocReason, setNocReason] = useState("");
   const [cancelId, setCancelId] = useState<number | null>(null);
   const [changeStep, setChangeStep] = useState(1);
   const [relocateStep, setRelocateStep] = useState(1);
@@ -311,15 +311,32 @@ export default function ServiceDetailPage() {
   }
 
 
-  async function onConfirmOnline(e: React.FormEvent) {
-    e.preventDefault();
-    if (!service || !nocReason.trim()) return;
+  async function onConfirmOnline(reason: string) {
+    if (!service) return;
     setBusy(true);
     setError(null);
     try {
-      await confirmServiceOnline(service.id, { reason: nocReason.trim() });
+      await confirmServiceOnline(service.id, { reason });
       setSuccess(t("actions.confirmOnline"));
-      setNocReason("");
+      await load();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : tCommon("error"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onOverrideActivate(reason: string) {
+    if (!service) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await activateService(service.id, {
+        idempotency_key: `ui-override-${service.id}-${Date.now()}`,
+        skip_checklist: true,
+        reason,
+      });
+      setSuccess(t("overrideActivateSuccess"));
       await load();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : tCommon("error"));
@@ -372,36 +389,15 @@ export default function ServiceDetailPage() {
 
       {tab === "overview" ? (
         <div className="grid gap-4 lg:grid-cols-2">
-          <Panel className="space-y-4 p-4" data-testid="activation-checklist">
-            <h3 className="text-sm font-semibold">{t("activationChecklistTitle")}</h3>
-            {checklist?.checklist ? (
-              <ul className="space-y-2 text-sm">
-                {ACTIVATION_CHECKLIST.map((key) => (
-                  <li key={key} className="flex items-center justify-between gap-2">
-                    <span>{t(`checklist.${key}` as "checklist.zoho_linked")}</span>
-                    <StatusBadge status={checklist.checklist[key] ? "ok" : "missing"} />
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-sm text-muted">{t("checklistIncomplete")}</p>
-            )}
-            {canNocConfirm && service.commercial_status === "active" && service.operational_status === "ready" ? (
-              <form className="mt-3 grid gap-2" onSubmit={onConfirmOnline}>
-                <Alert>{t("nocConfirmHint")}</Alert>
-                <Input
-                  data-testid="noc-online-reason"
-                  value={nocReason}
-                  onChange={(e) => setNocReason(e.target.value)}
-                  placeholder={t("fields.reason")}
-                  required
-                />
-                <Button type="submit" disabled={busy || !nocReason.trim()}>
-                  {t("actions.confirmOnline")}
-                </Button>
-              </form>
-            ) : null}
-          </Panel>
+          <ActivationPanel
+            service={service}
+            checklist={checklist}
+            canNocConfirm={canNocConfirm}
+            canOverride={canOverrideActivate}
+            busy={busy}
+            onConfirmOnline={onConfirmOnline}
+            onOverrideActivate={onOverrideActivate}
+          />
           <Panel className="space-y-4 p-4">
             <RecordSummary
               items={[

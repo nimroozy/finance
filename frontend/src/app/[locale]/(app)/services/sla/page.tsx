@@ -123,7 +123,7 @@ export default function ServiceSlaPage() {
                 setResolveMinutes(String(row.resolution_minutes ?? row.resolve_minutes ?? 240));
               }}
             >
-              {t("actions.saveSla")}
+              {t("actions.editSla")}
             </Button>
             {row.is_active !== false ? (
               <Button size="sm" variant="secondary" disabled={busy} onClick={() => void onDeactivate(row.id)}>

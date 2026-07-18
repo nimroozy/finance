@@ -304,6 +304,17 @@ export type ServiceFinanceHold = {
   released_at?: string | null;
 };
 
+export type ServiceCancellation = {
+  id: number;
+  service_id: number;
+  status: string;
+  reason?: string | null;
+  notes?: string | null;
+  equipment_return_required?: boolean;
+  service?: IspService | null;
+  created_at?: string;
+};
+
 type ListParams = Record<string, string | number | boolean | undefined | null>;
 
 export async function listServices(params: ListParams = {}) {
@@ -540,6 +551,14 @@ export async function completeRelocation(id: number | string) {
 
 export async function listFinanceHolds(params: ListParams = {}) {
   return apiFetch<ServiceFinanceHold[]>(`/service-finance-holds${toQuery(params)}`);
+}
+
+export async function listCancellations(params: ListParams = {}) {
+  return apiFetch<ServiceCancellation[]>(`/service-cancellations${toQuery(params)}`);
+}
+
+export async function getServiceContract(id: number | string) {
+  return apiFetch<ServiceContract>(`/service-contracts/${id}`);
 }
 
 export async function approveCancellation(id: number | string) {

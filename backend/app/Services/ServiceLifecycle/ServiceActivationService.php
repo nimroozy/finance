@@ -124,6 +124,18 @@ class ServiceActivationService
             throw new InvalidArgumentException('Activation checklist incomplete: '.implode(', ', $missing));
         }
 
+        if (! empty($data['skip_checklist'])) {
+            if (! $actor?->can('services.activate.override')) {
+                throw new InvalidArgumentException(
+                    'Activation checklist override requires services.activate.override permission.'
+                );
+            }
+            $overrideReason = trim((string) ($data['reason'] ?? ''));
+            if ($overrideReason === '') {
+                throw new InvalidArgumentException('Activation checklist override requires a reason.');
+            }
+        }
+
         if (config('service_lifecycle.radius.enabled')) {
             throw new InvalidArgumentException('Radius must remain disabled for Stage 10 service lifecycle.');
         }

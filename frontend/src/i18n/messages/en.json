@@ -159,7 +159,8 @@
     "servicesContracts": "Contracts",
     "servicesSla": "Service SLA",
     "servicesReports": "Service reports",
-    "nocServices": "NOC services"
+    "nocServices": "NOC services",
+    "servicesCancellations": "Cancellations"
   },
   "common": {
     "loading": "Loading…",
@@ -1522,7 +1523,15 @@
       "accepted": "Accepted",
       "rejected": "Rejected",
       "expired": "Expired"
-    }
+    },
+    "zohoLinkTitle": "Link Zoho customer",
+    "zohoLinkHint": "Search the local Zoho customer mirror, then link this lead before conversion.",
+    "zohoSearchPlaceholder": "Phone, name, or Zoho id",
+    "zohoSearch": "Search Zoho mirror",
+    "zohoLinkAction": "Link",
+    "zohoLinkSuccess": "Lead linked to Zoho-mirrored customer.",
+    "zohoNotLinked": "Not linked to a Zoho customer yet.",
+    "zohoLinkedStatus": "Linked to customer #{id}"
   },
   "inventory": {
     "dashboardTitle": "Inventory dashboard",
@@ -1797,7 +1806,15 @@
       "requestCancel": "Request cancellation",
       "newSla": "New SLA template",
       "deactivateSla": "Deactivate",
-      "saveSla": "Save"
+      "saveSla": "Save",
+      "overrideActivate": "Override activate",
+      "confirmOverride": "Confirm override",
+      "cancelOverride": "Cancel",
+      "approveCancellation": "Approve cancellation",
+      "recoverEquipment": "Mark equipment recovered",
+      "completeCancellation": "Complete cancellation",
+      "saveContract": "Save contract",
+      "editSla": "Edit"
     },
     "metrics": {
       "total": "Total services",
@@ -1850,7 +1867,11 @@
       "download": "Download Mbps",
       "upload": "Upload Mbps",
       "responseMinutes": "Response (min)",
-      "resolveMinutes": "Resolve (min)"
+      "resolveMinutes": "Resolve (min)",
+      "startDate": "Start date",
+      "endDate": "End date",
+      "zohoReference": "Zoho reference",
+      "selectStatus": "Select status"
     },
     "commercial": {
       "draft": "Draft",
@@ -1899,16 +1920,21 @@
     "relocateWizardHint": "Relocation stays requested until started/completed.",
     "cancelWizardHint": "Cancellation requires approve → equipment recovery → complete.",
     "nocConfirmHint": "Operational online requires a separate NOC confirmation with reason.",
-    "checklist.zoho_linked": "Zoho linked",
-    "checklist.installation_completed": "Installation completed",
-    "checklist.inventory_reconciled": "Inventory reconciled",
-    "checklist.equipment_assigned": "Equipment assigned",
     "checklist": {
       "zoho_linked": "Zoho linked",
       "installation_completed": "Installation completed",
       "inventory_reconciled": "Inventory reconciled",
       "equipment_assigned": "Equipment assigned"
-    }
+    },
+    "activationEvidenceHint": "Checklist items are read-only evidence from the API — client flags are ignored.",
+    "evidenceReadOnly": "Evidence",
+    "overrideActivateHint": "Override activation only when evidence is incomplete and you have override permission. A reason is required.",
+    "overrideActivateSuccess": "Service activated with checklist override.",
+    "cancellationsTitle": "Cancellations",
+    "cancellationsSubtitle": "Pending and in-progress service cancellations",
+    "emptyCancellations": "No cancellations",
+    "editContract": "Edit contract",
+    "contractUpdateSuccess": "Contract updated."
   },
   "apps": {
     "dashboard": "Dashboard",
@@ -1974,7 +2000,9 @@
     "group_insights": "Insights",
     "group_admin": "Administration",
     "services": "Services",
-    "servicesDesc": "Customer service lifecycle, packages, and NOC ops"
+    "servicesDesc": "Customer service lifecycle, packages, and NOC ops",
+    "administration": "Administration",
+    "administrationDesc": "Users, branches, audit logs, and settings"
   },
   "launcher": {
     "title": "Apps",

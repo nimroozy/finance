@@ -831,6 +831,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::get('/service-change-requests', [\App\Http\Controllers\Api\V1\Services\ServiceOpsController::class, 'changeRequests'])->name('service-change-requests.index');
             Route::get('/service-relocations', [\App\Http\Controllers\Api\V1\Services\ServiceOpsController::class, 'relocations'])->name('service-relocations.index');
             Route::get('/service-finance-holds', [\App\Http\Controllers\Api\V1\Services\ServiceOpsController::class, 'financeHolds'])->name('service-finance-holds.index');
+            Route::get('/service-cancellations', [\App\Http\Controllers\Api\V1\Services\ServiceOpsController::class, 'cancellations'])->name('service-cancellations.index');
             Route::get('/services/{id}', [\App\Http\Controllers\Api\V1\Services\ServiceController::class, 'show'])->whereNumber('id')->name('services.show');
             Route::get('/services/{id}/timeline', [\App\Http\Controllers\Api\V1\Services\ServiceController::class, 'timeline'])->whereNumber('id')->name('services.timeline');
             Route::get('/services/{id}/billing', [\App\Http\Controllers\Api\V1\Services\ServiceController::class, 'billing'])->whereNumber('id')->name('services.billing');
@@ -882,6 +883,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         Route::middleware('permission:services.locations.manage|services.update')->put('/service-locations/{id}', [\App\Http\Controllers\Api\V1\Services\ServiceLocationController::class, 'update'])->whereNumber('id')->name('service-locations.update');
 
         Route::middleware('permission:services.contracts.view|services.view')->get('/service-contracts', [\App\Http\Controllers\Api\V1\Services\ServiceOpsController::class, 'contracts'])->name('service-contracts.index');
+        Route::middleware('permission:services.contracts.view|services.view')->get('/service-contracts/{id}', [\App\Http\Controllers\Api\V1\Services\ServiceOpsController::class, 'showContract'])->whereNumber('id')->name('service-contracts.show');
         Route::middleware('permission:services.contracts.manage')->group(function () {
             Route::post('/service-contracts', [\App\Http\Controllers\Api\V1\Services\ServiceOpsController::class, 'storeContract'])->name('service-contracts.store');
             Route::put('/service-contracts/{id}', [\App\Http\Controllers\Api\V1\Services\ServiceOpsController::class, 'updateContract'])->whereNumber('id')->name('service-contracts.update');
