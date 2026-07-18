@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Collection Management System API
-  version: 1.7.0
+  version: 1.9.0
   license:
     name: Proprietary
     url: https://finance.mns.af
@@ -10,12 +10,16 @@ info:
     Zoho sync, customers/invoices/debtors, assignments, visits, routes,
     promises, notes, evidence, notifications, collectors, reports, payments,
     receipts, collector wallets, reversals, Zoho payment sync, cash handovers,
-    and branch cashboxes).
+    branch cashboxes, and the Stage 6 WhatsApp Cloud API foundation).
 
     Stage 5.1 P0 adds Zoho sync health, organization structure (locations/tags/
     accounts/payment modes), circuit breakers, failed-job cleanup, and
     location-based branch mapping helpers. Stage 5.1 P1 adds mapping review,
     conflict resolution, failed-job archival, and role-aware dashboards.
+
+    Stage 7 adds ticketing, departmental tasks, SLA/escalation, WhatsApp ticket
+    intake, installation queue (not Stage 8 CRM), attachments, work logs, and
+    operations dashboards/search/reports.
 
     **Response envelope:** all JSON responses use
     `{ success, data, meta?, message?, errors? }`.
@@ -72,6 +76,18 @@ tags:
   - name: Mapping
   - name: Ownership
   - name: Custody
+  - name: WhatsApp
+  - name: Tickets
+  - name: Tasks
+  - name: Installations
+  - name: SLA
+  - name: Escalations
+  - name: TicketIntake
+  - name: WorkLogs
+  - name: Attachments
+  - name: Operations
+  - name: Departments
+  - name: TaskTemplates
 security:
   - bearerAuth: []
 paths:
@@ -3470,6 +3486,47 @@ paths:
           description: OK
         '401':
           description: Unauthorized
+  /customer-prefix-mappings/conflicts/{id}:
+    get:
+      summary: Conflict review payload
+      tags: [Mapping]
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: OK
+  /customer-prefix-mappings/conflicts/{id}/resolve:
+    post:
+      summary: Resolve a mapping conflict with required reason
+      tags: [Mapping]
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: OK
+        '422':
+          description: Validation error
+  /customer-prefix-mappings/backfill-dry-run:
+    post:
+      summary: Dry-run customer number backfill
+      tags: [Mapping]
+      responses:
+        '200':
+          description: OK
+  /customer-prefix-mappings/backfill-apply:
+    post:
+      summary: Apply customer number backfill
+      tags: [Mapping]
+      responses:
+        '200':
+          description: OK
+  /customer-prefix-mappings/unmapped:
+    get:
+      summary: List classified unmapped customers
+      tags: [Mapping]
+      responses:
+        '200':
+          description: OK
   /customer-prefix-mappings/{id}:
     put:
       summary: Update a customer number prefix mapping
@@ -3515,6 +3572,919 @@ paths:
           description: OK
         '401':
           description: Unauthorized
+
+  /whatsapp/webhook:
+    get:
+      tags: [WhatsApp]
+      security: []
+      summary: Verify Meta webhook subscription
+      parameters:
+        - { in: query, name: hub.mode, schema: { type: string } }
+        - { in: query, name: hub.verify_token, schema: { type: string } }
+        - { in: query, name: hub.challenge, schema: { type: string } }
+      responses:
+        '200': { description: Challenge accepted }
+        '403': { description: Verification rejected }
+    post:
+      tags: [WhatsApp]
+      security: []
+      summary: Receive signed WhatsApp webhook events
+      parameters:
+        - { in: header, name: X-Hub-Signature-256, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: true }
+      responses:
+        '200': { description: Event accepted }
+        '401': { description: Invalid signature }
+  /whatsapp/status:
+    get:
+      tags: [WhatsApp]
+      summary: Get connection status
+      responses:
+        '200': { description: Connection status }
+  /whatsapp/test-connection:
+    post:
+      tags: [WhatsApp]
+      summary: Test the configured Graph API connection
+      responses:
+        '200': { description: Connection healthy }
+        '422': { description: Connection failed }
+  /whatsapp/pause:
+    post:
+      tags: [WhatsApp]
+      summary: Pause outbound WhatsApp delivery
+      responses:
+        '200': { description: Delivery paused }
+  /whatsapp/resume:
+    post:
+      tags: [WhatsApp]
+      summary: Resume outbound WhatsApp delivery
+      responses:
+        '200': { description: Delivery resumed }
+  /whatsapp/templates/sync:
+    post:
+      tags: [WhatsApp]
+      summary: Synchronize templates from Meta
+      responses:
+        '200': { description: Templates synchronized }
+  /whatsapp/templates:
+    get:
+      tags: [WhatsApp]
+      summary: List synchronized templates
+      responses:
+        '200': { description: Template list }
+  /whatsapp/messages:
+    get:
+      tags: [WhatsApp]
+      summary: List branch-visible outbound messages
+      responses:
+        '200': { description: Message list }
+  /whatsapp/failures:
+    get:
+      tags: [WhatsApp]
+      summary: List branch-visible delivery failures
+      responses:
+        '200': { description: Failure list }
+  /whatsapp/inbox:
+    get:
+      tags: [WhatsApp]
+      summary: List branch-visible conversations
+      responses:
+        '200': { description: Inbox list }
+  /whatsapp/inbox/{conversation}:
+    get:
+      tags: [WhatsApp]
+      summary: Show conversation with inbound messages and customer link
+      parameters:
+        - name: conversation
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Conversation detail }
+  /whatsapp/inbox/{conversation}/resolve:
+    post:
+      tags: [WhatsApp]
+      summary: Mark a conversation resolved
+      parameters:
+        - name: conversation
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Conversation resolved }
+  /whatsapp/preferences:
+    put:
+      tags: [WhatsApp]
+      summary: Upsert customer WhatsApp contact preferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone_e164]
+              properties:
+                phone_e164: { type: string }
+                customer_id: { type: integer, nullable: true }
+                messaging_allowed: { type: boolean }
+                receipts_enabled: { type: boolean }
+                reminders_enabled: { type: boolean }
+                promotional_enabled: { type: boolean }
+                preferred_language: { type: string, nullable: true }
+      responses:
+        '200': { description: Preferences saved }
+  /whatsapp/rules:
+    get:
+      tags: [WhatsApp]
+      summary: List notification routing rules
+      responses:
+        '200': { description: Rule list }
+    put:
+      tags: [WhatsApp]
+      summary: Create or update a notification rule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [event_type]
+              properties:
+                branch_id: { type: integer, nullable: true }
+                event_type: { type: string }
+                in_app_enabled: { type: boolean }
+                whatsapp_enabled: { type: boolean }
+                template_name: { type: string, nullable: true }
+                language_code: { type: string }
+                is_active: { type: boolean }
+      responses:
+        '200': { description: Rule saved }
+  /whatsapp/send-test:
+    post:
+      tags: [WhatsApp]
+      summary: Queue a test template message
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone, template_name]
+              properties:
+                phone: { type: string }
+                template_name: { type: string }
+                language_code: { type: string }
+                components: { type: array, items: { type: object } }
+                branch_id: { type: integer, nullable: true }
+      responses:
+        '202': { description: Message queued }
+
+
+  # --- Stage 7: Ticketing / Tasks / Installations / SLA ---
+  /tickets:
+    get:
+      tags: [Tickets]
+      summary: List tickets (branch-scoped)
+      operationId: listTickets
+      parameters:
+        - { in: query, name: branch_id, schema: { type: integer } }
+        - { in: query, name: status, schema: { type: string } }
+        - { in: query, name: type_code, schema: { type: string } }
+        - { in: query, name: customer_id, schema: { type: integer } }
+        - { in: query, name: per_page, schema: { type: integer, default: 15 } }
+      responses:
+        '200': { description: Paginated ticket list }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [Tickets]
+      summary: Create ticket
+      operationId: createTicket
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TicketCreateRequest'
+      responses:
+        '201': { description: Ticket created }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /tickets/{id}:
+    get:
+      tags: [Tickets]
+      summary: Show ticket
+      operationId: showTicket
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200': { description: Ticket detail }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [Tickets]
+      summary: Update ticket fields
+      operationId: updateTicket
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TicketUpdateRequest'
+      responses:
+        '200': { description: Ticket updated }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /tickets/{id}/transition:
+    post:
+      tags: [Tickets]
+      summary: Transition ticket status
+      operationId: transitionTicket
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string }
+                reason: { type: string, nullable: true }
+                comment: { type: string, nullable: true }
+      responses:
+        '200': { description: Status transitioned }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /tickets/{id}/watchers:
+    post:
+      tags: [Tickets]
+      summary: Add or remove a watcher
+      operationId: ticketWatchers
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id]
+              properties:
+                user_id: { type: integer }
+                action: { type: string, enum: [add, remove] }
+      responses:
+        '200': { description: Watchers updated }
+  /tickets/{id}/assign:
+    post:
+      tags: [Tickets]
+      summary: Assign ticket to a user
+      operationId: assignTicket
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id]
+              properties:
+                user_id: { type: integer }
+                reason: { type: string, nullable: true }
+      responses:
+        '200': { description: Ticket assigned }
+  /tickets/{id}/resolve:
+    post:
+      tags: [Tickets]
+      summary: Resolve ticket
+      operationId: resolveTicket
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                resolution_summary: { type: string, nullable: true }
+                customer_confirmation: { type: boolean }
+      responses:
+        '200': { description: Ticket resolved }
+  /tickets/{id}/close:
+    post:
+      tags: [Tickets]
+      summary: Close ticket
+      operationId: closeTicket
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason: { type: string, nullable: true }
+      responses:
+        '200': { description: Ticket closed }
+  /tickets/{id}/reopen:
+    post:
+      tags: [Tickets]
+      summary: Reopen ticket
+      operationId: reopenTicket
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason: { type: string, nullable: true }
+      responses:
+        '200': { description: Ticket reopened }
+
+  /ticket-types:
+    get:
+      tags: [Tickets]
+      summary: List active ticket types
+      operationId: listTicketTypes
+      responses:
+        '200': { description: Ticket type list }
+    post:
+      tags: [Tickets]
+      summary: Create ticket type
+      operationId: createTicketType
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: true }
+      responses:
+        '201': { description: Ticket type created }
+  /ticket-types/{id}:
+    put:
+      tags: [Tickets]
+      summary: Update ticket type
+      operationId: updateTicketType
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: true }
+      responses:
+        '200': { description: Ticket type updated }
+
+  /tasks:
+    get:
+      tags: [Tasks]
+      summary: List tasks
+      operationId: listTasks
+      parameters:
+        - { in: query, name: branch_id, schema: { type: integer } }
+        - { in: query, name: status, schema: { type: string } }
+        - { in: query, name: ticket_id, schema: { type: integer } }
+        - { in: query, name: per_page, schema: { type: integer, default: 15 } }
+      responses:
+        '200': { description: Paginated task list }
+    post:
+      tags: [Tasks]
+      summary: Create task
+      operationId: createTask
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskCreateRequest'
+      responses:
+        '201': { description: Task created }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /tasks/my:
+    get:
+      tags: [Tasks]
+      summary: List tasks assigned to the current user
+      operationId: myTasks
+      responses:
+        '200': { description: My task list }
+  /tasks/{id}:
+    get:
+      tags: [Tasks]
+      summary: Show task
+      operationId: showTask
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200': { description: Task detail }
+  /tasks/{id}/offer:
+    post:
+      tags: [Tasks]
+      summary: Offer task to a user
+      operationId: offerTask
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id]
+              properties:
+                user_id: { type: integer }
+                reason: { type: string, nullable: true }
+      responses:
+        '200': { description: Task offered }
+  /tasks/{id}/accept:
+    post:
+      tags: [Tasks]
+      summary: Accept offered task
+      operationId: acceptTask
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason: { type: string, nullable: true }
+      responses:
+        '200': { description: Task accepted }
+  /tasks/{id}/reject:
+    post:
+      tags: [Tasks]
+      summary: Reject offered task
+      operationId: rejectTask
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string }
+      responses:
+        '200': { description: Task rejected }
+  /tasks/{id}/start-travel:
+    post:
+      tags: [Tasks]
+      summary: Mark field task as travelling
+      operationId: startTravelTask
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200': { description: Travelling }
+  /tasks/{id}/arrive:
+    post:
+      tags: [Tasks]
+      summary: Mark field task as arrived on site
+      operationId: arriveTask
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200': { description: Arrived }
+  /tasks/{id}/start:
+    post:
+      tags: [Tasks]
+      summary: Start task work
+      operationId: startTask
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200': { description: In progress }
+  /tasks/{id}/complete:
+    post:
+      tags: [Tasks]
+      summary: Complete task
+      operationId: completeTask
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200': { description: Completed }
+  /tasks/{id}/block:
+    post:
+      tags: [Tasks]
+      summary: Block task
+      operationId: blockTask
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string }
+      responses:
+        '200': { description: Blocked }
+  /tasks/{id}/verify:
+    post:
+      tags: [Tasks]
+      summary: Verify / approve completed task
+      operationId: verifyTask
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200': { description: Verified }
+  /tasks/{id}/reassign:
+    post:
+      tags: [Tasks]
+      summary: Reassign task
+      operationId: reassignTask
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id, reason]
+              properties:
+                user_id: { type: integer }
+                reason: { type: string }
+      responses:
+        '200': { description: Reassigned }
+  /tasks/{id}/cancel:
+    post:
+      tags: [Tasks]
+      summary: Cancel task
+      operationId: cancelTask
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string }
+      responses:
+        '200': { description: Cancelled }
+
+  /work-logs:
+    get:
+      tags: [WorkLogs]
+      summary: List work logs
+      operationId: listWorkLogs
+      parameters:
+        - { in: query, name: ticket_id, schema: { type: integer } }
+        - { in: query, name: task_id, schema: { type: integer } }
+      responses:
+        '200': { description: Work log list }
+    post:
+      tags: [WorkLogs]
+      summary: Create work log
+      operationId: createWorkLog
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkLogCreateRequest'
+      responses:
+        '201': { description: Work log created }
+  /departments:
+    get:
+      tags: [Departments]
+      summary: List departments
+      operationId: listDepartments
+      responses:
+        '200': { description: Department list }
+
+  /attachments:
+    post:
+      tags: [Attachments]
+      summary: Upload attachment to ticket, task, or installation
+      operationId: uploadAttachment
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, attachable_type, attachable_id]
+              properties:
+                file: { type: string, format: binary }
+                attachable_type: { type: string, enum: [ticket, task, installation] }
+                attachable_id: { type: integer }
+                kind: { type: string, nullable: true }
+      responses:
+        '201': { description: Attachment uploaded with signed download URL }
+  /attachments/{attachment}/download:
+    get:
+      tags: [Attachments]
+      summary: Download attachment (signed URL)
+      operationId: downloadAttachment
+      security: []
+      parameters:
+        - name: attachment
+          in: path
+          required: true
+          schema: { type: string }
+          description: Attachment UUID
+        - { in: query, name: signature, schema: { type: string } }
+        - { in: query, name: expires, schema: { type: integer } }
+      responses:
+        '200': { description: File stream }
+        '403': { description: Invalid or expired signature }
+
+  /sla-policies:
+    get:
+      tags: [SLA]
+      summary: List SLA policies
+      operationId: listSlaPolicies
+      responses:
+        '200': { description: SLA policy list }
+    post:
+      tags: [SLA]
+      summary: Create SLA policy
+      operationId: createSlaPolicy
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: true }
+      responses:
+        '201': { description: SLA policy created }
+  /sla-policies/{id}:
+    put:
+      tags: [SLA]
+      summary: Update SLA policy
+      operationId: updateSlaPolicy
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: true }
+      responses:
+        '200': { description: SLA policy updated }
+
+  /escalations:
+    get:
+      tags: [Escalations]
+      summary: List escalations
+      operationId: listEscalations
+      responses:
+        '200': { description: Escalation list }
+    post:
+      tags: [Escalations]
+      summary: Create manual escalation
+      operationId: createEscalation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: true }
+      responses:
+        '201': { description: Escalation created }
+  /escalations/{id}/acknowledge:
+    post:
+      tags: [Escalations]
+      summary: Acknowledge escalation
+      operationId: acknowledgeEscalation
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200': { description: Escalation acknowledged }
+
+  /escalation-rules:
+    get:
+      tags: [Escalations]
+      summary: List escalation rules
+      operationId: listEscalationRules
+      responses:
+        '200': { description: Rule list }
+    post:
+      tags: [Escalations]
+      summary: Create escalation rule
+      operationId: createEscalationRule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: true }
+      responses:
+        '201': { description: Rule created }
+  /escalation-rules/{id}:
+    put:
+      tags: [Escalations]
+      summary: Update escalation rule
+      operationId: updateEscalationRule
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: true }
+      responses:
+        '200': { description: Rule updated }
+
+  /installations:
+    get:
+      tags: [Installations]
+      summary: List installation queue items
+      operationId: listInstallations
+      parameters:
+        - { in: query, name: branch_id, schema: { type: integer } }
+        - { in: query, name: status, schema: { type: string } }
+        - { in: query, name: per_page, schema: { type: integer, default: 15 } }
+      responses:
+        '200': { description: Paginated installation list }
+    post:
+      tags: [Installations]
+      summary: Create installation queue item
+      operationId: createInstallation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InstallationCreateRequest'
+      responses:
+        '201': { description: Installation created }
+  /installations/{id}:
+    get:
+      tags: [Installations]
+      summary: Show installation
+      operationId: showInstallation
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200': { description: Installation detail }
+  /installations/{id}/transition:
+    post:
+      tags: [Installations]
+      summary: Transition installation queue status
+      operationId: transitionInstallation
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string }
+                notes: { type: string, nullable: true }
+      responses:
+        '200': { description: Status transitioned }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /ticket-intake:
+    get:
+      tags: [TicketIntake]
+      summary: List WhatsApp ticket intake suggestions
+      operationId: listTicketIntake
+      parameters:
+        - { in: query, name: status, schema: { type: string } }
+        - { in: query, name: branch_id, schema: { type: integer } }
+      responses:
+        '200': { description: Intake suggestion list }
+  /ticket-intake/{id}/create-ticket:
+    post:
+      tags: [TicketIntake]
+      summary: Create ticket from intake suggestion
+      operationId: createTicketFromIntake
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200': { description: Ticket created from suggestion }
+  /ticket-intake/{id}/dismiss:
+    post:
+      tags: [TicketIntake]
+      summary: Dismiss intake suggestion
+      operationId: dismissTicketIntake
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200': { description: Suggestion dismissed }
+
+  /operations/dashboard/support:
+    get:
+      tags: [Operations]
+      summary: Support operations dashboard
+      operationId: opsDashboardSupport
+      responses:
+        '200': { description: Support dashboard payload }
+  /operations/dashboard/technical:
+    get:
+      tags: [Operations]
+      summary: Technical operations dashboard
+      operationId: opsDashboardTechnical
+      responses:
+        '200': { description: Technical dashboard payload }
+  /operations/dashboard/noc:
+    get:
+      tags: [Operations]
+      summary: NOC operations dashboard
+      operationId: opsDashboardNoc
+      responses:
+        '200': { description: NOC dashboard payload }
+  /operations/dashboard/finance:
+    get:
+      tags: [Operations]
+      summary: Finance operations dashboard (install queue)
+      operationId: opsDashboardFinance
+      responses:
+        '200': { description: Finance dashboard payload }
+  /operations/dashboard/manager:
+    get:
+      tags: [Operations]
+      summary: Manager operations dashboard
+      operationId: opsDashboardManager
+      responses:
+        '200': { description: Manager dashboard payload }
+  /operations/search:
+    get:
+      tags: [Operations]
+      summary: Search tickets, tasks, and installations
+      operationId: opsSearch
+      parameters:
+        - { in: query, name: q, required: true, schema: { type: string, minLength: 1 } }
+        - { in: query, name: branch_id, schema: { type: integer } }
+        - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 100 } }
+      responses:
+        '200': { description: Search results }
+  /operations/reports/tickets:
+    get:
+      tags: [Operations]
+      summary: Ticket operations report
+      operationId: opsReportTickets
+      responses:
+        '200': { description: Ticket report }
+  /operations/reports/tasks:
+    get:
+      tags: [Operations]
+      summary: Task operations report
+      operationId: opsReportTasks
+      responses:
+        '200': { description: Task report }
+  /customers/{customer}/timeline:
+    get:
+      tags: [Operations]
+      summary: Customer operational timeline (tickets/tasks/installs)
+      operationId: customerTimeline
+      parameters:
+        - name: customer
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Timeline events }
+
+  /task-templates:
+    get:
+      tags: [TaskTemplates]
+      summary: List task templates
+      operationId: listTaskTemplates
+      responses:
+        '200': { description: Template list }
+    post:
+      tags: [TaskTemplates]
+      summary: Create task template
+      operationId: createTaskTemplate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: true }
+      responses:
+        '201': { description: Template created }
+  /task-templates/{id}:
+    put:
+      tags: [TaskTemplates]
+      summary: Update task template
+      operationId: updateTaskTemplate
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: true }
+      responses:
+        '200': { description: Template updated }
 
 components:
   securitySchemes:
@@ -4321,3 +5291,107 @@ components:
         idempotency_key: { type: string }
         latitude: { type: number, nullable: true }
         longitude: { type: number, nullable: true }
+
+    TicketCreateRequest:
+      type: object
+      required: [branch_id, type_code, subject]
+      properties:
+        branch_id: { type: integer }
+        type_code: { type: string }
+        subject: { type: string, maxLength: 255 }
+        description: { type: string, nullable: true }
+        source:
+          type: string
+          enum: [manual, whatsapp, phone_call, customer_portal, sales, finance, noc, technical, monitoring, installation, radius, email_future, api, internal]
+        priority:
+          type: string
+          enum: [low, normal, medium, high, urgent, critical]
+        severity:
+          type: string
+          enum: [individual_customer, multiple_customers, neighborhood, tower, branch, network_wide]
+        customer_id: { type: integer, nullable: true }
+        customer_number: { type: string, nullable: true }
+        customer_phone: { type: string, nullable: true }
+        customer_location: { type: string, nullable: true }
+        assigned_department_id: { type: integer, nullable: true }
+        assigned_team_id: { type: integer, nullable: true }
+        primary_assignee_id: { type: integer, nullable: true }
+        whatsapp_conversation_id: { type: integer, nullable: true }
+        category: { type: string, nullable: true }
+        tags: { type: array, items: { type: string } }
+        external_reference: { type: string, nullable: true }
+
+    TicketUpdateRequest:
+      type: object
+      properties:
+        subject: { type: string, maxLength: 255 }
+        description: { type: string, nullable: true }
+        priority:
+          type: string
+          enum: [low, normal, medium, high, urgent, critical]
+        severity:
+          type: string
+          enum: [individual_customer, multiple_customers, neighborhood, tower, branch, network_wide]
+        category: { type: string, nullable: true }
+        assigned_department_id: { type: integer, nullable: true }
+        assigned_team_id: { type: integer, nullable: true }
+        internal_notes: { type: string, nullable: true }
+        customer_visible_notes: { type: string, nullable: true }
+        tags: { type: array, items: { type: string } }
+
+    TaskCreateRequest:
+      type: object
+      required: [branch_id, title]
+      properties:
+        branch_id: { type: integer }
+        title: { type: string, maxLength: 255 }
+        description: { type: string, nullable: true }
+        type: { type: string, enum: [field, office] }
+        priority: { type: string }
+        ticket_id: { type: integer, nullable: true }
+        installation_id: { type: integer, nullable: true }
+        assignee_id: { type: integer, nullable: true }
+        department_id: { type: integer, nullable: true }
+        team_id: { type: integer, nullable: true }
+        customer_id: { type: integer, nullable: true }
+        due_at: { type: string, format: date-time, nullable: true }
+        depends_on:
+          type: array
+          items: { type: integer }
+        checklist: { type: array, items: { type: object } }
+        requires_approval: { type: boolean }
+
+    WorkLogCreateRequest:
+      type: object
+      properties:
+        ticket_id: { type: integer, nullable: true }
+        task_id: { type: integer, nullable: true }
+        started_at: { type: string, format: date-time, nullable: true }
+        ended_at: { type: string, format: date-time, nullable: true }
+        duration_minutes: { type: integer, minimum: 0, nullable: true }
+        work_type: { type: string, nullable: true }
+        internal_note: { type: string, nullable: true }
+        customer_visible_note: { type: string, nullable: true }
+        body: { type: string, nullable: true }
+        department_id: { type: integer, nullable: true }
+        result: { type: string, nullable: true }
+        follow_up_required: { type: boolean }
+
+    InstallationCreateRequest:
+      type: object
+      required: [branch_id]
+      properties:
+        branch_id: { type: integer }
+        customer_id: { type: integer, nullable: true }
+        prospect_name: { type: string, nullable: true }
+        contact_name: { type: string, nullable: true }
+        phone: { type: string, nullable: true }
+        address: { type: string, nullable: true }
+        gps_lat: { type: number, nullable: true }
+        gps_lng: { type: number, nullable: true }
+        requested_package: { type: string, nullable: true }
+        requested_date: { type: string, format: date, nullable: true }
+        notes: { type: string, nullable: true }
+        template_code: { type: string, nullable: true }
+        expand_template: { type: boolean }
+

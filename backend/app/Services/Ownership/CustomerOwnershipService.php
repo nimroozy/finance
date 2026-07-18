@@ -2,6 +2,7 @@
 
 namespace App\Services\Ownership;
 
+use App\Events\BusinessNotificationRequested;
 use App\Models\Collector;
 use App\Models\Customer;
 use App\Models\CustomerCollectorOwnership;
@@ -72,6 +73,14 @@ class CustomerOwnershipService
                 'payload' => ['ownership_id' => $ownership->id, 'collector_id' => $collector->id],
             ]);
             $this->queues->recalculate($customer);
+            BusinessNotificationRequested::dispatch('permanent_ownership_assigned', [
+                'branch_id' => $customer->branch_id,
+                'customer_id' => $customer->id,
+                'user_id' => $collector->user_id,
+                'phone' => $collector->user?->phone,
+                'title' => 'Permanent ownership assigned',
+                'ownership_id' => $ownership->id,
+            ]);
 
             return $ownership;
         });

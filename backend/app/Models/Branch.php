@@ -27,6 +27,8 @@ class Branch extends Model
         'address',
         'receipt_prefix',
         'is_active',
+        'is_headquarter',
+        'exclude_from_field_collection',
         'zoho_location_id',
         'zoho_reporting_tag_id',
         'zoho_reporting_tag_option_id',
@@ -40,6 +42,8 @@ class Branch extends Model
     {
         return [
             'is_active' => 'boolean',
+            'is_headquarter' => 'boolean',
+            'exclude_from_field_collection' => 'boolean',
             'last_structure_sync_at' => 'datetime',
             'local_override' => 'boolean',
         ];

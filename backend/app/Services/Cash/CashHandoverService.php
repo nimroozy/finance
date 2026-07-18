@@ -2,6 +2,7 @@
 
 namespace App\Services\Cash;
 
+use App\Events\BusinessNotificationRequested;
 use App\Models\Branch;
 use App\Models\CashHandoverItem;
 use App\Models\CashHandoverRequest;
@@ -79,6 +80,7 @@ class CashHandoverService
             $locked->submitted_by = $actor->id; $locked->submitted_at = now(); $locked->save();
             $updated = $this->transitions->transition($locked, CashHandoverRequest::STATUS_SUBMITTED, $actor);
             $this->audit->log('cash_handover.submitted', $updated, null, ['status' => $updated->status], $updated->branch_id);
+            $this->notifyHandover('cash_handover_submitted', $updated, $actor);
 
             return $updated;
         });
@@ -134,6 +136,7 @@ class CashHandoverService
                 'note' => 'Handover is internal custody only; Zoho customer payment already posted at collection time.',
                 'payment_ids' => $fresh?->items?->pluck('payment_id')->filter()->values()->all(),
             ], $locked->branch_id);
+            $this->notifyHandover('cash_handover_approved', $fresh, $actor);
 
             return $fresh;
         });
@@ -148,6 +151,7 @@ class CashHandoverService
             $locked->items()->update(['is_active' => false, 'item_status' => 'rejected']);
             $updated = $this->transitions->transition($locked, CashHandoverRequest::STATUS_REJECTED, $actor, $notes);
             $this->audit->log('cash_handover.rejected', $updated, null, ['notes' => $notes], $updated->branch_id);
+            $this->notifyHandover('cash_handover_rejected', $updated, $actor);
 
             return $updated;
         });
@@ -160,6 +164,18 @@ class CashHandoverService
         $payments = $this->eligibleQuery($collectorId, $branchId, $currency)->whereIn('id', $ids)->lockForUpdate()->get();
         if ($payments->count() !== count($ids)) throw new InvalidArgumentException('One or more payments are not eligible for handover.');
         return $payments;
+    }
+
+    private function notifyHandover(string $event, CashHandoverRequest $handover, User $actor): void
+    {
+        BusinessNotificationRequested::dispatch($event, [
+            'branch_id' => $handover->branch_id,
+            'user_id' => $actor->id,
+            'phone' => $actor->phone,
+            'title' => str_replace('_', ' ', ucfirst($event)),
+            'handover_id' => $handover->id,
+            'status' => $handover->status,
+        ]);
     }
 
     private function issueReceipt(CashHandoverRequest $handover, User $actor): void

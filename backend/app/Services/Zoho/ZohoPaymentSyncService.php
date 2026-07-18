@@ -2,6 +2,7 @@
 
 namespace App\Services\Zoho;
 
+use App\Events\BusinessNotificationRequested;
 use App\Jobs\RefreshZohoInvoicesJob;
 use App\Models\Branch;
 use App\Models\BranchPaymentConfiguration;
@@ -183,6 +184,19 @@ class ZohoPaymentSyncService
                 $this->audit->log('payment.zoho_synced', $locked, null, ['zoho_payment_id' => $zohoId], $locked->branch_id);
                 $this->queueInvoiceRefresh($locked);
 
+                $locked->loadMissing('customer');
+                $phone = $locked->customer?->mobile ?: $locked->customer?->phone;
+                if ($phone) {
+                    BusinessNotificationRequested::dispatch('payment_posted', [
+                        'branch_id' => $locked->branch_id,
+                        'customer_id' => $locked->customer_id,
+                        'payment_id' => $locked->id,
+                        'phone' => $phone,
+                        'title' => 'Payment posted',
+                        'body' => 'Your payment was posted successfully.',
+                    ]);
+                }
+
                 return $locked->fresh();
             } catch (Throwable $e) {
                 // Lost-response safety: another concurrent create may have succeeded.
@@ -216,6 +230,14 @@ class ZohoPaymentSyncService
                 }
 
                 $this->audit->log('payment.zoho_sync_failed', $locked, null, ['error' => $e->getMessage()], $locked->branch_id);
+
+                BusinessNotificationRequested::dispatch('zoho_sync_failed', [
+                    'branch_id' => $locked->branch_id,
+                    'payment_id' => $locked->id,
+                    'customer_id' => $locked->customer_id,
+                    'title' => 'Zoho sync failed',
+                    'body' => $e->getMessage(),
+                ]);
 
                 throw $e;
             }

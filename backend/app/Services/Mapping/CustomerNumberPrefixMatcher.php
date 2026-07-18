@@ -104,13 +104,15 @@ class CustomerNumberPrefixMatcher
     }
 
     /**
-     * Prefer explicit customer_number; fall back to a leading PREFIX-digits token in contact_name.
-     * Business data often stores the customer number inside the Zoho contact name.
+     * Prefer explicit customer_number; fall back to a leading configured PREFIX-digits token in contact_name.
      */
     public function effectiveCustomerNumber(?string $customerNumber, ?string $contactName = null): ?string
     {
         if (filled($customerNumber)) {
-            return trim((string) $customerNumber);
+            $hit = $this->detect($customerNumber);
+            if ($hit && empty($hit['ambiguous'])) {
+                return trim((string) $customerNumber);
+            }
         }
 
         $name = trim((string) $contactName);
@@ -118,8 +120,14 @@ class CustomerNumberPrefixMatcher
             return null;
         }
 
-        if (preg_match('/^([A-Za-z]{2,}[\s\-_\/]*\d[\w]*)/u', $name, $matches)) {
-            return trim($matches[1]);
+        $normalized = $this->normalizeCustomerNumber($name);
+        $prefixes = BranchCustomerPrefix::query()->active()->orderBy('priority')->orderBy('id')->get();
+        foreach ($prefixes as $row) {
+            $prefix = $row->normalized_prefix;
+            $pattern = '/^'.preg_quote($prefix, '/').'(?:[\s\-_\/]+|(?=\d))(\d+)/u';
+            if (preg_match($pattern, $normalized, $m)) {
+                return $prefix.'-'.$m[1];
+            }
         }
 
         return null;

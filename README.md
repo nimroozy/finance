@@ -1,16 +1,47 @@
-# Collection Management System (Zoho Books)
+# ISP Operations Platform (Zoho Books + Collections)
 
-Multi-branch customer debt collection system integrated with Zoho Books.
+Multi-branch ISP operations platform. Collections, Zoho Books accounting sync, and WhatsApp notifications are live foundations; CRM, ticketing, inventory, and Radius adapters follow a staged roadmap.
 
-**Stage status:** Stage 5 (Cash handovers / branch cashboxes) complete. Stage 6 (WhatsApp Cloud API) not started.
+**Branch staff goal:** complete daily work without logging into Zoho Books or individual SAS Radius servers.
+
+**Sources of truth:** Zoho Books = accounting · SAS Radius = subscriber auth/service (until adapters) · This app = operational workflows.
+
+## Stage status
+
+| Stage | Focus | Status |
+|-------|--------|--------|
+| 1–5.3 | Foundation → collections → cash → ownership → prefix mapping cleanup | Complete |
+| **6** | WhatsApp Cloud API + notification orchestration | Foundation deployed (live Meta verify when credentials set) |
+| 7 | Ticketing & tasks | Not started |
+| 8 | CRM, sales, installations | Not started |
+| 9 | Inventory, assets, sites, towers | Not started |
+| 10 | SAS Radius branch adapters | Not started |
+| 11 | Unified dashboards & reporting | Not started |
+
+**Do not auto-start Stage 7 after Stage 6.**
+
+## Architecture docs
+
+| Document | Purpose |
+|----------|---------|
+| [docs/ISP_PLATFORM_ARCHITECTURE.md](docs/ISP_PLATFORM_ARCHITECTURE.md) | Platform vision, domains, departments, coupling rules |
+| [docs/DOMAIN_BOUNDARIES.md](docs/DOMAIN_BOUNDARIES.md) | Service boundaries, events, permissions |
+| [docs/STAGE_ROADMAP.md](docs/STAGE_ROADMAP.md) | Staged delivery plan |
+| [docs/TICKETING_MODEL.md](docs/TICKETING_MODEL.md) | Stage 7 tickets vs tasks |
+| [docs/CRM_INSTALLATION_MODEL.md](docs/CRM_INSTALLATION_MODEL.md) | Stage 8 CRM + installs |
+| [docs/INVENTORY_MODEL.md](docs/INVENTORY_MODEL.md) | Stage 9 immutable stock + assets |
+| [docs/RADIUS_INTEGRATION_MODEL.md](docs/RADIUS_INTEGRATION_MODEL.md) | Stage 10 branch adapters |
+| [docs/ZOHO_ACCOUNTING_BOUNDARY.md](docs/ZOHO_ACCOUNTING_BOUNDARY.md) | Zoho SoT vs local ops |
+| [docs/openapi.yaml](docs/openapi.yaml) | OpenAPI |
 
 ## Stack
 
 - Backend: Laravel 12 + Sanctum + Spatie Permission + PostgreSQL + Redis
 - Frontend: Next.js 15 + TypeScript + next-intl (EN/FA, RTL)
 - Infra: Docker Compose + Nginx + Let's Encrypt
+- Feature flags: `frontend/src/config/feature-flags.ts` (roadmap placeholders only for unfinished modules)
 
-## Quick links
+## Quick links (operations)
 
 | Doc | Purpose |
 |-----|---------|
@@ -20,22 +51,10 @@ Multi-branch customer debt collection system integrated with Zoho Books.
 | [BACKUP_RESTORE.md](BACKUP_RESTORE.md) | Backups |
 | [SECURITY.md](SECURITY.md) | Security notes |
 | [API.md](API.md) | API overview |
-| [docs/openapi.yaml](docs/openapi.yaml) | OpenAPI 3.0 Stage 1–3 |
-| [STAGE3_ASSIGNMENTS.md](STAGE3_ASSIGNMENTS.md) | Assignment workflow |
-| [STAGE3_STATUSES.md](STAGE3_STATUSES.md) | Supported Stage 3 status codes |
-| [STAGE4_PAYMENTS.md](STAGE4_PAYMENTS.md) | Stage 4 overview |
-| [PAYMENT_WORKFLOW.md](PAYMENT_WORKFLOW.md) | Draft → confirm → sync |
-| [RECEIPTS.md](RECEIPTS.md) | Receipts & verification |
-| [COLLECTOR_WALLETS.md](COLLECTOR_WALLETS.md) | Cash collector wallets |
-| [ZOHO_PAYMENT_SYNC.md](ZOHO_PAYMENT_SYNC.md) | Zoho customer payments push |
-| [PAYMENT_REVERSALS.md](PAYMENT_REVERSALS.md) | Reversal request / approve |
-| [PAYMENT_RECONCILIATION.md](PAYMENT_RECONCILIATION.md) | Daily reconciliation |
+| [WHATSAPP_SETUP.md](WHATSAPP_SETUP.md) | Stage 6 WhatsApp |
 | [ZOHO_SETUP.md](ZOHO_SETUP.md) | Zoho OAuth and sync |
 | [COLLECTOR_GUIDE.md](COLLECTOR_GUIDE.md) | Collector mobile workflow |
 | [MANAGER_GUIDE.md](MANAGER_GUIDE.md) | Manager assignment & ops |
-| [ROUTES_AND_VISITS.md](ROUTES_AND_VISITS.md) | Routes, visits, GPS, evidence |
-| [PROMISE_TO_PAY.md](PROMISE_TO_PAY.md) | Promise statuses & fulfill |
-| [WHATSAPP_SETUP.md](WHATSAPP_SETUP.md) | Stage 6 (pending) |
 
 ## Production
 
@@ -43,27 +62,29 @@ Multi-branch customer debt collection system integrated with Zoho Books.
 - URL: https://finance.mns.af
 - Login: `/en/login` or `/fa/login`
 
-## Completed stages
+## Completed stages (summary)
 
 ### Stage 1 — Foundation
 Authentication, users, roles, branches, audit logs, settings, EN/FA UI, Docker stack, SSL.
 
 ### Stage 2 — Zoho Books
-OAuth connect/reconnect/disconnect, encrypted tokens, customer & invoice sync, branch mapping, unmapped queue, debtors list, sync jobs + API logs, scheduled queue workers.
+OAuth, customer & invoice sync, branch mapping, unmapped queue, debtors, sync jobs + API logs.
 
 ### Stage 3 — Assignments & field collection
-Collector profiles, customer assignments (manual / bulk / auto), reassignment & cancel, collection routes & stops, field visits with outcomes + GPS risk flags, promise-to-pay (manual fulfill), customer notes, visit evidence uploads, in-app notifications, collector dashboard, assignment/visit/promise reports.
+Assignments, routes, visits, promises, notes, evidence, in-app notifications.
 
 ### Stage 4 — Payments / receipts / wallets
-Payment draft → confirm with invoice allocations and idempotency; receipts (PDF + public verify token); collector cash wallets (append-only ledger); Zoho customer-payment sync with `ZOHO_PAYMENT_DRY_RUN` (scoped `--live-zoho` verify for labeled tests only); reversal request/approve (no payment delete); daily reconciliation job; payment reports.
+Payment confirm, receipts, collector wallets, Zoho payment sync, reversals, reconciliation.
 
 ### Stage 5 — Cash handovers / branch cashboxes
-Eligible cash payment selection; handover draft/submit/approve/reject; collector wallet debit + cashbox credit on approval only; handover numbering; cashbox transfers & reconciliation foundations; custody-aware reversal gate for handed-over payments.
+Handovers, cashboxes, transfers, custody-aware reversals.
+
+### Stage 5.1–5.3
+Sync hardening, permanent ownership, temporary assignments, customer prefix mapping, number backfill & conflict cleanup.
+
+### Stage 6 — WhatsApp (foundation)
+Cloud API connection, webhooks, templates, queued outbound, delivery status, notification rules/orchestrator, basic inbound storage. Full support inbox deferred to Stage 7.
 
 ## Remaining stages
 
-6 WhatsApp Cloud API · 7 Offline PWA · 8 Reports/Hardening
-
-## Stage 5.2
-
-Permanent customer ownership, temporary assignments, recurring invoice routing, and branch Zoho payment account mapping. See `STAGE_5_2_CUSTOMER_OWNERSHIP.md`.
+See [docs/STAGE_ROADMAP.md](docs/STAGE_ROADMAP.md). Next planned: **Stage 7 Ticketing & tasks** (manual kickoff only).

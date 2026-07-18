@@ -1,5 +1,7 @@
 <?php
 
+use App\Jobs\EvaluateEscalationsJob;
+use App\Jobs\EvaluateSlaBreachesJob;
 use App\Jobs\RunPaymentReconciliationJob;
 use App\Jobs\UpdatePromiseStatusesJob;
 use Illuminate\Foundation\Inspiring;
@@ -28,4 +30,19 @@ Schedule::job(new RunPaymentReconciliationJob)
 Schedule::command('assignments:expire-temporary')
     ->hourly()
     ->name('expire-temporary-assignments')
+    ->withoutOverlapping();
+
+Schedule::command('whatsapp:promise-reminders')
+    ->dailyAt('08:00')
+    ->name('whatsapp-promise-reminders')
+    ->withoutOverlapping();
+
+Schedule::job(new EvaluateSlaBreachesJob)
+    ->everyFiveMinutes()
+    ->name('evaluate-sla-breaches')
+    ->withoutOverlapping();
+
+Schedule::job(new EvaluateEscalationsJob)
+    ->everyFiveMinutes()
+    ->name('evaluate-escalations')
     ->withoutOverlapping();

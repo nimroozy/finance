@@ -107,6 +107,43 @@ class RolePermissionSeeder extends Seeder
         'ownership_conflicts.view',
         'ownership_conflicts.resolve',
         'receivables_dashboard.view',
+        // Stage 6 — WhatsApp
+        'whatsapp.view',
+        'whatsapp.manage',
+        'whatsapp.send_test',
+        // Stage 7 — Ticketing / tasks / installations / SLA
+        'tickets.view',
+        'tickets.create',
+        'tickets.update',
+        'tickets.assign',
+        'tickets.resolve',
+        'tickets.close',
+        'tickets.reopen',
+        'tickets.view_all_branch',
+        'tickets.view_all',
+        'tasks.view',
+        'tasks.create',
+        'tasks.assign',
+        'tasks.accept',
+        'tasks.complete',
+        'tasks.verify',
+        'tasks.reassign',
+        'tasks.cancel',
+        'sla.manage',
+        'installations.view',
+        'installations.create',
+        'installations.assign',
+        'installations.update',
+        'attachments.upload',
+        'attachments.delete',
+        'reports.support',
+        'reports.technical',
+        'reports.management',
+        'whatsapp.ticket_intake',
+        'whatsapp.staff_actions',
+        'departments.manage',
+        'ticket_types.manage',
+        'task_templates.manage',
     ];
 
     public function run(): void
@@ -175,7 +212,7 @@ class RolePermissionSeeder extends Seeder
             'handovers.view', 'handovers.create', 'handovers.submit', 'handovers.review',
             'cashboxes.view', 'cashboxes.manage', 'cashbox_transfers.view', 'cashbox_transfers.create', 'cashbox_transfers.approve',
             'bank_deposits.view', 'bank_deposits.manage', 'cash_reconciliation.view', 'cash_reconciliation.run',
-            'cash_variances.view', 'cash_variances.manage', 'cash_adjustments.view', 'cash_adjustments.manage',             'custody_reversals.review',
+            'cash_variances.view', 'cash_variances.manage', 'cash_adjustments.view', 'cash_adjustments.manage', 'custody_reversals.review',
             'customer_prefix_mapping.view',
             'customer_prefix_mapping.manage',
             'customer_prefix_mapping.apply',
@@ -183,6 +220,15 @@ class RolePermissionSeeder extends Seeder
             'temporary_assignments.view', 'temporary_assignments.create', 'temporary_assignments.cancel',
             'branch_payment_mapping.view', 'branch_payment_mapping.manage', 'branch_payment_mapping.validate',
             'ownership_conflicts.view', 'ownership_conflicts.resolve', 'receivables_dashboard.view',
+            'whatsapp.view', 'whatsapp.manage', 'whatsapp.send_test',
+            // Stage 7
+            'tickets.view', 'tickets.view_all', 'tickets.create', 'tickets.update',
+            'tasks.view', 'tasks.create',
+            'installations.view', 'installations.update',
+            'reports.support', 'reports.management',
+            'whatsapp.ticket_intake',
+            'attachments.upload',
+            'escalations.view',
         ]);
 
         $branchManager->syncPermissions([
@@ -234,6 +280,18 @@ class RolePermissionSeeder extends Seeder
             'temporary_assignments.view', 'temporary_assignments.create', 'temporary_assignments.cancel',
             'branch_payment_mapping.view', 'branch_payment_mapping.manage', 'branch_payment_mapping.validate',
             'ownership_conflicts.view', 'ownership_conflicts.resolve', 'receivables_dashboard.view',
+            // Stage 7
+            'tickets.view', 'tickets.create', 'tickets.update', 'tickets.assign',
+            'tickets.resolve', 'tickets.close', 'tickets.reopen', 'tickets.view_all_branch',
+            'tasks.view', 'tasks.create', 'tasks.assign', 'tasks.accept', 'tasks.complete',
+            'tasks.verify', 'tasks.reassign', 'tasks.cancel',
+            'sla.manage',
+            'installations.view', 'installations.create', 'installations.assign', 'installations.update',
+            'attachments.upload', 'attachments.delete',
+            'reports.support', 'reports.technical', 'reports.management',
+            'whatsapp.ticket_intake', 'whatsapp.staff_actions',
+            'departments.manage',
+            'whatsapp.view',
         ]);
 
         $collector->syncPermissions([
@@ -262,6 +320,11 @@ class RolePermissionSeeder extends Seeder
             'handovers.view', 'handovers.create', 'handovers.submit',
             'customer_ownership.view',
             'temporary_assignments.view',
+            // Stage 7 — field tasks + limited tickets
+            'tickets.view',
+            'tasks.view', 'tasks.accept', 'tasks.complete',
+            'attachments.upload',
+            'whatsapp.staff_actions',
         ]);
 
         $auditor->syncPermissions([
@@ -291,6 +354,12 @@ class RolePermissionSeeder extends Seeder
             'wallets.view',
             'handovers.view', 'cashboxes.view', 'cashbox_transfers.view', 'bank_deposits.view',
             'cash_reconciliation.view', 'cash_variances.view', 'cash_adjustments.view',
+            // Stage 7 — view + reports
+            'tickets.view', 'tickets.view_all_branch',
+            'tasks.view',
+            'installations.view',
+            'reports.support', 'reports.technical', 'reports.management',
+            'whatsapp.view',
         ]);
     }
 }
