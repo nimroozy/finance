@@ -107,22 +107,75 @@ verify_health() {
 
 run_backend_tests() {
   log "Running backend PHPUnit"
+  # Acceptance images install Composer --no-dev; ensure PHPUnit is available in-container.
   set +e
-  "${COMPOSE[@]}" exec -T backend php artisan test --log-junit "${RESULTS_DIR}/junit/backend.xml" | tee "${RESULTS_DIR}/reports/backend.txt"
+  "${COMPOSE[@]}" exec -T backend sh -lc '
+    if [ ! -x vendor/bin/phpunit ]; then
+      composer install --no-interaction --prefer-dist
+    fi
+    if php artisan list --raw 2>/dev/null | grep -q "^test "; then
+      php artisan test --log-junit /var/www/html/storage/app/acceptance-backend.xml
+    else
+      ./vendor/bin/phpunit --log-junit /var/www/html/storage/app/acceptance-backend.xml
+    fi
+  ' | tee "${RESULTS_DIR}/reports/backend.txt"
   BACKEND_EXIT=$?
+  "${COMPOSE[@]}" exec -T backend sh -lc \
+    'test -f storage/app/acceptance-backend.xml && cat storage/app/acceptance-backend.xml' \
+    > "${RESULTS_DIR}/junit/backend.xml" 2>/dev/null || true
   set -e
   return "${BACKEND_EXIT}"
+}
+
+run_playwright_in_docker() {
+  local script=$1
+  local out_log=$2
+  local base="${BASE_URL:-${PLAYWRIGHT_BASE_URL}}"
+  # Prefer host npm when available; otherwise use Playwright Docker image (VPS path).
+  if command -v npm >/dev/null 2>&1; then
+    (
+      cd frontend
+      npm ci --silent
+      npx playwright install chromium
+      ACCEPTANCE_ARTIFACT_DIR="${RESULTS_DIR}" \
+        E2E_ACCEPTANCE=1 \
+        BASE_URL="${base}" \
+        PLAYWRIGHT_BASE_URL="${base}" \
+        E2E_USER="${E2E_USER}" \
+        E2E_PASSWORD="${E2E_PASSWORD}" \
+        bash -lc "${script}"
+    ) 2>&1 | tee "${out_log}"
+    return "${PIPESTATUS[0]}"
+  fi
+
+  local network
+  if [[ "${ACCEPTANCE_SIDECAR:-0}" == "1" ]]; then
+    network="collection-acceptance-net"
+    base="http://nginx"
+  else
+    network="$("${COMPOSE[@]}" ps --format '{{.Name}}' | head -1 | xargs -I{} docker inspect -f '{{range $k,$v := .NetworkSettings.Networks}}{{$k}}{{end}}' {} | head -1)"
+    base="http://nginx"
+  fi
+
+  docker run --rm --network "${network}" \
+    -v "${ROOT_DIR}/frontend:/work" \
+    -v "${RESULTS_DIR}:/artifacts" \
+    -w /work \
+    -e E2E_ACCEPTANCE=1 \
+    -e BASE_URL="${base}" \
+    -e PLAYWRIGHT_BASE_URL="${base}" \
+    -e E2E_USER="${E2E_USER}" \
+    -e E2E_PASSWORD="${E2E_PASSWORD}" \
+    -e ACCEPTANCE_ARTIFACT_DIR=/artifacts \
+    mcr.microsoft.com/playwright:v1.61.1-jammy \
+    bash -lc "npm ci --silent && ${script}" 2>&1 | tee "${out_log}"
+  return "${PIPESTATUS[0]}"
 }
 
 run_mocked_e2e() {
   log "Running mocked Playwright regression"
   set +e
-  (
-    cd frontend
-    npm ci --silent
-    npx playwright install chromium
-    npm run e2e:mocked -- --reporter=list,junit 2>&1 | tee "${RESULTS_DIR}/reports/mocked-e2e.txt"
-  )
+  run_playwright_in_docker "npm run e2e:mocked -- --reporter=list,junit" "${RESULTS_DIR}/reports/mocked-e2e.txt"
   MOCKED_EXIT=$?
   set -e
   return "${MOCKED_EXIT}"
@@ -130,15 +183,8 @@ run_mocked_e2e() {
 
 run_real_acceptance() {
   log "Running real Playwright acceptance (six projects)"
-  export E2E_ACCEPTANCE=1
-  export BASE_URL="${BASE_URL:-${PLAYWRIGHT_BASE_URL}}"
-  export PLAYWRIGHT_BASE_URL="${BASE_URL}"
-  export E2E_USER E2E_PASSWORD
   set +e
-  (
-    cd frontend
-    ACCEPTANCE_ARTIFACT_DIR="${RESULTS_DIR}" npm run e2e:acceptance
-  ) 2>&1 | tee "${RESULTS_DIR}/reports/real-acceptance.txt"
+  run_playwright_in_docker "npm run e2e:acceptance" "${RESULTS_DIR}/reports/real-acceptance.txt"
   REAL_EXIT=$?
   set -e
   return "${REAL_EXIT}"
@@ -154,36 +200,61 @@ run_db_assertions() {
 
 run_route_crawler() {
   log "Running route crawler"
-  (
-    cd frontend
-    node scripts/acceptance-route-crawler.mjs \
-      --base-url "${BASE_URL:-${PLAYWRIGHT_BASE_URL}}" \
-      --user "${E2E_USER}" \
-      --password "${E2E_PASSWORD}" \
-      --out "${RESULTS_DIR}/routes/route-results.json"
-  ) | tee "${RESULTS_DIR}/reports/route-crawler.txt"
+  local base="${BASE_URL:-${PLAYWRIGHT_BASE_URL}}"
+  set +e
+  if command -v node >/dev/null 2>&1; then
+    (
+      cd frontend
+      node scripts/acceptance-route-crawler.mjs \
+        --base-url "${base}" \
+        --user "${E2E_USER}" \
+        --password "${E2E_PASSWORD}" \
+        --out "${RESULTS_DIR}/routes/route-results.json"
+    ) | tee "${RESULTS_DIR}/reports/route-crawler.txt"
+    ROUTE_EXIT=$?
+  else
+    local network="collection-acceptance-net"
+    docker run --rm --network "${network}" \
+      -v "${ROOT_DIR}/frontend:/work" \
+      -v "${RESULTS_DIR}:/artifacts" \
+      -w /work \
+      mcr.microsoft.com/playwright:v1.61.1-jammy \
+      bash -lc "npm ci --silent && node scripts/acceptance-route-crawler.mjs --base-url http://nginx --user '${E2E_USER}' --password '${E2E_PASSWORD}' --out /artifacts/routes/route-results.json" \
+      | tee "${RESULTS_DIR}/reports/route-crawler.txt"
+    ROUTE_EXIT=$?
+  fi
+  set -e
+  return "${ROUTE_EXIT}"
 }
 
 run_console_network_audit() {
   log "Summarizing console/network audits from Playwright output"
-  node scripts/acceptance-summarize-artifacts.mjs \
-    --results-dir "${RESULTS_DIR}" \
-    --out "${RESULTS_DIR}/console/console-network-summary.json"
+  if command -v node >/dev/null 2>&1; then
+    node scripts/acceptance-summarize-artifacts.mjs \
+      --results-dir "${RESULTS_DIR}" \
+      --out "${RESULTS_DIR}/console/console-network-summary.json"
+    return $?
+  fi
+  docker run --rm \
+    -v "${ROOT_DIR}/scripts:/scripts:ro" \
+    -v "${RESULTS_DIR}:/artifacts" \
+    mcr.microsoft.com/playwright:v1.61.1-jammy \
+    bash -lc "node /scripts/acceptance-summarize-artifacts.mjs --results-dir /artifacts --out /artifacts/console/console-network-summary.json"
 }
 
 write_summary() {
   local backend_exit=$1 mocked_exit=$2 real_exit=$3 overall=$4
-  node -e "
-const fs=require('fs');
-const path=process.argv[1];
-const summary={
-  stage:'10.4-production-acceptance-closure',
-  generated_at:new Date().toISOString(),
-  exits:{backend:Number(process.argv[2]), mocked:Number(process.argv[3]), real:Number(process.argv[4]), overall:Number(process.argv[5])},
-  note:'Detailed pass/fail/skip totals are parsed from suite reporters when present.'
-};
-fs.writeFileSync(path, JSON.stringify(summary,null,2));
-" "${SUMMARY_JSON}" "${backend_exit}" "${mocked_exit}" "${real_exit}" "${overall}"
+  python3 - <<PY
+import json
+from datetime import datetime, timezone
+summary={
+  "stage":"10.4-production-acceptance-closure",
+  "generated_at":datetime.now(timezone.utc).isoformat(),
+  "exits":{"backend":${backend_exit},"mocked":${mocked_exit},"real":${real_exit},"overall":${overall}},
+  "note":"Detailed pass/fail/skip totals are parsed from suite reporters when present."
+}
+open("${SUMMARY_JSON}","w",encoding="utf-8").write(json.dumps(summary,indent=2))
+PY
   log "Wrote ${SUMMARY_JSON}"
 }
 
