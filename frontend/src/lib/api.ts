@@ -1,6 +1,7 @@
 import type {
   ApiErrorResponse,
   ApiSuccessResponse,
+  PaginationMeta,
 } from "@/lib/types";
 
 const API_BASE =
@@ -176,6 +177,67 @@ export async function apiUpload<T>(
 
 export function getApiBase() {
   return API_BASE;
+}
+
+export type ListResult<T> = {
+  data: T[];
+  meta: PaginationMeta;
+};
+
+/** Legacy shape: some endpoints pass a raw Laravel paginator as `data` instead of
+ * flattening it to `{data: [...], meta: {...}}`. Normalizing here (rather than in
+ * every page) is the typed compatibility adapter for that inconsistency — see
+ * docs/API_LIST_RESPONSES.md. */
+type RawPaginatorEnvelope<T> = {
+  current_page: number;
+  data: T[];
+  last_page: number;
+  per_page: number;
+  total: number;
+};
+
+function isRawPaginatorEnvelope<T>(value: unknown): value is RawPaginatorEnvelope<T> {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    Array.isArray((value as { data?: unknown }).data) &&
+    typeof (value as { current_page?: unknown }).current_page === "number"
+  );
+}
+
+/** Normalizes either the preferred `{data: T[], meta}` shape or the legacy
+ * raw-paginator-as-data shape into one consistent `{data, meta}` result. */
+export function normalizeList<T>(
+  payload: ApiSuccessResponse<T[] | RawPaginatorEnvelope<T>>,
+): ListResult<T> {
+  const raw = payload.data;
+  if (Array.isArray(raw)) {
+    return {
+      data: raw,
+      meta: payload.meta ?? { current_page: 1, last_page: 1, per_page: raw.length, total: raw.length },
+    };
+  }
+  if (isRawPaginatorEnvelope<T>(raw)) {
+    return {
+      data: raw.data,
+      meta: {
+        current_page: raw.current_page,
+        last_page: raw.last_page,
+        per_page: raw.per_page,
+        total: raw.total,
+      },
+    };
+  }
+  return { data: [], meta: { current_page: 1, last_page: 1, per_page: 0, total: 0 } };
+}
+
+/** apiFetch + normalizeList in one call for list endpoints with either response shape. */
+export async function apiFetchList<T>(
+  path: string,
+  options: RequestInit = {},
+): Promise<ListResult<T>> {
+  const res = await apiFetch<T[] | RawPaginatorEnvelope<T>>(path, options);
+  return normalizeList(res);
 }
 
 /** Build a query string from defined values (skips empty/null/undefined). */
