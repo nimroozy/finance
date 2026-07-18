@@ -11,6 +11,7 @@ rsync -az --delete \
   --exclude '.git/' \
   --exclude '.secrets/' \
   --exclude '.env' \
+  --include '.env.acceptance.example' \
   --exclude '.env.*' \
   --exclude 'backend/.env' \
   --exclude 'backend/vendor/' \

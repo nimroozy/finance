@@ -1,6 +1,8 @@
-# Permission Matrix (Stage 10.2 stub)
+# Permission Matrix (Stage 10.4)
 
-Source of truth: `backend/database/seeders/RolePermissionSeeder.php`.
+Source of truth: `backend/database/seeders/RolePermissionSeeder.php` (+ `config/permissions_registry.php` when present).
+
+Acceptance-only routes use middleware `acceptance.env` (environment gate), not Spatie permissions, and are unavailable in production.
 
 ## Role summary
 

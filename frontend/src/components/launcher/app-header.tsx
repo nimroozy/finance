@@ -119,7 +119,7 @@ export function AppHeader({
     <>
       <header
         className={cn(
-          "sticky top-0 z-40 flex h-14 items-center gap-1 border-b border-border",
+          "sticky top-0 z-40 flex h-14 max-w-[100vw] items-center gap-1 overflow-x-hidden border-b border-border",
           "bg-surface-elevated/95 px-2 backdrop-blur sm:gap-2 sm:px-4",
         )}
         data-testid="app-header"
@@ -171,8 +171,10 @@ export function AppHeader({
               data-testid="header-search"
             >
               <Search className="h-4 w-4" aria-hidden />
-              <span>{t("search")}</span>
-              <kbd className="rounded border border-border px-1 text-[10px] text-muted">Ctrl+K</kbd>
+              <span className="max-w-[6rem] truncate">{t("search")}</span>
+              <kbd className="hidden rounded border border-border px-1 text-[10px] text-muted lg:inline">
+                Ctrl+K
+              </kbd>
             </Button>
           ) : null}
 

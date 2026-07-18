@@ -46,6 +46,14 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('v1')->name('api.v1.')->group(function () {
     Route::get('/health', HealthController::class)->name('health');
 
+    // Acceptance-only verification (404 in production via EnsureAcceptanceEnvironment).
+    Route::middleware('acceptance.env')->prefix('acceptance')->name('acceptance.')->group(function () {
+        Route::get('/ping', [\App\Http\Controllers\Api\V1\AcceptanceVerifyController::class, 'ping'])->name('ping');
+        Route::post('/assert', [\App\Http\Controllers\Api\V1\AcceptanceVerifyController::class, 'assertRecord'])->name('assert');
+        Route::get('/stock-reconciliation', [\App\Http\Controllers\Api\V1\AcceptanceVerifyController::class, 'stockReconciliation'])->name('stock');
+        Route::get('/fixtures', [\App\Http\Controllers\Api\V1\AcceptanceVerifyController::class, 'fixtureSummary'])->name('fixtures');
+    });
+
     Route::get('/attachments/{attachment}/download', [\App\Http\Controllers\Api\V1\AttachmentController::class, 'download'])
         ->name('attachments.download');
 

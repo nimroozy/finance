@@ -1,0 +1,191 @@
+# Isolated Stage 10.4 acceptance stack.
+# Usage: docker compose -f docker-compose.acceptance.yml --env-file .env.acceptance up -d
+# Project name defaults via COMPOSE_PROJECT_NAME=collection-acceptance in .env.acceptance
+# NEVER share volumes or DB with production.
+
+name: collection-acceptance
+
+services:
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "${ACCEPTANCE_NGINX_HTTP_PORT:-18080}:80"
+    volumes:
+      - ./docker/nginx/acceptance.conf:/etc/nginx/nginx.conf:ro
+      - acceptance_backend_storage:/var/www/backend/storage:ro
+    depends_on:
+      frontend:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    networks:
+      - acceptance
+    profiles: ["acceptance"]
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api/v1}
+        NEXT_PUBLIC_APP_URL: ${APP_URL:-http://127.0.0.1:18080}
+        NEXT_PUBLIC_APP_COMMIT_SHA: ${APP_COMMIT_SHA:-}
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      HOSTNAME: "0.0.0.0"
+      PORT: "3000"
+      APP_COMMIT_SHA: ${APP_COMMIT_SHA:-}
+      FRONTEND_BUILD_ID: ${FRONTEND_BUILD_ID:-${APP_COMMIT_SHA:-}}
+    expose:
+      - "3000"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 40s
+    networks:
+      - acceptance
+    profiles: ["acceptance"]
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/backend/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env.acceptance
+    environment:
+      CONTAINER_ROLE: app
+      RUN_MIGRATIONS: "true"
+      APP_ENV: acceptance
+      DB_DATABASE: collection_acceptance
+      CACHE_PREFIX: collection_acceptance
+      QUEUE_CONNECTION: redis
+      E2E_ACCEPTANCE: "1"
+      WHATSAPP_SEND_ENABLED: "false"
+      RADIUS_ENABLED: "false"
+      APP_STAGE: 10.4-production-acceptance-closure
+    volumes:
+      - acceptance_backend_storage:/var/www/html/storage/app
+      - acceptance_backend_logs:/var/www/html/storage/logs
+    expose:
+      - "8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://127.0.0.1:8080/up || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    networks:
+      - acceptance
+    profiles: ["acceptance"]
+
+  queue-worker:
+    build:
+      context: .
+      dockerfile: docker/backend/Dockerfile
+    restart: unless-stopped
+    command: ["php", "artisan", "queue:work", "redis", "--queue=collection_acceptance,default", "--sleep=3", "--tries=3", "--max-time=3600"]
+    env_file:
+      - .env.acceptance
+    environment:
+      CONTAINER_ROLE: worker
+      RUN_MIGRATIONS: "false"
+      APP_ENV: acceptance
+      DB_DATABASE: collection_acceptance
+      CACHE_PREFIX: collection_acceptance
+      WHATSAPP_SEND_ENABLED: "false"
+      RADIUS_ENABLED: "false"
+    volumes:
+      - acceptance_backend_storage:/var/www/html/storage/app
+      - acceptance_backend_logs:/var/www/html/storage/logs
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - acceptance
+    profiles: ["acceptance"]
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: docker/backend/Dockerfile
+    restart: unless-stopped
+    command: ["php", "artisan", "schedule:work"]
+    env_file:
+      - .env.acceptance
+    environment:
+      CONTAINER_ROLE: scheduler
+      RUN_MIGRATIONS: "false"
+      APP_ENV: acceptance
+      DB_DATABASE: collection_acceptance
+      CACHE_PREFIX: collection_acceptance
+      WHATSAPP_SEND_ENABLED: "false"
+      RADIUS_ENABLED: "false"
+    volumes:
+      - acceptance_backend_storage:/var/www/html/storage/app
+      - acceptance_backend_logs:/var/www/html/storage/logs
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - acceptance
+    profiles: ["acceptance"]
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: collection_acceptance
+      POSTGRES_USER: ${DB_USERNAME:-collection_acceptance}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required for acceptance}
+    volumes:
+      - acceptance_postgres_data:/var/lib/postgresql/data
+    expose:
+      - "5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - acceptance
+    profiles: ["acceptance"]
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required for acceptance}
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD}", "--databases", "16"]
+    volumes:
+      - acceptance_redis_data:/data
+    expose:
+      - "6379"
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - acceptance
+    profiles: ["acceptance"]
+
+volumes:
+  acceptance_postgres_data:
+  acceptance_redis_data:
+  acceptance_backend_storage:
+  acceptance_backend_logs:
+
+networks:
+  acceptance:
+    driver: bridge
+    name: collection-acceptance-net

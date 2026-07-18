@@ -24,7 +24,8 @@ Unified multi-branch ISP operations so branch staff can work without daily login
 | **10** | **ISP service lifecycle** | **Complete / in 10.1 tip** |
 | **10.1** | **Integrated stable baseline (7→10 + 9.1)** | **Complete / in 10.2 tip** |
 | **10.2** | **Production recovery (service API, search, cleanup dry-run)** | **Complete / in 10.3 tip** |
-| **10.3** | **Functional acceptance (launcher, ActivationPanel, queues, reviewed cleanup)** | **In progress / tip branch** |
+| **10.3** | **Functional acceptance (launcher, ActivationPanel, queues, reviewed cleanup)** | **Complete / in 10.4 tip** |
+| **10.4** | **Production acceptance closure (isolated stack, real E2E matrix, SHA closure)** | **Complete / tip branch** |
 
 ## Stage 6 — WhatsApp & notifications (complete / foundation)
 
@@ -171,6 +172,16 @@ Service API completeness, global search, launcher counts, branch integrity, demo
 Functional acceptance of launcher, ActivationPanel evidence UI, service queues, AcceptanceSeeder (non-prod), reviewed demo cleanup apply. Docs: [STAGE_10_3_FUNCTIONAL_ACCEPTANCE.md](STAGE_10_3_FUNCTIONAL_ACCEPTANCE.md), [STAGE_10_3_DELIVERY_REPORT.md](STAGE_10_3_DELIVERY_REPORT.md), [PRODUCTION_SHA_VERIFICATION.md](PRODUCTION_SHA_VERIFICATION.md).
 
 **Hard rules:** No Stage 11. No Radius. No live WhatsApp. No uncontrolled Zoho writes. Do not seed AcceptanceSeeder on production. Preserve SSH deploy keys (**KEY_KEPT**).
+
+---
+
+## Stage 10.4 — Production acceptance closure
+
+**Tip branch:** `cursor/stage-10-4-production-acceptance-closure`. Version label: `10.4-production-acceptance-closure`.
+
+Isolated acceptance stack, `./scripts/run-acceptance.sh`, real Playwright matrix (desktop/mobile/small-mobile × en/fa), DB assertions, route crawler, console/network audit, SHA closure. Docs: [STAGE_10_4_PRODUCTION_ACCEPTANCE_CLOSURE.md](STAGE_10_4_PRODUCTION_ACCEPTANCE_CLOSURE.md), [STAGE_10_4_DELIVERY_REPORT.md](STAGE_10_4_DELIVERY_REPORT.md), [STAGE_10_4_STARTING_SHA.md](STAGE_10_4_STARTING_SHA.md), [STAGE_10_4_SHA_VERIFICATION.md](STAGE_10_4_SHA_VERIFICATION.md).
+
+**Hard rules:** No Stage 11. No Radius. No live WhatsApp. No uncontrolled Zoho writes. Do not seed AcceptanceSeeder on production. Required real E2E skipped count = 0. Preserve SSH deploy keys (**KEY_KEPT**).
 
 ---
 

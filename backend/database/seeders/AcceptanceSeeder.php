@@ -3,8 +3,10 @@
 namespace Database\Seeders;
 
 use App\Models\Branch;
+use App\Models\Collector;
 use App\Models\Crm\Lead;
 use App\Models\Customer;
+use App\Models\Invoice;
 use App\Models\Services\Service;
 use App\Models\Services\ServiceCancellation;
 use App\Models\Services\ServiceChangeRequest;
@@ -33,6 +35,19 @@ class AcceptanceSeeder extends Seeder
 
     public function run(): void
     {
+        if (app()->environment('production')) {
+            throw new \RuntimeException(
+                'AcceptanceSeeder refused: APP_ENV=production. Use an isolated acceptance database.'
+            );
+        }
+
+        $db = (string) config('database.connections.'.config('database.default').'.database');
+        if (app()->environment('acceptance') && ! str_contains(strtolower($db), 'acceptance')) {
+            throw new \RuntimeException(
+                "AcceptanceSeeder refused: database '{$db}' is not an acceptance database."
+            );
+        }
+
         $this->call([
             RolePermissionSeeder::class,
             Stage8LeadSourceSeeder::class,
@@ -53,10 +68,36 @@ class AcceptanceSeeder extends Seeder
             ]
         );
 
+        // Org / ticket types / inventory locations after ACC branch exists.
+        $this->call([
+            Stage7OrgSeeder::class,
+            Stage7TicketTypeSeeder::class,
+            Stage9DefaultLocationsSeeder::class,
+        ]);
+
         $admin = $this->seedUser('ACCEPTANCE-admin', 'ACCEPTANCE Admin', User::ROLE_SUPER_ADMIN, $branch);
         $manager = $this->seedUser('ACCEPTANCE-manager', 'ACCEPTANCE Manager', User::ROLE_BRANCH_MANAGER, $branch);
         $this->seedUser('ACCEPTANCE-sales', 'ACCEPTANCE Sales', User::ROLE_BRANCH_MANAGER, $branch);
         $this->seedUser('ACCEPTANCE-noc', 'ACCEPTANCE NOC', User::ROLE_BRANCH_MANAGER, $branch);
+        $collectorUser = $this->seedUser('ACCEPTANCE-collector', 'ACCEPTANCE Collector', User::ROLE_COLLECTOR, $branch);
+        Collector::query()->updateOrCreate(
+            ['user_id' => $collectorUser->id],
+            [
+                'employee_code' => 'ACC-COL-1',
+                'max_active_assignments' => 100,
+                'is_active' => true,
+                'notes' => 'Acceptance collector fixture',
+            ]
+        );
+
+        $disabled = $this->seedUser('ACCEPTANCE-disabled', 'ACCEPTANCE Disabled', User::ROLE_COLLECTOR, $branch);
+        $disabled->update(['status' => User::STATUS_DISABLED]);
+
+        $noBranch = $this->seedUser('ACCEPTANCE-nobranch', 'ACCEPTANCE No Branch', User::ROLE_COLLECTOR, $branch);
+        $noBranch->branches()->detach();
+
+        $forced = $this->seedUser('ACCEPTANCE-forcepw', 'ACCEPTANCE Force PW', User::ROLE_COLLECTOR, $branch);
+        $forced->update(['force_password_change' => true]);
 
         $customer = Customer::query()->withoutGlobalScopes()->updateOrCreate(
             [
@@ -71,7 +112,28 @@ class AcceptanceSeeder extends Seeder
                 'status' => Customer::STATUS_ACTIVE,
                 'is_unmapped' => false,
                 'sync_status' => 'synced',
-                'outstanding_receivable' => '0.0000',
+                'outstanding_receivable' => '5000.0000',
+                'last_synced_at' => now()->subMinutes(5),
+            ]
+        );
+
+        Invoice::query()->withoutGlobalScopes()->updateOrCreate(
+            [
+                'zoho_invoice_id' => 'ACCEPTANCE-ZOHO-INV-1',
+            ],
+            [
+                'branch_id' => $branch->id,
+                'customer_id' => $customer->id,
+                'invoice_number' => 'ACC-INV-0001',
+                'invoice_date' => now()->toDateString(),
+                'due_date' => now()->addDays(30)->toDateString(),
+                'status' => 'sent',
+                'currency' => 'AFN',
+                'total' => '5000.0000',
+                'amount_paid' => '0.0000',
+                'credits_applied' => '0.0000',
+                'balance' => '5000.0000',
+                'sync_status' => 'synced',
             ]
         );
 

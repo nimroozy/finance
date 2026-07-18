@@ -1,21 +1,22 @@
-# Mobile Acceptance Results (Stage 10.3 brief)
+# Mobile Acceptance Results (Stage 10.4)
 
 **Date:** 2026-07-18  
-**Suite:** mocked Playwright (`mobile-chromium` / Pixel 5)  
+**Suite:** real acceptance projects `mobile-en`, `mobile-fa`, `small-mobile-en`, `small-mobile-fa` (390×844 and 320×700) plus mocked mobile regression  
 **KEY_KEPT:** yes
 
 ## Mobile results
 
 | Spec | Result |
 |------|--------|
-| Stage 9.1 launcher (mobile) | **passed** — bottom nav, launcher grid, EN/FA, dark mode |
-| Stage 9.1 matrix en/fa (apps, payments, tickets) | **passed** |
-| Stage 10 services (mobile) | **passed** — dashboard, create, activate, suspend, queues, RTL, permission denial |
+| Real acceptance mobile-en/fa | see [STAGE_10_4_ACCEPTANCE_RESULTS.md](STAGE_10_4_ACCEPTANCE_RESULTS.md) |
+| Real acceptance small-mobile-en/fa (320×700) | see Stage 10.4 results — overflow + launcher required |
+| Stage 9.1 launcher (mocked mobile) | retained regression |
+| Stage 10 services (mocked mobile) | retained regression |
 
 ## Notes
 
-- Mobile coverage is viewport + shell/nav smoke under mocked API — not a device lab crawl.
-- Production mobile browser smoke is optional; desktop HTTP smoke covers deploy gate routes.
+- Real acceptance requires live API + `AcceptanceSeeder` fixtures; mocked suite does not count as production acceptance.
+- No required workflow may be skipped merely because the viewport is mobile.
 
 ## Related
 

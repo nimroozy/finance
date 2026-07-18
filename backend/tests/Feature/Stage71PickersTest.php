@@ -100,11 +100,11 @@ class Stage71PickersTest extends TestCase
                 ],
             ])
             ->assertJsonPath('data.backend_version', '7.1')
-            ->assertJsonPath('data.stage', '10.3-functional-acceptance');
+            ->assertJsonPath('data.stage', '10.4-production-acceptance-closure');
 
         $health = $this->getJson('/api/v1/health');
         $this->assertContains($health->status(), [200, 503]);
         $this->assertArrayHasKey('deployment', $health->json('data'));
-        $this->assertSame('10.3-functional-acceptance', $health->json('data.deployment.stage'));
+        $this->assertSame('10.4-production-acceptance-closure', $health->json('data.deployment.stage'));
     }
 }

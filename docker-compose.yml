@@ -35,6 +35,7 @@ services:
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api/v1}
         NEXT_PUBLIC_APP_URL: ${APP_URL:-https://finance.mns.af}
+        NEXT_PUBLIC_APP_COMMIT_SHA: ${APP_COMMIT_SHA:-}
     restart: unless-stopped
     environment:
       NODE_ENV: production

@@ -1,6 +1,17 @@
-# Action → Endpoint Matrix (Stage 10.2 stub)
+# Action → Endpoint Matrix (Stage 10.4)
 
-Partial matrix with verified routes. Expand as repair work continues.
+Partial matrix with verified routes. Compared against frontend buttons, backend routes, and permission registry during acceptance. Expand as repair work continues.
+
+## Acceptance verification (non-production)
+
+| UI / action | Method | Endpoint | Permission | Status |
+|-------------|--------|----------|------------|--------|
+| Acceptance ping | GET | `/api/v1/acceptance/ping` | acceptance.env | keep — 404 in production |
+| DB assert | POST | `/api/v1/acceptance/assert` | acceptance.env | keep — 404 in production |
+| Stock reconcile | GET | `/api/v1/acceptance/stock-reconciliation` | acceptance.env | keep — 404 in production |
+| Fixture summary | GET | `/api/v1/acceptance/fixtures` | acceptance.env | keep — 404 in production |
+| Reset acceptance DB | CLI | `acceptance:reset --force` | ops | keep — blocked in production |
+| Assert via CLI | CLI | `acceptance:assert` | ops | keep — blocked in production |
 
 | UI / action | Method | Endpoint | Permission | Status |
 |-------------|--------|----------|------------|--------|
