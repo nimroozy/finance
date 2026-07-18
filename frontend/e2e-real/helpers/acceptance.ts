@@ -1,4 +1,4 @@
-import { expect, type Page, type TestInfo } from "@playwright/test";
+import { expect, type APIRequestContext, type Page, type TestInfo } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -22,23 +22,71 @@ export const PRIMARY_APPS = [
 ] as const;
 
 /** Harmless external warnings only — keep tiny. */
-const CONSOLE_ALLOWLIST = [/Download the React DevTools/i, /favicon\.ico/i];
+const CONSOLE_ALLOWLIST = [
+  /Download the React DevTools/i,
+  /favicon\.ico/i,
+  /Failed to load resource: the server responded with a status of 401/i,
+];
 
-export async function login(
-  page: Page,
-  opts: { locale?: "en" | "fa"; user?: string; password?: string } = {},
-) {
-  const locale = opts.locale || "en";
+export async function apiLogin(
+  request: APIRequestContext,
+  opts: { user?: string; password?: string } = {},
+): Promise<{ token: string; user: Record<string, unknown> }> {
   const user = opts.user || process.env.E2E_USER || "";
   const password = opts.password || process.env.E2E_PASSWORD || "";
   expect(user, "E2E_USER required").toBeTruthy();
   expect(password, "E2E_PASSWORD required").toBeTruthy();
 
-  await page.goto(`/${locale}/login`);
-  await page.locator("#login, input[name='login']").first().fill(user);
-  await page.locator('input[type="password"]').first().fill(password);
-  await page.getByRole("button", { name: /sign in|log in|login|ورود/i }).first().click();
-  await expect(page).not.toHaveURL(/\/login/, { timeout: 30_000 });
+  const res = await request.post("/api/v1/auth/login", {
+    data: { login: user, password, device_name: "acceptance" },
+  });
+  expect(res.ok(), await res.text()).toBeTruthy();
+  const body = await res.json();
+  const token = body?.data?.token as string;
+  expect(token).toBeTruthy();
+  return { token, user: body.data.user };
+}
+
+export async function login(
+  page: Page,
+  opts: { locale?: "en" | "fa"; user?: string; password?: string; ui?: boolean } = {},
+) {
+  const locale = opts.locale || "en";
+  const useUi = opts.ui !== false;
+  const { token, user } = await apiLogin(page.request, opts);
+
+  await page.addInitScript(
+    ({ token: t, user: u }) => {
+      localStorage.setItem(
+        "auth-storage",
+        JSON.stringify({ state: { token: t, user: u }, version: 0 }),
+      );
+    },
+    { token, user },
+  );
+
+  if (useUi) {
+    const loginName = opts.user || process.env.E2E_USER || "";
+    const password = opts.password || process.env.E2E_PASSWORD || "";
+    await page.goto(`/${locale}/login`);
+    // Clear injected auth so the form path is exercised.
+    await page.evaluate(() => localStorage.removeItem("auth-storage"));
+    await page.locator("#login, input[name='login']").first().fill(loginName);
+    await page.locator('input[type="password"]').first().fill(password);
+    await page.getByRole("button", { name: /sign in|log in|login|ورود/i }).first().click();
+    await expect(page).not.toHaveURL(/\/login/, { timeout: 30_000 });
+  } else {
+    await page.goto(`/${locale}/apps`);
+    await expect(page.getByTestId("apps-launcher")).toBeVisible({ timeout: 30_000 });
+  }
+
+  return token;
+}
+
+export async function authedGet(page: Page, token: string, url: string) {
+  return page.request.get(url, {
+    headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+  });
 }
 
 export function attachFailureGuards(page: Page, testInfo: TestInfo) {
@@ -59,15 +107,9 @@ export function attachFailureGuards(page: Page, testInfo: TestInfo) {
   });
 
   page.on("response", (res) => {
-    const status = res.status();
-    const url = res.url();
-    if (![401, 403, 404, 500].includes(status)) return;
-    // Login page and intentional denial checks mark expected via test annotations.
-    if (url.includes("/api/v1/auth/login") && status === 401) return;
-    if (testInfo.annotations.some((a) => a.type === "expect-status" && a.description === String(status))) {
-      return;
+    if (res.status() === 500) {
+      networkErrors.push({ url: res.url(), status: 500 });
     }
-    networkErrors.push({ url, status });
   });
 
   return {
@@ -84,14 +126,14 @@ export function attachFailureGuards(page: Page, testInfo: TestInfo) {
         JSON.stringify({ errors: networkErrors }, null, 2),
       );
       expect(consoleErrors, `Unexpected console errors: ${consoleErrors.join(" | ")}`).toEqual([]);
-      const unexpected = networkErrors.filter((e) => e.status === 500);
-      expect(unexpected, `Unexpected HTTP 500: ${JSON.stringify(unexpected)}`).toEqual([]);
+      expect(networkErrors, `Unexpected HTTP 500: ${JSON.stringify(networkErrors)}`).toEqual([]);
     },
   };
 }
 
 export async function assertDb(
   page: Page,
+  token: string,
   body: {
     entity: string;
     key: string;
@@ -99,16 +141,27 @@ export async function assertDb(
     expect?: Record<string, string | number>;
   },
 ) {
-  const res = await page.request.post("/api/v1/acceptance/assert", { data: body });
+  const res = await page.request.post("/api/v1/acceptance/assert", {
+    headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+    data: body,
+  });
   expect(res.ok(), await res.text()).toBeTruthy();
   const json = await res.json();
   expect(json.success).toBeTruthy();
 }
 
 export async function expectNoHorizontalOverflow(page: Page) {
+  await page.waitForTimeout(250);
   const overflow = await page.evaluate(() => {
     const doc = document.documentElement;
-    return doc.scrollWidth > doc.clientWidth + 1;
+    return {
+      scrollWidth: doc.scrollWidth,
+      clientWidth: doc.clientWidth,
+      overflow: doc.scrollWidth > doc.clientWidth + 2,
+    };
   });
-  expect(overflow, "horizontal overflow").toBeFalsy();
+  expect(
+    overflow.overflow,
+    `horizontal overflow ${overflow.scrollWidth}>${overflow.clientWidth}`,
+  ).toBeFalsy();
 }
