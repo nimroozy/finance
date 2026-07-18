@@ -9,6 +9,8 @@ import { listCollectors } from "@/lib/collectors";
 import type { Collector } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { FieldError, Input, Label, Select, TextArea } from "@/components/ui/form";
+import { CustomerPicker } from "@/components/ui/pickers";
+import type { SearchableOption } from "@/components/ui/searchable-select";
 import {
   Alert,
   PageHeader,
@@ -21,7 +23,7 @@ export default function NewAssignmentPage() {
   const router = useRouter();
 
   const [collectors, setCollectors] = useState<Collector[]>([]);
-  const [customerId, setCustomerId] = useState("");
+  const [customer, setCustomer] = useState<SearchableOption | null>(null);
   const [collectorId, setCollectorId] = useState("");
   const [priority, setPriority] = useState("normal");
   const [dueDate, setDueDate] = useState("");
@@ -45,7 +47,7 @@ export default function NewAssignmentPage() {
     setWarnings([]);
     try {
       const res = await createAssignment({
-        customer_id: Number(customerId),
+        customer_id: Number(customer?.id),
         collector_id: Number(collectorId),
         priority,
         due_date: dueDate || undefined,
@@ -85,12 +87,7 @@ export default function NewAssignmentPage() {
         <form onSubmit={onSubmit} className="mx-auto max-w-lg space-y-4">
           <div>
             <Label>{t("selectCustomer")}</Label>
-            <Input
-              type="number"
-              value={customerId}
-              onChange={(e) => setCustomerId(e.target.value)}
-              required
-            />
+            <CustomerPicker value={customer} onChange={setCustomer} />
             <FieldError>{fieldErrors.customer_id?.[0]}</FieldError>
           </div>
           <div>
@@ -138,7 +135,7 @@ export default function NewAssignmentPage() {
             />
           </div>
           <div className="flex gap-2">
-            <Button type="submit" disabled={saving}>
+            <Button type="submit" disabled={saving || !customer}>
               {tCommon("create")}
             </Button>
             <Button

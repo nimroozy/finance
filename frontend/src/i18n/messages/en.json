@@ -631,6 +631,8 @@
     "complete": "Complete",
     "cancel": "Cancel route",
     "addStop": "Add stop",
+    "removeStop": "Remove stop",
+    "customer": "Customer",
     "customerId": "Customer ID",
     "sequence": "Sequence",
     "createSuccess": "Route created.",

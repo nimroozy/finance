@@ -3,16 +3,17 @@
 import { useCallback, useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
-import { ApiError } from "@/lib/api";
 import { listBranches } from "@/lib/auth";
 import { listPayments } from "@/lib/payments";
 import type { Branch, Payment } from "@/lib/types";
 import { formatDateTime, formatMoney } from "@/lib/utils";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
-import { Input, Select } from "@/components/ui/form";
+import { Select } from "@/components/ui/form";
+import { CustomerPicker } from "@/components/ui/pickers";
+import type { SearchableOption } from "@/components/ui/searchable-select";
+import { ErrorState } from "@/components/ui/error-state";
 import {
-  Alert,
   EmptyState,
   LoadingState,
   PageHeader,
@@ -41,9 +42,9 @@ export default function PaymentsPage() {
   const [meta, setMeta] = useState({ current_page: 1, last_page: 1 });
   const [status, setStatus] = useState("");
   const [branchId, setBranchId] = useState("");
-  const [customerId, setCustomerId] = useState("");
+  const [customer, setCustomer] = useState<SearchableOption | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown>(null);
 
   useEffect(() => {
     void listBranches(1)
@@ -60,7 +61,7 @@ export default function PaymentsPage() {
           page,
           status: status || undefined,
           branch_id: branchId || undefined,
-          customer_id: customerId || undefined,
+          customer_id: customer ? String(customer.id) : undefined,
         });
         setRows(res.data);
         setMeta({
@@ -68,12 +69,12 @@ export default function PaymentsPage() {
           last_page: res.meta?.last_page ?? 1,
         });
       } catch (err) {
-        setError(err instanceof ApiError ? err.message : tCommon("error"));
+        setError(err);
       } finally {
         setLoading(false);
       }
     },
-    [status, branchId, customerId, tCommon],
+    [status, branchId, customer],
   );
 
   useEffect(() => {
@@ -86,7 +87,7 @@ export default function PaymentsPage() {
 
       {error ? (
         <div className="mb-4">
-          <Alert>{error}</Alert>
+          <ErrorState error={error} onRetry={() => load(meta.current_page)} />
         </div>
       ) : null}
 
@@ -107,12 +108,7 @@ export default function PaymentsPage() {
             </option>
           ))}
         </Select>
-        <Input
-          type="number"
-          placeholder={t("customerId")}
-          value={customerId}
-          onChange={(e) => setCustomerId(e.target.value)}
-        />
+        <CustomerPicker value={customer} onChange={setCustomer} branchId={branchId || undefined} />
         <Button variant="secondary" onClick={() => void load(1)}>
           {tCommon("apply")}
         </Button>

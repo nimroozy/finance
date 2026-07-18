@@ -631,6 +631,8 @@
     "complete": "اتمام",
     "cancel": "لغو مسیر",
     "addStop": "افزودن توقف",
+    "removeStop": "حذف توقف",
+    "customer": "مشتری",
     "customerId": "شناسه مشتری",
     "sequence": "ترتیب",
     "createSuccess": "مسیر ایجاد شد.",

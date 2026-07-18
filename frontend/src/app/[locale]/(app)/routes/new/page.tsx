@@ -8,11 +8,14 @@ import { listBranches } from "@/lib/auth";
 import { listCollectors } from "@/lib/collectors";
 import { createRoute } from "@/lib/routes";
 import type { Branch, Collector } from "@/lib/types";
+import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select, TextArea } from "@/components/ui/form";
 import { Alert, PageHeader, Panel } from "@/components/ui/layout";
+import { CustomerPicker } from "@/components/ui/pickers";
+import type { SearchableOption } from "@/components/ui/searchable-select";
 
-type StopDraft = { customer_id: string; notes: string };
+type StopDraft = { customer: SearchableOption | null; notes: string };
 
 export default function NewRoutePage() {
   const t = useTranslations("routesPage");
@@ -26,9 +29,7 @@ export default function NewRoutePage() {
   const [name, setName] = useState("");
   const [routeDate, setRouteDate] = useState("");
   const [notes, setNotes] = useState("");
-  const [stops, setStops] = useState<StopDraft[]>([
-    { customer_id: "", notes: "" },
-  ]);
+  const [stops, setStops] = useState<StopDraft[]>([{ customer: null, notes: "" }]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -56,9 +57,9 @@ export default function NewRoutePage() {
         route_date: routeDate,
         notes: notes.trim() || undefined,
         stops: stops
-          .filter((s) => s.customer_id)
+          .filter((s) => s.customer)
           .map((s, i) => ({
-            customer_id: Number(s.customer_id),
+            customer_id: Number(s.customer?.id),
             sequence: i + 1,
             notes: s.notes.trim() || undefined,
           })),
@@ -141,31 +142,19 @@ export default function NewRoutePage() {
                 type="button"
                 size="sm"
                 variant="secondary"
-                onClick={() =>
-                  setStops((prev) => [...prev, { customer_id: "", notes: "" }])
-                }
+                onClick={() => setStops((prev) => [...prev, { customer: null, notes: "" }])}
               >
                 {t("addStop")}
               </Button>
             </div>
             {stops.map((stop, idx) => (
-              <div
-                key={idx}
-                className="grid gap-2 rounded-md border border-border p-3 sm:grid-cols-2"
-              >
+              <div key={idx} className="grid gap-2 rounded-md border border-border p-3 sm:grid-cols-[1fr_1fr_auto]">
                 <div>
-                  <Label>{t("customerId")}</Label>
-                  <Input
-                    type="number"
-                    value={stop.customer_id}
-                    onChange={(e) =>
-                      setStops((prev) =>
-                        prev.map((s, i) =>
-                          i === idx
-                            ? { ...s, customer_id: e.target.value }
-                            : s,
-                        ),
-                      )
+                  <Label>{t("customer")}</Label>
+                  <CustomerPicker
+                    value={stop.customer}
+                    onChange={(customer) =>
+                      setStops((prev) => prev.map((s, i) => (i === idx ? { ...s, customer } : s)))
                     }
                   />
                 </div>
@@ -182,6 +171,18 @@ export default function NewRoutePage() {
                     }
                   />
                 </div>
+                {stops.length > 1 ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="self-end"
+                    aria-label={t("removeStop")}
+                    onClick={() => setStops((prev) => prev.filter((_, i) => i !== idx))}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                ) : null}
               </div>
             ))}
           </div>
