@@ -25,6 +25,7 @@ import { getAppCounts, type AppCounts } from "@/lib/apps";
 import { AppGrid } from "@/components/launcher/app-grid";
 import { Input } from "@/components/ui/form";
 import { LoadingState } from "@/components/ui/layout";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export default function AppsLauncherPage() {
   const t = useTranslations("launcher");
@@ -207,7 +208,7 @@ export default function AppsLauncherPage() {
           {t("allApps")}
         </h2>
         {grouped.length === 0 ? (
-          <p className="py-6 text-sm text-muted">{t("noResults")}</p>
+          <EmptyState title={t("noResults")} />
         ) : (
           <div className="space-y-8">
             {grouped.map((group) => (

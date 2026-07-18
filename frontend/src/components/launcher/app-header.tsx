@@ -315,3 +315,6 @@ export function AppHeader({
     </>
   );
 }
+
+/** Alias for the shared component library naming (Stage 10.5A). */
+export const GlobalHeader = AppHeader;
