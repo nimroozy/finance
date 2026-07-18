@@ -4,7 +4,7 @@
 **Branch:** `cursor/stage-10-4-production-acceptance-closure`  
 **PR target:** `cursor/stage-10-3-functional-acceptance`  
 **Stage label:** `10.4-production-acceptance-closure`  
-**Final SHA:** `42f7eaec0ed0703190e9571ccbc457faa86fee29`
+**Final SHA:** `5244c4231e4fb9db41bbb013f6ea28d293b50e5f`
 
 ## Starting point
 
@@ -42,7 +42,7 @@ desktop-en/fa, mobile-en/fa, small-mobile-en/fa — **all passed**.
 
 | Probe | Value |
 |-------|-------|
-| Production / health / `.deployed-sha` / `APP_COMMIT_SHA` / frontend_version | `42f7eaec0ed0703190e9571ccbc457faa86fee29` |
+| Production / health / `.deployed-sha` / `APP_COMMIT_SHA` / frontend_version | `5244c4231e4fb9db41bbb013f6ea28d293b50e5f` |
 | Stage | `10.4-production-acceptance-closure` |
 | Pre backup | `/opt/collection-backups/20260718T091544Z-stage10-4-final-predeploy/` |
 | Post backup | `/opt/collection-backups/20260718T092509Z-stage10-4-final-postdeploy/` |
