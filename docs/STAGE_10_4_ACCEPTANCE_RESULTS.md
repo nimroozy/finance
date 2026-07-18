@@ -1,6 +1,6 @@
 # Stage 10.4 — Acceptance results
 
-**Final tip:** `7868043d25a9e8c4badb7b528b75e3f36fbb14fa`  
+**Final tip:** `dc605aa8239b83ea5d1d5b4bfaf4da7d66f195ee`  
 **Environment:** VPS sidecar `http://127.0.0.1:18080` / DB `collection_acceptance` / Redis DB 2  
 **Zoho mode:** `test_adapter`  
 **WhatsApp send / Radius:** disabled  

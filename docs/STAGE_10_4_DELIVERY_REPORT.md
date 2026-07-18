@@ -4,7 +4,7 @@
 **Branch:** `cursor/stage-10-4-production-acceptance-closure`  
 **PR target:** `cursor/stage-10-3-functional-acceptance`  
 **Stage label:** `10.4-production-acceptance-closure`  
-**Final SHA:** `7868043d25a9e8c4badb7b528b75e3f36fbb14fa`
+**Final SHA:** `dc605aa8239b83ea5d1d5b4bfaf4da7d66f195ee`
 
 ## Starting point
 
@@ -42,10 +42,10 @@ desktop-en/fa, mobile-en/fa, small-mobile-en/fa — **all passed**.
 
 | Probe | Value |
 |-------|-------|
-| Production / health / `.deployed-sha` / `APP_COMMIT_SHA` / frontend_version | `7868043d25a9e8c4badb7b528b75e3f36fbb14fa` |
+| Production / health / `.deployed-sha` / `APP_COMMIT_SHA` / frontend_version | `dc605aa8239b83ea5d1d5b4bfaf4da7d66f195ee` |
 | Stage | `10.4-production-acceptance-closure` |
 | Pre backup | `/opt/collection-backups/20260718T091544Z-stage10-4-final-predeploy/` |
-| Post backup | recorded after deploy |
+| Post backup | `/opt/collection-backups/20260718T092509Z-stage10-4-final-postdeploy/` |
 | payments / handovers / wallets / cashboxes / reversals | 3 / 1 / 3 / 2 / 3 — **MATCH** |
 | inventory txns / on_hand | 14 / 18.000 — **MATCH** |
 | `/api/v1/acceptance/*` in production | **404** |

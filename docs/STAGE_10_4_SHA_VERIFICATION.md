@@ -2,7 +2,7 @@
 
 **Status:** MATCH (after final tip deploy)  
 **Stage label:** `10.4-production-acceptance-closure`  
-**Final SHA:** `7868043d25a9e8c4badb7b528b75e3f36fbb14fa`
+**Final SHA:** `dc605aa8239b83ea5d1d5b4bfaf4da7d66f195ee`
 
 ## Starting SHA (pre-implementation)
 
@@ -14,10 +14,10 @@ Confirmed equal across:
 
 | Probe | Value |
 |-------|-------|
-| GitHub branch head | `7868043d25a9e8c4badb7b528b75e3f36fbb14fa` |
-| Host `.deployed-sha` | `7868043d25a9e8c4badb7b528b75e3f36fbb14fa` |
-| Backend `APP_COMMIT_SHA` | `7868043d25a9e8c4badb7b528b75e3f36fbb14fa` |
-| `/api/v1/health` `commit_sha` / `frontend_version` | `7868043d25a9e8c4badb7b528b75e3f36fbb14fa` |
+| GitHub branch head | `dc605aa8239b83ea5d1d5b4bfaf4da7d66f195ee` |
+| Host `.deployed-sha` | `dc605aa8239b83ea5d1d5b4bfaf4da7d66f195ee` |
+| Backend `APP_COMMIT_SHA` | `dc605aa8239b83ea5d1d5b4bfaf4da7d66f195ee` |
+| `/api/v1/health` `commit_sha` / `frontend_version` | `dc605aa8239b83ea5d1d5b4bfaf4da7d66f195ee` |
 | Stage | `10.4-production-acceptance-closure` |
 
 Acceptance endpoints return **404** in production. AcceptanceSeeder users on production: **0**.
