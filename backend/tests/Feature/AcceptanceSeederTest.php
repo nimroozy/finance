@@ -22,11 +22,23 @@ class AcceptanceSeederTest extends TestCase
         $branch = Branch::query()->withoutGlobalScopes()->where('code', AcceptanceSeeder::BRANCH_CODE)->first();
         $this->assertNotNull($branch);
 
-        foreach (['ACCEPTANCE-admin', 'ACCEPTANCE-manager', 'ACCEPTANCE-sales', 'ACCEPTANCE-noc'] as $username) {
+        foreach (['ACCEPTANCE-admin', 'ACCEPTANCE-manager', 'ACCEPTANCE-sales', 'ACCEPTANCE-noc', 'ACCEPTANCE-collector'] as $username) {
             $user = User::query()->where('username', $username)->first();
             $this->assertNotNull($user, $username);
             $this->assertTrue($user->branches()->whereKey($branch->id)->exists());
         }
+
+        $disabled = User::query()->where('username', 'ACCEPTANCE-disabled')->first();
+        $this->assertNotNull($disabled);
+        $this->assertSame(User::STATUS_DISABLED, $disabled->status);
+
+        $noBranch = User::query()->where('username', 'ACCEPTANCE-nobranch')->first();
+        $this->assertNotNull($noBranch);
+        $this->assertSame(0, $noBranch->branches()->count());
+
+        $forced = User::query()->where('username', 'ACCEPTANCE-forcepw')->first();
+        $this->assertNotNull($forced);
+        $this->assertTrue((bool) $forced->force_password_change);
 
         $customer = Customer::query()->withoutGlobalScopes()
             ->where('zoho_contact_id', AcceptanceSeeder::ZOHO_CONTACT_ID)

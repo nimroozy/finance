@@ -17,7 +17,7 @@ class DeploymentInfo
 
         return [
             'app_name' => (string) config('app.name'),
-            'stage' => (string) config('app.stage', '10.3-functional-acceptance'),
+            'stage' => (string) config('app.stage', '10.4-production-acceptance-closure'),
             'git_sha' => $gitSha,
             'commit_sha' => $gitSha,
             'branch' => $this->branch(),
@@ -34,7 +34,7 @@ class DeploymentInfo
 
     public function stage(): string
     {
-        return (string) config('app.stage', '10.3-functional-acceptance');
+        return (string) config('app.stage', '10.4-production-acceptance-closure');
     }
 
     public function commitSha(): ?string
@@ -100,7 +100,7 @@ class DeploymentInfo
             }
         }
 
-        return 'cursor/stage-10-3-functional-acceptance';
+        return 'cursor/stage-10-4-production-acceptance-closure';
     }
 
     public function buildTimestamp(): ?string

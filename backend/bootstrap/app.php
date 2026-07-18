@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureAcceptanceEnvironment;
 use App\Http\Middleware\EnsurePasswordChanged;
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Middleware\ForceJsonResponse;
@@ -39,6 +40,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role_or_permission' => RoleOrPermissionMiddleware::class,
             'password.changed' => EnsurePasswordChanged::class,
             'user.active' => EnsureUserIsActive::class,
+            'acceptance.env' => EnsureAcceptanceEnvironment::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

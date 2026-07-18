@@ -1,8 +1,9 @@
-# UI Acceptance Results (Stage 10.3 brief)
+# UI Acceptance Results (Stage 10.4)
 
 **Date:** 2026-07-18  
-**Suite:** mocked Playwright (`desktop-chromium`) + backend feature filters  
-**KEY_KEPT:** yes
+**Suites:** mocked Playwright (`npm run e2e:mocked`) **and** real acceptance (`npm run e2e:acceptance`, six projects)  
+**KEY_KEPT:** yes  
+**Details:** [STAGE_10_4_ACCEPTANCE_RESULTS.md](STAGE_10_4_ACCEPTANCE_RESULTS.md)
 
 ## Pre-deploy gates
 

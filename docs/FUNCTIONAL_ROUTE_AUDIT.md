@@ -1,9 +1,20 @@
-# Functional Route Audit — Stage 10.2 Production Recovery
+# Functional Route Audit — Stage 10.4 Production Acceptance Closure
 
-**Branch:** `cursor/stage-10-2-production-recovery`  
-**Generated:** 2026-07-17  
-**Scope:** Frontend `(app)` routes, API routes, app catalog, permissions, feature flags.  
+**Branch:** `cursor/stage-10-4-production-acceptance-closure`  
+**Updated:** 2026-07-18  
+**Scope:** Frontend `(app)` routes, API routes, app catalog, permissions, feature flags, acceptance-only verify routes.  
 **Non-goals:** Stage 11, financial calculation changes, live Radius.
+
+Automated crawl results: [STAGE_10_4_ROUTE_RESULTS.md](STAGE_10_4_ROUTE_RESULTS.md).
+
+## Acceptance-only routes (not production)
+
+| Method | Path | Notes |
+|--------|------|-------|
+| GET | `/api/v1/acceptance/ping` | 404 unless `APP_ENV` ∈ acceptance\|testing\|local |
+| POST | `/api/v1/acceptance/assert` | DB assertion helper |
+| GET | `/api/v1/acceptance/stock-reconciliation` | ledger identity check |
+| GET | `/api/v1/acceptance/fixtures` | fixture counts |
 
 ## Architecture notes (CRM / Zoho / Radius)
 

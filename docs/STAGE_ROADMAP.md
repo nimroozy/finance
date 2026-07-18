@@ -174,6 +174,16 @@ Functional acceptance of launcher, ActivationPanel evidence UI, service queues, 
 
 ---
 
+## Stage 10.4 — Production acceptance closure
+
+**Tip branch:** `cursor/stage-10-4-production-acceptance-closure`. Version label: `10.4-production-acceptance-closure`.
+
+Isolated acceptance stack, `./scripts/run-acceptance.sh`, real Playwright matrix (desktop/mobile/small-mobile × en/fa), DB assertions, route crawler, console/network audit, SHA closure. Docs: [STAGE_10_4_PRODUCTION_ACCEPTANCE_CLOSURE.md](STAGE_10_4_PRODUCTION_ACCEPTANCE_CLOSURE.md), [STAGE_10_4_DELIVERY_REPORT.md](STAGE_10_4_DELIVERY_REPORT.md), [STAGE_10_4_STARTING_SHA.md](STAGE_10_4_STARTING_SHA.md), [STAGE_10_4_SHA_VERIFICATION.md](STAGE_10_4_SHA_VERIFICATION.md).
+
+**Hard rules:** No Stage 11. No Radius. No live WhatsApp. No uncontrolled Zoho writes. Do not seed AcceptanceSeeder on production. Required real E2E skipped count = 0. Preserve SSH deploy keys (**KEY_KEPT**).
+
+---
+
 ## Stage 11 — Unified dashboards and operational reporting
 
 Branch sales, sales by employee, new internet vs equipment sales, installation pipeline, ticket SLA, task backlog, inventory value, tower assets, receivables, collections, cash handovers, service lifecycle status, department performance, branch comparison.

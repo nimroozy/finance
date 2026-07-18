@@ -1,11 +1,13 @@
 openapi: 3.0.3
 info:
   title: Collection Management System API
-  version: 1.9.0
+  version: 1.9.1
   license:
     name: Proprietary
     url: https://finance.mns.af
   description: |
+    Stage 10.4 adds acceptance-only verification endpoints (unavailable in production).
+
     Stage 1–5 APIs for the Finance Collection Management System (auth, RBAC,
     Zoho sync, customers/invoices/debtors, assignments, visits, routes,
     promises, notes, evidence, notifications, collectors, reports, payments,
@@ -93,6 +95,8 @@ tags:
     description: Stage 9 inventory, assets, sites
   - name: Services
     description: Stage 10 ISP service lifecycle (no Radius)
+  - name: Acceptance
+    description: Stage 10.4 acceptance-only verification (404 in production)
 security:
   - bearerAuth: []
 paths:
@@ -125,6 +129,61 @@ paths:
                     properties:
                       data:
                         $ref: '#/components/schemas/HealthData'
+
+  /acceptance/ping:
+    get:
+      tags: [Acceptance]
+      summary: Acceptance environment ping
+      security: []
+      operationId: acceptancePing
+      description: Returns 404 unless APP_ENV is acceptance, testing, or local.
+      responses:
+        '200': { description: Acceptance environment metadata }
+        '404': { description: Not available in this environment }
+
+  /acceptance/assert:
+    post:
+      tags: [Acceptance]
+      summary: Assert acceptance database record
+      security: []
+      operationId: acceptanceAssert
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [entity, key, value]
+              properties:
+                entity: { type: string, enum: [customer, lead, service, user, audit] }
+                key: { type: string }
+                value: {}
+                expect: { type: object, additionalProperties: true }
+      responses:
+        '200': { description: Assertion passed }
+        '422': { description: Assertion failed }
+        '404': { description: Not available in this environment }
+
+  /acceptance/stock-reconciliation:
+    get:
+      tags: [Acceptance]
+      summary: Inventory stock ledger reconciliation
+      security: []
+      operationId: acceptanceStockReconciliation
+      responses:
+        '200': { description: Ledger identity ok }
+        '422': { description: Ledger mismatch }
+        '404': { description: Not available in this environment }
+
+  /acceptance/fixtures:
+    get:
+      tags: [Acceptance]
+      summary: Acceptance fixture counts
+      security: []
+      operationId: acceptanceFixtures
+      responses:
+        '200': { description: Fixture summary }
+        '404': { description: Not available in this environment }
 
   /auth/login:
     post:
@@ -4259,7 +4318,7 @@ paths:
       operationId: systemVersion
       responses:
         '200':
-          description: app_name, stage (10.1-integrated-stable), git_sha/commit_sha, branch, build_timestamp, deployment_timestamp, backend/frontend versions, migration info, php/laravel versions
+          description: app_name, stage (10.4-production-acceptance-closure), git_sha/commit_sha, branch, build_timestamp, deployment_timestamp, backend/frontend versions, migration info, php/laravel versions
 
   /pickers/customers:
     get:
