@@ -31,6 +31,10 @@ export default defineConfig({
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     video: "off",
+    launchOptions: {
+      executablePath: "/opt/pw-browsers/chromium",
+      args: ["--no-sandbox", "--disable-dbus"],
+    },
   },
   outputDir: path.join(artifactRoot, "test-output"),
   projects: [
@@ -44,11 +48,21 @@ export default defineConfig({
     },
     {
       name: "mobile-en",
-      use: { ...devices["iPhone 13"], viewport: { width: 390, height: 844 }, locale: "en-US" },
+      use: {
+        ...devices["iPhone 13"],
+        defaultBrowserType: undefined,
+        viewport: { width: 390, height: 844 },
+        locale: "en-US",
+      },
     },
     {
       name: "mobile-fa",
-      use: { ...devices["iPhone 13"], viewport: { width: 390, height: 844 }, locale: "fa-AF" },
+      use: {
+        ...devices["iPhone 13"],
+        defaultBrowserType: undefined,
+        viewport: { width: 390, height: 844 },
+        locale: "fa-AF",
+      },
     },
     {
       name: "small-mobile-en",

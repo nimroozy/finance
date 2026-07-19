@@ -74,3 +74,6 @@ export function ConfirmDialog({
     </div>
   );
 }
+
+/** Alias for the shared component library naming (Stage 10.5A). */
+export const ConfirmationDialog = ConfirmDialog;

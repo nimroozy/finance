@@ -1350,7 +1350,9 @@ paths:
       summary: List customers
       description: |
         Results are branch-scoped from the authenticated user. Client-supplied
-        `branch_id` filters are applied only within allowed branches.
+        `branch_id` filters are applied only within allowed branches. `search`
+        matches contact_name, company_name, customer_number, email, phone,
+        mobile, whatsapp_number, and zoho_contact_id.
       operationId: listCustomers
       parameters:
         - $ref: '#/components/parameters/Page'
@@ -1358,6 +1360,9 @@ paths:
         - $ref: '#/components/parameters/Search'
         - $ref: '#/components/parameters/BranchId'
         - name: status
+          in: query
+          schema: { type: string }
+        - name: sync_status
           in: query
           schema: { type: string }
         - name: exclude_unmapped
@@ -4324,12 +4329,16 @@ paths:
     get:
       tags: [Pickers]
       summary: Lightweight customer search for forms
+      description: Searches customer_number, contact_name, company_name, phone, mobile, whatsapp_number, and zoho_contact_id.
       operationId: pickerCustomers
       parameters:
         - { in: query, name: q, schema: { type: string } }
         - { in: query, name: branch_id, schema: { type: integer } }
+        - { in: query, name: limit, schema: { type: integer, default: 25 } }
       responses:
-        '200': { description: Customer picker rows }
+        '200': { description: 'Customer picker rows: id, customer_number, contact_name, company_name, phone, mobile, whatsapp_number, zoho_contact_id, status, sync_status, branch' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
   /pickers/users:
     get:
       tags: [Pickers]
@@ -4339,8 +4348,12 @@ paths:
         - { in: query, name: q, schema: { type: string } }
         - { in: query, name: branch_id, schema: { type: integer } }
         - { in: query, name: department_id, schema: { type: integer } }
+        - { in: query, name: role, schema: { type: string }, description: Filter to users holding this Spatie role (e.g. Collector) }
+        - { in: query, name: limit, schema: { type: integer, default: 25 } }
       responses:
         '200': { description: User picker rows }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
   /pickers/departments:
     get:
       tags: [Pickers]
@@ -4350,6 +4363,7 @@ paths:
         - { in: query, name: branch_id, schema: { type: integer } }
       responses:
         '200': { description: Department picker rows }
+        '401': { $ref: '#/components/responses/Unauthorized' }
   /pickers/teams:
     get:
       tags: [Pickers]
@@ -4357,15 +4371,74 @@ paths:
       operationId: pickerTeams
       parameters:
         - { in: query, name: department_id, schema: { type: integer } }
+        - { in: query, name: branch_id, schema: { type: integer } }
       responses:
         '200': { description: Team picker rows }
+        '401': { $ref: '#/components/responses/Unauthorized' }
   /pickers/branches:
     get:
       tags: [Pickers]
       summary: Branch picker (scoped to caller)
       operationId: pickerBranches
+      parameters:
+        - { in: query, name: include_inactive, schema: { type: boolean, default: false } }
       responses:
-        '200': { description: Branch picker rows }
+        '200': { description: 'Branch picker rows: id, code, name_en, name_fa, is_active' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /pickers/collectors:
+    get:
+      tags: [Pickers]
+      summary: Collector search for assignments, ownership transfer, and handovers
+      operationId: pickerCollectors
+      parameters:
+        - { in: query, name: q, schema: { type: string } }
+        - { in: query, name: branch_id, schema: { type: integer } }
+        - { in: query, name: include_inactive, schema: { type: boolean, default: false } }
+        - { in: query, name: limit, schema: { type: integer, default: 25 } }
+      responses:
+        '200': { description: 'Collector picker rows: id, user_id, employee_code, is_active, active_assignments_count, user (name, status, branches)' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /pickers/services:
+    get:
+      tags: [Pickers]
+      summary: Service search for linking a payment, ticket, or task to a service
+      operationId: pickerServices
+      parameters:
+        - { in: query, name: q, schema: { type: string } }
+        - { in: query, name: branch_id, schema: { type: integer } }
+        - { in: query, name: customer_id, schema: { type: integer } }
+        - { in: query, name: limit, schema: { type: integer, default: 25 } }
+      responses:
+        '200': { description: 'Service picker rows: id, service_number, customer, package, branch_id, commercial_status, operational_status' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /pickers/equipment:
+    get:
+      tags: [Pickers]
+      summary: Serialized equipment search (installs, custody, repairs)
+      operationId: pickerEquipment
+      parameters:
+        - { in: query, name: q, schema: { type: string } }
+        - { in: query, name: branch_id, schema: { type: integer } }
+        - { in: query, name: status, schema: { type: string } }
+        - { in: query, name: limit, schema: { type: integer, default: 25 } }
+      responses:
+        '200': { description: 'Equipment picker rows: id, equipment_number, serial_number, mac_address, product, location, custodian, status' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /pickers/products:
+    get:
+      tags: [Pickers]
+      summary: Active product search
+      operationId: pickerProducts
+      parameters:
+        - { in: query, name: q, schema: { type: string } }
+        - { in: query, name: limit, schema: { type: integer, default: 25 } }
+      responses:
+        '200': { description: 'Product picker rows: id, code, name_en, name_fa, category_id' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
 
   /sla-policies:
     get:
@@ -4703,7 +4776,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/IdPath'
       responses:
-        '200': { description: Lead detail with activities, follow_ups, quotations, allowed_transitions }
+        '200': { description: 'Lead detail with activities, follow_ups, quotations, allowed_transitions' }
         '404': { $ref: '#/components/responses/NotFound' }
     put:
       tags: [CRM]
@@ -4777,57 +4850,6 @@ paths:
                 collector_id: { type: integer, nullable: true }
                 win_reason: { type: string }
                 expand_template: { type: boolean }
-
-    CrmLeadCreateRequest:
-      type: object
-      required: [branch_id]
-      properties:
-        branch_id: { type: integer }
-        company: { type: string, nullable: true }
-        contact_person: { type: string, nullable: true }
-        phone: { type: string, nullable: true }
-        whatsapp: { type: string, nullable: true }
-        email: { type: string, nullable: true }
-        address: { type: string, nullable: true }
-        source_code: { type: string, nullable: true }
-        campaign: { type: string, nullable: true }
-        salesperson_id: { type: integer, nullable: true }
-        owner_id: { type: integer, nullable: true }
-        lead_value: { type: number, nullable: true }
-        estimated_mrr: { type: number, nullable: true }
-        interested_package: { type: string, nullable: true }
-        customer_type: { type: string, enum: [residential, business, enterprise, government] }
-        notes: { type: string, nullable: true }
-
-    CrmLeadUpdateRequest:
-      type: object
-      properties:
-        company: { type: string, nullable: true }
-        contact_person: { type: string, nullable: true }
-        phone: { type: string, nullable: true }
-        whatsapp: { type: string, nullable: true }
-        email: { type: string, nullable: true }
-        address: { type: string, nullable: true }
-        source_code: { type: string, nullable: true }
-        salesperson_id: { type: integer, nullable: true }
-        owner_id: { type: integer, nullable: true }
-        lead_value: { type: number, nullable: true }
-        estimated_mrr: { type: number, nullable: true }
-        interested_package: { type: string, nullable: true }
-        notes: { type: string, nullable: true }
-
-    CrmQuotationCreateRequest:
-      type: object
-      required: [lead_id]
-      properties:
-        lead_id: { type: integer }
-        monthly_package: { type: number, nullable: true }
-        installation_fee: { type: number, nullable: true }
-        discount: { type: number, nullable: true }
-        taxes: { type: number, nullable: true }
-        notes: { type: string, nullable: true }
-        valid_until: { type: string, format: date, nullable: true }
-        equipment_json: { type: array, items: { type: object } }
                 template_code: { type: string }
       responses:
         '200': { description: Conversion result with customer_id and installation_id }
@@ -5800,6 +5822,57 @@ components:
                     $ref: '#/components/schemas/PaginationMeta'
 
   schemas:
+    CrmLeadCreateRequest:
+      type: object
+      required: [branch_id]
+      properties:
+        branch_id: { type: integer }
+        company: { type: string, nullable: true }
+        contact_person: { type: string, nullable: true }
+        phone: { type: string, nullable: true }
+        whatsapp: { type: string, nullable: true }
+        email: { type: string, nullable: true }
+        address: { type: string, nullable: true }
+        source_code: { type: string, nullable: true }
+        campaign: { type: string, nullable: true }
+        salesperson_id: { type: integer, nullable: true }
+        owner_id: { type: integer, nullable: true }
+        lead_value: { type: number, nullable: true }
+        estimated_mrr: { type: number, nullable: true }
+        interested_package: { type: string, nullable: true }
+        customer_type: { type: string, enum: [residential, business, enterprise, government] }
+        notes: { type: string, nullable: true }
+
+    CrmLeadUpdateRequest:
+      type: object
+      properties:
+        company: { type: string, nullable: true }
+        contact_person: { type: string, nullable: true }
+        phone: { type: string, nullable: true }
+        whatsapp: { type: string, nullable: true }
+        email: { type: string, nullable: true }
+        address: { type: string, nullable: true }
+        source_code: { type: string, nullable: true }
+        salesperson_id: { type: integer, nullable: true }
+        owner_id: { type: integer, nullable: true }
+        lead_value: { type: number, nullable: true }
+        estimated_mrr: { type: number, nullable: true }
+        interested_package: { type: string, nullable: true }
+        notes: { type: string, nullable: true }
+
+    CrmQuotationCreateRequest:
+      type: object
+      required: [lead_id]
+      properties:
+        lead_id: { type: integer }
+        monthly_package: { type: number, nullable: true }
+        installation_fee: { type: number, nullable: true }
+        discount: { type: number, nullable: true }
+        taxes: { type: number, nullable: true }
+        notes: { type: string, nullable: true }
+        valid_until: { type: string, format: date, nullable: true }
+        equipment_json: { type: array, items: { type: object } }
+
     SuccessEnvelope:
       type: object
       required: [success, data]

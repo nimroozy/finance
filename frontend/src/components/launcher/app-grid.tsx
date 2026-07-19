@@ -2,6 +2,7 @@
 
 import type { CatalogApp } from "@/config/app-catalog";
 import { AppCard } from "@/components/launcher/app-card";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export function AppGrid({
   apps,
@@ -24,9 +25,7 @@ export function AppGrid({
       : new Set(favorites ?? []);
 
   if (apps.length === 0) {
-    return emptyLabel ? (
-      <p className="py-6 text-sm text-muted">{emptyLabel}</p>
-    ) : null;
+    return emptyLabel ? <EmptyState title={emptyLabel} /> : null;
   }
 
   return (

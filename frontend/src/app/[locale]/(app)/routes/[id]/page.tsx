@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useParams } from "next/navigation";
 import { Link } from "@/i18n/navigation";
-import { ApiError } from "@/lib/api";
 import { mapsExternalUrl } from "@/lib/geolocation";
 import {
   cancelRoute,
@@ -19,13 +18,10 @@ import { useAuthStore } from "@/store/auth-store";
 import { LeafletMap } from "@/components/maps/map";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
-import {
-  Alert,
-  EmptyState,
-  LoadingState,
-  PageHeader,
-  Panel,
-} from "@/components/ui/layout";
+import { Alert, EmptyState, LoadingState, PageHeader, Panel } from "@/components/ui/layout";
+import { ErrorState } from "@/components/ui/error-state";
+
+const RESOLVED_STOP_STATUSES = new Set(["completed", "skipped"]);
 
 export default function RouteDetailPage() {
   const t = useTranslations("routesPage");
@@ -39,7 +35,8 @@ export default function RouteDetailPage() {
 
   const [route, setRoute] = useState<CollectionRoute | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown>(null);
+  const [actionError, setActionError] = useState<unknown>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -51,11 +48,11 @@ export default function RouteDetailPage() {
       const res = await getRoute(id);
       setRoute(res.data);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : tCommon("error"));
+      setError(err);
     } finally {
       setLoading(false);
     }
-  }, [id, tCommon]);
+  }, [id]);
 
   useEffect(() => {
     void load();
@@ -88,22 +85,27 @@ export default function RouteDetailPage() {
       | "cancelSuccess",
   ) {
     setBusy(true);
-    setError(null);
+    setActionError(null);
     try {
       await action();
       setSuccess(t(successKey));
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : tCommon("error"));
+      setActionError(err);
     } finally {
       setBusy(false);
     }
   }
 
   if (loading) return <LoadingState label={tCommon("loading")} />;
-  if (!route) {
-    return error ? <Alert>{error}</Alert> : <EmptyState label={tCommon("empty")} />;
+  if (error || !route) {
+    return <ErrorState error={error} onRetry={() => void load()} />;
   }
+
+  const stops = route.stops ?? [];
+  const completedCount = stops.filter((s) => RESOLVED_STOP_STATUSES.has(s.status)).length;
+  const remainingCount = stops.filter((s) => !RESOLVED_STOP_STATUSES.has(s.status)).length;
+  const currentStop = stops.find((s) => !RESOLVED_STOP_STATUSES.has(s.status)) ?? null;
 
   return (
     <div>
@@ -155,9 +157,9 @@ export default function RouteDetailPage() {
         }
       />
 
-      {error ? (
+      {actionError ? (
         <div className="mb-4">
-          <Alert>{error}</Alert>
+          <ErrorState error={actionError} />
         </div>
       ) : null}
       {success ? (
@@ -166,7 +168,7 @@ export default function RouteDetailPage() {
         </div>
       ) : null}
 
-      <Panel className="mb-4 grid gap-3 p-4 sm:grid-cols-3">
+      <Panel className="mb-4 grid gap-3 p-4 sm:grid-cols-4">
         <div>
           <p className="text-xs text-muted">{t("status")}</p>
           <StatusBadge status={route.status} />
@@ -176,8 +178,31 @@ export default function RouteDetailPage() {
           <p>{route.collector?.user?.name || `#${route.collector_id}`}</p>
         </div>
         <div>
+          <p className="text-xs text-muted">{t("currentStop")}</p>
+          <p className="font-medium">
+            {currentStop
+              ? `#${currentStop.sequence} ${currentStop.customer?.contact_name || `Customer #${currentStop.customer_id}`}`
+              : "—"}
+          </p>
+        </div>
+        <div>
           <p className="text-xs text-muted">{t("notes")}</p>
           <p>{route.notes || "—"}</p>
+        </div>
+      </Panel>
+
+      <Panel className="mb-4 grid grid-cols-2 gap-3 p-4 sm:grid-cols-3">
+        <div>
+          <p className="text-xs text-muted">{t("stops")}</p>
+          <p className="text-xl font-semibold">{stops.length}</p>
+        </div>
+        <div>
+          <p className="text-xs text-muted">{t("completedStops")}</p>
+          <p className="text-xl font-semibold text-success">{completedCount}</p>
+        </div>
+        <div>
+          <p className="text-xs text-muted">{t("remainingStops")}</p>
+          <p className="text-xl font-semibold text-warning">{remainingCount}</p>
         </div>
       </Panel>
 

@@ -1,9 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
-import { ApiError } from "@/lib/api";
 import {
   approveCashHandover,
   getCashHandover,
@@ -11,26 +10,29 @@ import {
   rejectCashHandover,
   type CashHandover,
 } from "@/lib/handovers";
-import { formatMoney } from "@/lib/utils";
+import { formatDateTime, formatMoney } from "@/lib/utils";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/form";
-import {
-  Alert,
-  EmptyState,
-  LoadingState,
-  PageHeader,
-  Panel,
-} from "@/components/ui/layout";
+import { Input, Label } from "@/components/ui/form";
+import { PageHeader } from "@/components/ui/layout";
+import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
+import { ErrorState } from "@/components/ui/error-state";
+import { DetailSection } from "@/components/ui/detail-section";
+import { useToast } from "@/components/ui/toast";
+import { ApiError } from "@/lib/api";
 
 export default function ManagerHandoversPage() {
+  const t = useTranslations("handoversPage");
+  const tCommon = useTranslations("common");
   const locale = useLocale();
+  const { show } = useToast();
+
   const [rows, setRows] = useState<CashHandover[]>([]);
   const [selected, setSelected] = useState<CashHandover | null>(null);
   const [counted, setCounted] = useState("");
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
@@ -40,7 +42,7 @@ export default function ManagerHandoversPage() {
       const res = await listCashHandovers(1);
       setRows(res.data);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Error");
+      setError(err);
     } finally {
       setLoading(false);
     }
@@ -58,7 +60,7 @@ export default function ManagerHandoversPage() {
       setCounted(row.data.declared_amount);
       setNotes("");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Error");
+      show({ tone: "error", title: tCommon("error"), description: err instanceof ApiError ? err.message : undefined });
     } finally {
       setBusy(false);
     }
@@ -73,10 +75,11 @@ export default function ManagerHandoversPage() {
         approved_amount: counted,
         notes: notes || undefined,
       });
+      show({ tone: "success", title: t("approveSuccess") });
       setSelected(null);
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Error");
+      show({ tone: "error", title: tCommon("error"), description: err instanceof ApiError ? err.message : undefined });
     } finally {
       setBusy(false);
     }
@@ -87,90 +90,94 @@ export default function ManagerHandoversPage() {
     setBusy(true);
     try {
       await rejectCashHandover(selected.id, notes || "Rejected");
+      show({ tone: "success", title: t("rejectSuccess") });
       setSelected(null);
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Error");
+      show({ tone: "error", title: tCommon("error"), description: err instanceof ApiError ? err.message : undefined });
     } finally {
       setBusy(false);
     }
   }
 
-  if (loading) return <LoadingState label={locale === "fa" ? "در حال بارگذاری…" : "Loading…"} />;
+  const columns: DataTableColumn<CashHandover>[] = [
+    {
+      key: "collector",
+      label: t("collector"),
+      render: (row) => row.collector?.user?.name || `#${row.collector_id}`,
+    },
+    {
+      key: "cashbox",
+      label: t("cashbox"),
+      render: (row) => row.cashbox?.name || "—",
+    },
+    {
+      key: "amount",
+      label: t("amount"),
+      render: (row) => formatMoney(row.declared_amount, row.currency, locale),
+    },
+    {
+      key: "paymentCount",
+      label: t("paymentCount"),
+      render: (row) => row.items?.length ?? 0,
+    },
+    { key: "status", label: t("status"), render: (row) => <StatusBadge status={row.status} /> },
+    {
+      key: "submitted",
+      label: t("submittedAt"),
+      render: (row) => formatDateTime(row.submitted_at, locale),
+    },
+    {
+      key: "verified",
+      label: t("verifiedAt"),
+      render: (row) => formatDateTime(row.approved_at, locale),
+    },
+    {
+      key: "actions",
+      label: tCommon("actions"),
+      render: (row) => (
+        <Button variant="secondary" size="sm" disabled={busy} onClick={() => void openReview(row.id)}>
+          {t("review")}
+        </Button>
+      ),
+    },
+  ];
 
   return (
     <div className="space-y-4">
-      <PageHeader
-        title={locale === "fa" ? "تحویل‌های نقدی" : "Cash handovers"}
-        subtitle={
-          locale === "fa"
-            ? "بررسی و تأیید تحویل نقد از تحصیلداران"
-            : "Review and approve collector cash handovers"
-        }
-      />
-      {error ? <Alert tone="danger">{error}</Alert> : null}
-      <Panel>
-        {rows.length === 0 ? (
-          <EmptyState label={locale === "fa" ? "موردی نیست" : "No handovers"} />
-        ) : (
-          <ul className="divide-y">
-            {rows.map((row) => (
-              <li key={row.id} className="flex items-center gap-3 py-3">
-                <div className="flex-1">
-                  <div className="font-medium">
-                    {row.handover_number || `#${row.id}`}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    {formatMoney(row.declared_amount, row.currency, locale)}
-                  </div>
-                </div>
-                <StatusBadge status={row.status} />
-                <Button
-                  variant="secondary"
-                  disabled={busy}
-                  onClick={() => void openReview(row.id)}
-                >
-                  {locale === "fa" ? "بررسی" : "Review"}
-                </Button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Panel>
+      <PageHeader title={t("title")} subtitle={t("subtitle")} />
+
+      {error ? (
+        <ErrorState error={error} onRetry={load} />
+      ) : (
+        <DataTable rows={rows} columns={columns} rowKey={(row) => row.id} loading={loading} emptyLabel={t("empty")} />
+      )}
 
       {selected ? (
-        <Panel>
-          <h2 className="mb-3 text-lg font-semibold">
-            {locale === "fa" ? "بررسی تحویل" : "Review handover"} #{selected.id}
-          </h2>
+        <DetailSection title={`${t("reviewTitle")} #${selected.id}`}>
           <p className="text-sm">
-            {locale === "fa" ? "مجموع پرداخت‌ها" : "Selected total"}:{" "}
-            {formatMoney(selected.selected_payment_total, selected.currency, locale)}
+            {t("selectedTotal")}: {formatMoney(selected.selected_payment_total, selected.currency, locale)}
           </p>
-          <label className="mt-3 block text-sm">
-            {locale === "fa" ? "مبلغ شمارش‌شده" : "Counted amount"}
+          <div className="mt-3">
+            <Label>{t("countedAmount")}</Label>
             <Input value={counted} onChange={(e) => setCounted(e.target.value)} />
-          </label>
-          <label className="mt-3 block text-sm">
-            {locale === "fa" ? "یادداشت" : "Notes"}
+          </div>
+          <div className="mt-3">
+            <Label>{t("notes")}</Label>
             <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
-          </label>
-          <div className="mt-4 flex gap-2">
+          </div>
+          <div className="mt-4 flex flex-wrap items-center gap-2">
             <Button disabled={busy || selected.status !== "submitted"} onClick={() => void approve()}>
-              {locale === "fa" ? "تأیید" : "Approve"}
+              {t("approve")}
             </Button>
-            <Button
-              variant="secondary"
-              disabled={busy || selected.status !== "submitted"}
-              onClick={() => void reject()}
-            >
-              {locale === "fa" ? "رد" : "Reject"}
+            <Button variant="secondary" disabled={busy || selected.status !== "submitted"} onClick={() => void reject()}>
+              {t("reject")}
             </Button>
-            <Link href="/cashboxes" className="self-center text-sm underline">
-              {locale === "fa" ? "صندوق شعبه" : "Branch cashboxes"}
+            <Link href="/cashboxes" className="text-sm text-primary hover:underline">
+              {t("branchCashboxes")}
             </Link>
           </div>
-        </Panel>
+        </DetailSection>
       ) : null}
     </div>
   );

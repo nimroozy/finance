@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "@/i18n/navigation";
-import { ApiError } from "@/lib/api";
 import { getAssignment, listAssignments } from "@/lib/assignments";
 import { listInvoices } from "@/lib/customers";
 import { getCurrentPosition } from "@/lib/geolocation";
@@ -26,6 +25,11 @@ import { formatMoney } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select, TextArea } from "@/components/ui/form";
 import { Alert, LoadingState, PageHeader, Panel } from "@/components/ui/layout";
+import { FormField } from "@/components/ui/form-field";
+import { CustomerPicker } from "@/components/ui/pickers";
+import { ErrorState } from "@/components/ui/error-state";
+import { ConfirmationDialog } from "@/components/ui/confirm-dialog";
+import type { SearchableOption } from "@/components/ui/searchable-select";
 
 type Step = 1 | 2 | 3;
 
@@ -43,6 +47,8 @@ export default function CollectorNewPaymentPage() {
   const [assignments, setAssignments] = useState<CustomerAssignment[]>([]);
   const [assignmentId, setAssignmentId] = useState(assignmentIdParam);
   const [customerId, setCustomerId] = useState(customerIdParam);
+  const [selectedCustomer, setSelectedCustomer] = useState<SearchableOption | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [allocations, setAllocations] = useState<Record<number, string>>({});
   const [amount, setAmount] = useState("");
@@ -57,7 +63,7 @@ export default function CollectorNewPaymentPage() {
   const [gpsMsg, setGpsMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown>(null);
 
   useEffect(() => {
     void (async () => {
@@ -77,9 +83,17 @@ export default function CollectorNewPaymentPage() {
           const detail = await getAssignment(Number(assignmentIdParam));
           setCustomerId(String(detail.data.customer_id));
           setAssignmentId(String(detail.data.id));
+          const c = detail.data.customer;
+          if (c) {
+            setSelectedCustomer({
+              id: c.id,
+              label: c.contact_name || c.company_name || `#${c.id}`,
+              description: c.customer_number ?? undefined,
+            });
+          }
         }
       } catch (err) {
-        setError(err instanceof ApiError ? err.message : tCommon("error"));
+        setError(err);
       } finally {
         setLoading(false);
       }
@@ -128,11 +142,11 @@ export default function CollectorNewPaymentPage() {
       setAllocations(next);
       setStep(2);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : tCommon("error"));
+      setError(err);
     } finally {
       setBusy(false);
     }
-  }, [customerId, t, tCommon]);
+  }, [customerId, t]);
 
   async function captureGps() {
     const pos = await getCurrentPosition();
@@ -188,7 +202,7 @@ export default function CollectorNewPaymentPage() {
       setPreview(res.data);
       setStep(3);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : tCommon("error"));
+      setError(err);
     } finally {
       setBusy(false);
     }
@@ -204,7 +218,7 @@ export default function CollectorNewPaymentPage() {
       const confirmed = await confirmPayment(draft.data.uuid);
       router.push(`/collector/payments/${confirmed.data.uuid}`);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : tCommon("error"));
+      setError(err);
       setBusy(false);
     }
   }
@@ -214,7 +228,16 @@ export default function CollectorNewPaymentPage() {
   return (
     <div className="space-y-4">
       <PageHeader title={t("createTitle")} />
-      {error ? <Alert>{error}</Alert> : null}
+      {error ? (
+        typeof error === "string" ? (
+          <Alert>{error}</Alert>
+        ) : (
+          <ErrorState
+            error={error}
+            onRetry={step === 1 ? () => void loadInvoices() : undefined}
+          />
+        )
+      ) : null}
       {gpsMsg ? <Alert tone="info">{gpsMsg}</Alert> : null}
 
       <p className="text-sm text-muted">
@@ -227,37 +250,46 @@ export default function CollectorNewPaymentPage() {
 
       {step === 1 ? (
         <Panel className="space-y-4 p-4">
-          <div>
-            <Label>{t("selectAssignment")}</Label>
-            <Select
-              value={assignmentId}
-              onChange={(e) => {
-                const id = e.target.value;
-                setAssignmentId(id);
-                const found = assignments.find((a) => String(a.id) === id);
-                if (found) setCustomerId(String(found.customer_id));
+          {assignments.length > 0 ? (
+            <div>
+              <Label htmlFor="assignment">{t("selectAssignment")}</Label>
+              <Select
+                id="assignment"
+                value={assignmentId}
+                onChange={(e) => {
+                  const id = e.target.value;
+                  setAssignmentId(id);
+                  const found = assignments.find((a) => String(a.id) === id);
+                  if (found) {
+                    setCustomerId(String(found.customer_id));
+                    setSelectedCustomer({
+                      id: found.customer_id,
+                      label: found.customer?.contact_name || found.customer?.company_name || `#${found.customer_id}`,
+                      description: found.customer?.customer_number ?? undefined,
+                    });
+                  }
+                }}
+                className="h-12"
+              >
+                <option value="">—</option>
+                {assignments.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.customer?.contact_name || `#${a.customer_id}`} · {a.status}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          ) : null}
+          <FormField label={t("customer")} required>
+            <CustomerPicker
+              value={selectedCustomer}
+              onChange={(option) => {
+                setSelectedCustomer(option);
+                setCustomerId(option ? String(option.id) : "");
+                setAssignmentId("");
               }}
-              className="h-12"
-            >
-              <option value="">—</option>
-              {assignments.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.customer?.contact_name || `#${a.customer_id}`} ·{" "}
-                  {a.status}
-                </option>
-              ))}
-            </Select>
-          </div>
-          <div>
-            <Label>{t("customerId")}</Label>
-            <Input
-              type="number"
-              value={customerId}
-              onChange={(e) => setCustomerId(e.target.value)}
-              className="h-12"
-              required
             />
-          </div>
+          </FormField>
           <Button
             className="h-12 w-full"
             disabled={busy || !customerId}
@@ -346,8 +378,9 @@ export default function CollectorNewPaymentPage() {
       {step === 3 ? (
         <Panel className="space-y-4 p-4">
           <div>
-            <Label>{t("method")}</Label>
+            <Label htmlFor="method">{t("method")}</Label>
             <Select
+              id="method"
               value={methodId}
               onChange={(e) => setMethodId(e.target.value)}
               className="h-12"
@@ -428,7 +461,7 @@ export default function CollectorNewPaymentPage() {
             <Button
               className="h-12 w-full"
               disabled={busy || !preview}
-              onClick={() => void submitPayment()}
+              onClick={() => setConfirmOpen(true)}
             >
               {busy ? t("submitting") : t("confirmPay")}
             </Button>
@@ -446,6 +479,22 @@ export default function CollectorNewPaymentPage() {
           </div>
         </Panel>
       ) : null}
+
+      <ConfirmationDialog
+        open={confirmOpen}
+        title={t("confirmPay")}
+        description={t("confirmPaySummary", {
+          amount: formatMoney(preview?.amount ?? amount, preview?.currency, locale),
+          customer: selectedCustomer?.label ?? "",
+        })}
+        confirmLabel={t("confirmPay")}
+        loading={busy}
+        onCancel={() => setConfirmOpen(false)}
+        onConfirm={() => {
+          setConfirmOpen(false);
+          void submitPayment();
+        }}
+      />
     </div>
   );
 }

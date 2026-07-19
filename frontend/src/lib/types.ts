@@ -422,6 +422,7 @@ export interface CustomerListParams {
   search?: string;
   status?: string;
   branch_id?: number | string;
+  sync_status?: string;
   exclude_unmapped?: boolean;
 }
 
@@ -608,6 +609,13 @@ export interface CollectorWorkload {
   employee_code: string | null;
   active_assignments: number;
   max_active_assignments: number | null;
+}
+
+export interface AssignmentsByCollectorRow {
+  collector_id: number;
+  status: string;
+  total: number;
+  total_outstanding: string | number;
 }
 
 export interface VisitOutcome {
@@ -798,8 +806,9 @@ export interface PromiseToPay {
   superseded_by_id?: number | null;
   created_at?: string;
   updated_at?: string;
-  customer?: Pick<Customer, "id" | "contact_name" | "company_name"> | null;
+  customer?: Pick<Customer, "id" | "contact_name" | "company_name" | "customer_number"> | null;
   collector?: (Collector & { user?: CollectorUserSummary | null }) | null;
+  branch?: BranchSummary | null;
 }
 
 export interface PromiseListParams {

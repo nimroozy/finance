@@ -3,22 +3,28 @@
 import { useCallback, useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
-import { ApiError } from "@/lib/api";
 import { exportAssignments, listAssignments } from "@/lib/assignments";
-import { listCollectors } from "@/lib/collectors";
-import type { Collector, CustomerAssignment } from "@/lib/types";
+import type { CustomerAssignment } from "@/lib/types";
 import { formatDate, formatMoney } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth-store";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/form";
-import {
-  Alert,
-  EmptyState,
-  LoadingState,
-  PageHeader,
-  Panel,
-} from "@/components/ui/layout";
+import { PageHeader } from "@/components/ui/layout";
+import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
+import { ErrorState } from "@/components/ui/error-state";
+import { CollectorPicker, BranchPicker } from "@/components/ui/pickers";
+import type { SearchableOption } from "@/components/ui/searchable-select";
+
+const STATUSES = [
+  "assigned",
+  "accepted",
+  "in_progress",
+  "closed",
+  "cancelled",
+  "reassigned",
+  "fully_resolved",
+];
 
 export default function AssignmentsPage() {
   const t = useTranslations("assignments");
@@ -28,14 +34,15 @@ export default function AssignmentsPage() {
   const canExport = useAuthStore((s) => s.hasPermission("assignments.export"));
 
   const [rows, setRows] = useState<CustomerAssignment[]>([]);
-  const [collectors, setCollectors] = useState<Collector[]>([]);
   const [meta, setMeta] = useState({ current_page: 1, last_page: 1 });
   const [status, setStatus] = useState("");
-  const [collectorId, setCollectorId] = useState("");
+  const [collector, setCollector] = useState<SearchableOption | null>(null);
+  const [branch, setBranch] = useState<SearchableOption | null>(null);
   const [activeOnly, setActiveOnly] = useState(true);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown>(null);
   const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<unknown>(null);
 
   const load = useCallback(
     async (page = 1) => {
@@ -45,7 +52,8 @@ export default function AssignmentsPage() {
         const res = await listAssignments({
           page,
           status: status || undefined,
-          collector_id: collectorId || undefined,
+          collector_id: collector ? String(collector.id) : undefined,
+          branch_id: branch ? String(branch.id) : undefined,
           is_active: activeOnly ? true : undefined,
         });
         setRows(res.data);
@@ -54,37 +62,62 @@ export default function AssignmentsPage() {
           last_page: res.meta?.last_page ?? 1,
         });
       } catch (err) {
-        setError(err instanceof ApiError ? err.message : tCommon("error"));
+        setError(err);
       } finally {
         setLoading(false);
       }
     },
-    [status, collectorId, activeOnly, tCommon],
+    [status, collector, branch, activeOnly],
   );
 
   useEffect(() => {
     void load(1);
   }, [load]);
 
-  useEffect(() => {
-    void listCollectors({ is_active: true })
-      .then((res) => setCollectors(res.data))
-      .catch(() => setCollectors([]));
-  }, []);
-
   async function onExport() {
     setExporting(true);
-    setError(null);
+    setExportError(null);
     try {
-      await exportAssignments({
-        status: status || undefined,
-      });
+      await exportAssignments({ status: status || undefined });
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : t("exportFailed"));
+      setExportError(err);
     } finally {
       setExporting(false);
     }
   }
+
+  const columns: DataTableColumn<CustomerAssignment>[] = [
+    {
+      key: "customer",
+      label: t("customer"),
+      render: (row) => (
+        <Link
+          href={`/assignments/${row.id}`}
+          className="font-medium text-primary hover:underline"
+        >
+          {row.customer?.contact_name || `#${row.customer_id}`}
+        </Link>
+      ),
+    },
+    {
+      key: "collector",
+      label: t("collector"),
+      render: (row) => row.collector?.user?.name || `#${row.collector_id}`,
+    },
+    { key: "status", label: t("status"), render: (row) => <StatusBadge status={row.status} /> },
+    { key: "priority", label: t("priority"), render: (row) => row.priority },
+    {
+      key: "outstanding",
+      label: t("outstanding"),
+      render: (row) =>
+        formatMoney(
+          row.debt_snapshot_outstanding ?? row.customer?.outstanding_receivable,
+          row.debt_snapshot_currency ?? row.customer?.currency,
+          locale,
+        ),
+    },
+    { key: "dueDate", label: t("dueDate"), render: (row) => formatDate(row.due_date, locale) },
+  ];
 
   return (
     <div>
@@ -104,11 +137,7 @@ export default function AssignmentsPage() {
               </>
             ) : null}
             {canExport ? (
-              <Button
-                variant="secondary"
-                disabled={exporting}
-                onClick={() => void onExport()}
-              >
+              <Button variant="secondary" disabled={exporting} onClick={() => void onExport()}>
                 {t("export")}
               </Button>
             ) : null}
@@ -116,140 +145,48 @@ export default function AssignmentsPage() {
         }
       />
 
-      {error ? (
+      {exportError ? (
         <div className="mb-4">
-          <Alert>{error}</Alert>
+          <ErrorState error={exportError} onRetry={() => void onExport()} />
         </div>
       ) : null}
 
-      <Panel className="mb-4 p-4">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <Select
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-            className="sm:max-w-xs"
-          >
-            <option value="">{tCommon("all")}</option>
-            {[
-              "assigned",
-              "accepted",
-              "in_progress",
-              "closed",
-              "cancelled",
-              "reassigned",
-              "fully_resolved",
-            ].map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </Select>
-          <Select
-            value={collectorId}
-            onChange={(e) => setCollectorId(e.target.value)}
-            className="sm:max-w-xs"
-          >
-            <option value="">{t("selectCollector")}</option>
-            {collectors.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.user?.name ?? `#${c.id}`}
-              </option>
-            ))}
-          </Select>
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={activeOnly}
-              onChange={(e) => setActiveOnly(e.target.checked)}
-            />
-            {t("activeOnly")}
-          </label>
-        </div>
-      </Panel>
-
-      <Panel>
-        {loading ? (
-          <LoadingState label={tCommon("loading")} />
-        ) : rows.length === 0 ? (
-          <EmptyState label={tCommon("empty")} />
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px] text-start text-sm">
-              <thead className="border-b border-border bg-sand-soft/40 text-muted">
-                <tr>
-                  <th className="px-4 py-3 font-medium">{t("customer")}</th>
-                  <th className="px-4 py-3 font-medium">{t("collector")}</th>
-                  <th className="px-4 py-3 font-medium">{t("status")}</th>
-                  <th className="px-4 py-3 font-medium">{t("priority")}</th>
-                  <th className="px-4 py-3 font-medium">{t("outstanding")}</th>
-                  <th className="px-4 py-3 font-medium">{t("dueDate")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row) => (
-                  <tr key={row.id} className="border-b border-border last:border-0">
-                    <td className="px-4 py-3">
-                      <Link
-                        href={`/assignments/${row.id}`}
-                        className="font-medium text-primary hover:underline"
-                      >
-                        {row.customer?.contact_name || `#${row.customer_id}`}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3">
-                      {row.collector?.user?.name || `#${row.collector_id}`}
-                    </td>
-                    <td className="px-4 py-3">
-                      <StatusBadge status={row.status} />
-                    </td>
-                    <td className="px-4 py-3">{row.priority}</td>
-                    <td className="px-4 py-3">
-                      {formatMoney(
-                        row.debt_snapshot_outstanding ??
-                          row.customer?.outstanding_receivable,
-                        row.debt_snapshot_currency ?? row.customer?.currency,
-                        locale,
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {formatDate(row.due_date, locale)}
-                    </td>
-                  </tr>
+      {error ? (
+        <ErrorState error={error} onRetry={() => load(meta.current_page)} />
+      ) : (
+        <DataTable
+          rows={rows}
+          columns={columns}
+          rowKey={(row) => row.id}
+          loading={loading}
+          emptyLabel={tCommon("empty")}
+          page={meta.current_page}
+          lastPage={meta.last_page}
+          onPageChange={(page) => void load(page)}
+          filters={
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:flex-wrap">
+              <Select value={status} onChange={(e) => setStatus(e.target.value)} className="sm:max-w-xs" aria-label={t("status")}>
+                <option value="">{tCommon("all")}</option>
+                {STATUSES.map((s) => (
+                  <option key={s} value={s}>
+                    {s.replace(/_/g, " ")}
+                  </option>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {meta.last_page > 1 ? (
-          <div className="flex items-center justify-between gap-3 border-t border-border px-4 py-3">
-            <p className="text-sm text-muted">
-              {tCommon("page", {
-                page: meta.current_page,
-                total: meta.last_page,
-              })}
-            </p>
-            <div className="flex gap-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={meta.current_page <= 1 || loading}
-                onClick={() => void load(meta.current_page - 1)}
-              >
-                {tCommon("previous")}
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={meta.current_page >= meta.last_page || loading}
-                onClick={() => void load(meta.current_page + 1)}
-              >
-                {tCommon("next")}
-              </Button>
+              </Select>
+              <CollectorPicker value={collector} onChange={setCollector} className="sm:max-w-xs" />
+              <BranchPicker value={branch} onChange={setBranch} className="sm:max-w-xs" />
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={activeOnly}
+                  onChange={(e) => setActiveOnly(e.target.checked)}
+                />
+                {t("activeOnly")}
+              </label>
             </div>
-          </div>
-        ) : null}
-      </Panel>
+          }
+        />
+      )}
     </div>
   );
 }

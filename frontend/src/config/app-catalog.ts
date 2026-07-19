@@ -557,6 +557,7 @@ export const APP_CONTEXT_NAV: Record<string, AppNavItem[]> = {
     { href: "/promises", labelKey: "promises", permissions: ["promises.view"] },
     { href: "/debtors", labelKey: "debtors", permissions: ["debtors.view"] },
     { href: "/collectors", labelKey: "collectors", permissions: ["collectors.view", "collectors.manage"] },
+    { href: "/collectors/performance", labelKey: "collectorPerformance", permissions: ["reports.assignments"] },
     { href: "/collector", labelKey: "collectorHome", permissions: ["assignments.view", "visits.view"] },
   ],
   tasks: [

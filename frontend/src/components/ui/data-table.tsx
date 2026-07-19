@@ -1,8 +1,10 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/form";
+import { LoadingSkeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Pagination } from "@/components/ui/pagination";
 import { cn } from "@/lib/utils";
 
 export type DataTableColumn<T> = {
@@ -65,15 +67,9 @@ export function DataTable<T>({
       ) : null}
 
       {loading ? (
-        <div className="space-y-3 p-4" aria-label={t("loading")}>
-          {Array.from({ length: 5 }).map((_, index) => (
-            <div key={index} className="h-12 animate-pulse rounded-md bg-sand-soft" />
-          ))}
-        </div>
+        <LoadingSkeleton />
       ) : rows.length === 0 ? (
-        <div className="flex min-h-36 items-center justify-center p-4 text-sm text-muted">
-          {emptyLabel ?? t("empty")}
-        </div>
+        <EmptyState title={emptyLabel ?? t("empty")} />
       ) : (
         <>
           <div className={mobileCard ? "hidden overflow-x-auto sm:block" : "overflow-x-auto"}>
@@ -89,7 +85,10 @@ export function DataTable<T>({
               </thead>
               <tbody>
                 {rows.map((row) => (
-                  <tr key={rowKey(row)} className="border-b border-border last:border-0">
+                  <tr
+                    key={rowKey(row)}
+                    className="border-b border-border transition-colors last:border-0 hover:bg-surface-muted/60"
+                  >
                     {columns.map((column) => (
                       <td key={column.key} className={cn("px-4 py-3", column.className)}>
                         {column.render(row)}
@@ -110,16 +109,8 @@ export function DataTable<T>({
         </>
       )}
 
-      {onPageChange && lastPage > 1 ? (
-        <div className="flex items-center justify-between gap-3 border-t border-border p-3">
-          <Button variant="secondary" size="sm" disabled={loading || page <= 1} onClick={() => onPageChange(page - 1)}>
-            {t("previous")}
-          </Button>
-          <span className="text-sm text-muted">{t("page", { page, total: lastPage })}</span>
-          <Button variant="secondary" size="sm" disabled={loading || page >= lastPage} onClick={() => onPageChange(page + 1)}>
-            {t("next")}
-          </Button>
-        </div>
+      {onPageChange ? (
+        <Pagination page={page} lastPage={lastPage} onPageChange={onPageChange} disabled={loading} />
       ) : null}
     </div>
   );

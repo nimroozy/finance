@@ -183,30 +183,50 @@ export async function ensureActiveAssignment(
   return id;
 }
 
-export function attachFailureGuards(page: Page, testInfo: TestInfo) {
+const GENERIC_LOAD_FAILURE_RE = /Failed to load resource.*status of 500/i;
+
+export function attachFailureGuards(
+  page: Page,
+  testInfo: TestInfo,
+  opts: { extraConsoleAllowlist?: RegExp[]; extraNetworkAllowlist?: RegExp[] } = {},
+) {
   const consoleErrors: string[] = [];
   const networkErrors: Array<{ url: string; status: number }> = [];
+  const consoleAllow = [...CONSOLE_ALLOWLIST, ...(opts.extraConsoleAllowlist || [])];
+  const networkAllow = opts.extraNetworkAllowlist || [];
+  // Chromium's "Failed to load resource" console message never includes the
+  // request URL, so a URL-scoped network allowlist entry can't match it by
+  // text. Instead: every allowed 500 response grants one credit that
+  // suppresses exactly one otherwise-generic "...status of 500" console
+  // message, keeping unrelated 500s (different URL) reported as failures.
+  let allowedFailureCredits = 0;
 
   page.on("console", (msg) => {
     if (msg.type() === "error") {
       const text = msg.text();
-      if (!CONSOLE_ALLOWLIST.some((re) => re.test(text))) {
-        consoleErrors.push(text);
+      if (consoleAllow.some((re) => re.test(text))) return;
+      if (GENERIC_LOAD_FAILURE_RE.test(text) && allowedFailureCredits > 0) {
+        allowedFailureCredits -= 1;
+        return;
       }
+      consoleErrors.push(text);
     }
   });
 
   page.on("pageerror", (err) => {
     const text = `pageerror:${err.message}`;
-    if (!CONSOLE_ALLOWLIST.some((re) => re.test(text))) {
+    if (!consoleAllow.some((re) => re.test(text))) {
       consoleErrors.push(text);
     }
   });
 
   page.on("response", (res) => {
-    if (res.status() === 500) {
-      networkErrors.push({ url: res.url(), status: 500 });
+    if (res.status() !== 500) return;
+    if (networkAllow.some((re) => re.test(res.url()))) {
+      allowedFailureCredits += 1;
+      return;
     }
+    networkErrors.push({ url: res.url(), status: 500 });
   });
 
   return {

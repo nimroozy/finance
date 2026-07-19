@@ -12,6 +12,16 @@
 */
 
 :root {
+  /* Typography — system font stacks only. No web-font download at build or
+     runtime: matches native UI on every platform (Segoe UI / San Francisco /
+     Roboto / Noto) and covers Persian/Arabic script via each OS's bundled
+     UI font (Segoe UI, Tahoma, Geeza Pro, Noto Naskh Arabic UI). */
+  --font-system-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji",
+    "Segoe UI Emoji";
+  --font-system-arabic: "Segoe UI", Tahoma, "Vazirmatn", "Noto Sans Arabic",
+    "Geeza Pro", var(--font-system-sans);
+
   /* Brand */
   --primary: #0b3d4a;
   --primary-hover: #0a3340;
@@ -103,8 +113,8 @@ html.dark {
   --color-success-soft: var(--success-soft);
   --color-warning: var(--warning);
   --color-warning-soft: var(--warning-soft);
-  --font-sans: var(--font-ibm-plex-sans);
-  --font-arabic: var(--font-ibm-plex-arabic);
+  --font-sans: var(--font-system-sans);
+  --font-arabic: var(--font-system-arabic);
 }
 
 * {
@@ -123,36 +133,38 @@ html.dark {
 body {
   margin: 0;
   min-height: 100vh;
-  background:
-    radial-gradient(1200px 500px at 0% -10%, rgb(196 165 116 / 12%), transparent 55%),
-    radial-gradient(900px 400px at 100% 0%, rgb(11 61 74 / 8%), transparent 50%),
-    var(--surface);
+  background: var(--surface);
   color: var(--text);
-  font-family: var(--font-ibm-plex-sans), system-ui, sans-serif;
+  font-family: var(--font-system-sans);
+  font-feature-settings: "cv11", "ss01";
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
   transition: background-color var(--motion-med) ease, color var(--motion-fast) ease;
 }
 
-html.dark body {
-  background:
-    radial-gradient(1200px 500px at 0% -10%, rgb(94 184 201 / 8%), transparent 55%),
-    radial-gradient(900px 400px at 100% 0%, rgb(0 0 0 / 40%), transparent 50%),
-    var(--surface);
-}
-
 html[dir="rtl"] body {
-  font-family: var(--font-ibm-plex-arabic), var(--font-ibm-plex-sans), system-ui, sans-serif;
+  font-family: var(--font-system-arabic);
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
-}
+/*
+ * Base element resets belong in @layer base so Tailwind utility classes
+ * (text-white, text-primary, …) still win. Unlayered rules override every
+ * cascade layer, which previously made `a { color: inherit }` beat
+ * `text-white` on the active nav item — dark text on the dark primary
+ * background (1.39:1 contrast).
+ */
+@layer base {
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
 
-button,
-input,
-select,
-textarea {
-  font: inherit;
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
 }
 
 :focus-visible {

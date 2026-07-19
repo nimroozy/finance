@@ -3,65 +3,54 @@
 import { useCallback, useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
-import { ApiError } from "@/lib/api";
-import { listBranches } from "@/lib/auth";
 import {
   reportPaymentsSummary,
   reportPaymentsSyncFailures,
 } from "@/lib/payments";
-import type { Branch, Payment, PaymentsSummary } from "@/lib/types";
+import type { Payment, PaymentsSummary } from "@/lib/types";
 import { formatMoney } from "@/lib/utils";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
-import { Input, Select } from "@/components/ui/form";
-import {
-  Alert,
-  EmptyState,
-  LoadingState,
-  PageHeader,
-  Panel,
-} from "@/components/ui/layout";
+import { Input } from "@/components/ui/form";
+import { EmptyState, LoadingState, PageHeader, Panel } from "@/components/ui/layout";
+import { ErrorState } from "@/components/ui/error-state";
+import { BranchPicker } from "@/components/ui/pickers";
+import type { SearchableOption } from "@/components/ui/searchable-select";
 
 export default function PaymentReportsPage() {
   const t = useTranslations("paymentReports");
   const tCommon = useTranslations("common");
   const locale = useLocale();
 
-  const [branches, setBranches] = useState<Branch[]>([]);
-  const [branchId, setBranchId] = useState("");
+  const [branch, setBranch] = useState<SearchableOption | null>(null);
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [summary, setSummary] = useState<PaymentsSummary | null>(null);
   const [failures, setFailures] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    void listBranches(1)
-      .then((res) => setBranches(res.data))
-      .catch(() => setBranches([]));
-  }, []);
+  const [error, setError] = useState<unknown>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
+      const branchId = branch ? String(branch.id) : undefined;
       const [s, f] = await Promise.all([
         reportPaymentsSummary({
-          branch_id: branchId || undefined,
+          branch_id: branchId,
           from: from || undefined,
           to: to || undefined,
         }),
-        reportPaymentsSyncFailures(branchId || undefined),
+        reportPaymentsSyncFailures(branchId),
       ]);
       setSummary(s.data);
       setFailures(f.data);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : tCommon("error"));
+      setError(err);
     } finally {
       setLoading(false);
     }
-  }, [branchId, from, to, tCommon]);
+  }, [branch, from, to]);
 
   useEffect(() => {
     void load();
@@ -71,17 +60,10 @@ export default function PaymentReportsPage() {
     <div className="space-y-4">
       <PageHeader title={t("title")} subtitle={t("subtitle")} />
 
-      {error ? <Alert>{error}</Alert> : null}
+      {error ? <ErrorState error={error} onRetry={() => void load()} /> : null}
 
       <Panel className="grid gap-3 p-4 sm:grid-cols-4">
-        <Select value={branchId} onChange={(e) => setBranchId(e.target.value)}>
-          <option value="">{tCommon("all")}</option>
-          {branches.map((b) => (
-            <option key={b.id} value={b.id}>
-              {locale === "fa" ? b.name_fa || b.name_en : b.name_en}
-            </option>
-          ))}
-        </Select>
+        <BranchPicker value={branch} onChange={setBranch} />
         <Input
           type="date"
           value={from}

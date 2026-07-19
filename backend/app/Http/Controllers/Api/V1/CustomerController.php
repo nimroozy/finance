@@ -21,11 +21,16 @@ class CustomerController extends Controller
                     $inner->where('contact_name', 'like', $search)
                         ->orWhere('company_name', 'like', $search)
                         ->orWhere('customer_number', 'like', $search)
-                        ->orWhere('email', 'like', $search);
+                        ->orWhere('email', 'like', $search)
+                        ->orWhere('phone', 'like', $search)
+                        ->orWhere('mobile', 'like', $search)
+                        ->orWhere('whatsapp_number', 'like', $search)
+                        ->orWhere('zoho_contact_id', 'like', $search);
                 });
             })
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))
             ->when($request->filled('branch_id'), fn ($q) => $q->where('branch_id', $request->integer('branch_id')))
+            ->when($request->filled('sync_status'), fn ($q) => $q->where('sync_status', $request->string('sync_status')))
             ->when($request->boolean('exclude_unmapped', true) && $this->isGlobalUser(), function ($q) {
                 // Global users still exclude unmapped from default list unless asked.
                 $q->where('is_unmapped', false);

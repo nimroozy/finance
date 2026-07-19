@@ -111,3 +111,6 @@ export function BottomNav() {
     </nav>
   );
 }
+
+/** Alias for the shared component library naming (Stage 10.5A). */
+export const MobileBottomNav = BottomNav;

@@ -3,21 +3,16 @@
 import { useCallback, useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
-import { ApiError } from "@/lib/api";
 import { listRoutes } from "@/lib/routes";
 import type { CollectionRoute } from "@/lib/types";
-import { formatDate } from "@/lib/utils";
+import { formatDateTime } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth-store";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/form";
-import {
-  Alert,
-  EmptyState,
-  LoadingState,
-  PageHeader,
-  Panel,
-} from "@/components/ui/layout";
+import { PageHeader } from "@/components/ui/layout";
+import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
+import { ErrorState } from "@/components/ui/error-state";
 
 export default function RoutesPage() {
   const t = useTranslations("routesPage");
@@ -29,7 +24,7 @@ export default function RoutesPage() {
   const [meta, setMeta] = useState({ current_page: 1, last_page: 1 });
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown>(null);
 
   const load = useCallback(
     async (page = 1) => {
@@ -46,17 +41,35 @@ export default function RoutesPage() {
           last_page: res.meta?.last_page ?? 1,
         });
       } catch (err) {
-        setError(err instanceof ApiError ? err.message : tCommon("error"));
+        setError(err);
       } finally {
         setLoading(false);
       }
     },
-    [status, tCommon],
+    [status],
   );
 
   useEffect(() => {
     void load(1);
   }, [load]);
+
+  const columns: DataTableColumn<CollectionRoute>[] = [
+    {
+      key: "name",
+      label: t("name"),
+      render: (row) => (
+        <Link href={`/routes/${row.id}`} className="font-medium text-primary hover:underline">
+          {row.name}
+        </Link>
+      ),
+    },
+    { key: "date", label: t("date"), render: (row) => formatDateTime(row.route_date, locale) },
+    { key: "collector", label: t("collector"), render: (row) => row.collector?.user?.name || `#${row.collector_id}` },
+    { key: "stops", label: t("stops"), render: (row) => row.stops?.length ?? 0 },
+    { key: "status", label: t("status"), render: (row) => <StatusBadge status={row.status} /> },
+    { key: "started", label: t("startedAt"), render: (row) => formatDateTime(row.started_at, locale) },
+    { key: "completed", label: t("completedAt"), render: (row) => formatDateTime(row.completed_at, locale) },
+  ];
 
   return (
     <div>
@@ -73,105 +86,29 @@ export default function RoutesPage() {
       />
 
       {error ? (
-        <div className="mb-4">
-          <Alert>{error}</Alert>
-        </div>
-      ) : null}
-
-      <Panel className="mb-4 p-4">
-        <Select
-          value={status}
-          onChange={(e) => setStatus(e.target.value)}
-          className="sm:max-w-xs"
-        >
-          <option value="">{tCommon("all")}</option>
-          {["draft", "published", "in_progress", "completed", "cancelled"].map(
-            (s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ),
-          )}
-        </Select>
-      </Panel>
-
-      <Panel>
-        {loading ? (
-          <LoadingState label={tCommon("loading")} />
-        ) : rows.length === 0 ? (
-          <EmptyState label={tCommon("empty")} />
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[700px] text-start text-sm">
-              <thead className="border-b border-border bg-sand-soft/40 text-muted">
-                <tr>
-                  <th className="px-4 py-3 font-medium">{t("name")}</th>
-                  <th className="px-4 py-3 font-medium">{t("date")}</th>
-                  <th className="px-4 py-3 font-medium">{t("collector")}</th>
-                  <th className="px-4 py-3 font-medium">{t("status")}</th>
-                  <th className="px-4 py-3 font-medium">{t("stops")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row) => (
-                  <tr
-                    key={row.id}
-                    className="border-b border-border last:border-0"
-                  >
-                    <td className="px-4 py-3">
-                      <Link
-                        href={`/routes/${row.id}`}
-                        className="font-medium text-primary hover:underline"
-                      >
-                        {row.name}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3">
-                      {formatDate(row.route_date, locale)}
-                    </td>
-                    <td className="px-4 py-3">
-                      {row.collector?.user?.name || `#${row.collector_id}`}
-                    </td>
-                    <td className="px-4 py-3">
-                      <StatusBadge status={row.status} />
-                    </td>
-                    <td className="px-4 py-3">{row.stops?.length ?? "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {meta.last_page > 1 ? (
-          <div className="flex items-center justify-between gap-3 border-t border-border px-4 py-3">
-            <p className="text-sm text-muted">
-              {tCommon("page", {
-                page: meta.current_page,
-                total: meta.last_page,
-              })}
-            </p>
-            <div className="flex gap-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={meta.current_page <= 1 || loading}
-                onClick={() => void load(meta.current_page - 1)}
-              >
-                {tCommon("previous")}
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={meta.current_page >= meta.last_page || loading}
-                onClick={() => void load(meta.current_page + 1)}
-              >
-                {tCommon("next")}
-              </Button>
-            </div>
-          </div>
-        ) : null}
-      </Panel>
+        <ErrorState error={error} onRetry={() => load(meta.current_page)} />
+      ) : (
+        <DataTable
+          rows={rows}
+          columns={columns}
+          rowKey={(row) => row.id}
+          loading={loading}
+          emptyLabel={tCommon("empty")}
+          page={meta.current_page}
+          lastPage={meta.last_page}
+          onPageChange={(page) => void load(page)}
+          filters={
+            <Select value={status} onChange={(e) => setStatus(e.target.value)} className="sm:max-w-xs" aria-label={t("status")}>
+              <option value="">{tCommon("all")}</option>
+              {["draft", "published", "in_progress", "completed", "cancelled"].map((s) => (
+                <option key={s} value={s}>
+                  {s.replace(/_/g, " ")}
+                </option>
+              ))}
+            </Select>
+          }
+        />
+      )}
     </div>
   );
 }

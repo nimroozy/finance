@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { ApiError } from "@/lib/api";
+import { Link } from "@/i18n/navigation";
 import {
   cancelPromise,
   fulfillPromise,
@@ -15,13 +15,9 @@ import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { Select, TextArea, Label } from "@/components/ui/form";
 import { Modal } from "@/components/ui/modal";
-import {
-  Alert,
-  EmptyState,
-  LoadingState,
-  PageHeader,
-  Panel,
-} from "@/components/ui/layout";
+import { PageHeader, Alert } from "@/components/ui/layout";
+import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
+import { ErrorState } from "@/components/ui/error-state";
 
 export default function PromisesPage() {
   const t = useTranslations("promisesPage");
@@ -36,7 +32,7 @@ export default function PromisesPage() {
   const [meta, setMeta] = useState({ current_page: 1, last_page: 1 });
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
   const [cancelTarget, setCancelTarget] = useState<PromiseToPay | null>(null);
@@ -58,12 +54,12 @@ export default function PromisesPage() {
           last_page: res.meta?.last_page ?? 1,
         });
       } catch (err) {
-        setError(err instanceof ApiError ? err.message : tCommon("error"));
+        setError(err);
       } finally {
         setLoading(false);
       }
     },
-    [status, tCommon],
+    [status],
   );
 
   useEffect(() => {
@@ -77,7 +73,7 @@ export default function PromisesPage() {
       setSuccess(t("fulfillSuccess"));
       await load(meta.current_page);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : tCommon("error"));
+      setError(err);
     }
   }
 
@@ -92,7 +88,7 @@ export default function PromisesPage() {
       setSuccess(t("cancelSuccess"));
       await load(meta.current_page);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : tCommon("error"));
+      setError(err);
     } finally {
       setSaving(false);
     }
@@ -100,140 +96,91 @@ export default function PromisesPage() {
 
   const openStatuses = ["active", "due_soon", "due_today", "overdue"];
 
+  const columns: DataTableColumn<PromiseToPay>[] = [
+    {
+      key: "customer",
+      label: t("customer"),
+      render: (row) => row.customer?.contact_name || row.customer?.company_name || `#${row.customer_id}`,
+    },
+    { key: "amount", label: t("amount"), render: (row) => formatMoney(row.amount, row.currency, locale) },
+    { key: "date", label: t("date"), render: (row) => formatDate(row.promised_date, locale) },
+    { key: "branch", label: tCommon("branch"), render: (row) => row.branch?.code || "—" },
+    { key: "status", label: t("status"), render: (row) => <StatusBadge status={row.status} /> },
+    { key: "collector", label: t("collector"), render: (row) => row.collector?.user?.name || "—" },
+    {
+      key: "assignment",
+      label: t("relatedAssignment"),
+      render: (row) =>
+        row.assignment_id ? (
+          <a href={`/assignments/${row.assignment_id}`} className="text-primary hover:underline">
+            #{row.assignment_id}
+          </a>
+        ) : (
+          "—"
+        ),
+    },
+    {
+      key: "actions",
+      label: tCommon("actions"),
+      render: (row) => (
+        <div className="flex flex-wrap gap-2">
+          {canManage && openStatuses.includes(row.status) ? (
+            <Button size="sm" onClick={() => void onFulfill(row.id)}>
+              {t("fulfill")}
+            </Button>
+          ) : null}
+          {canCancel && openStatuses.includes(row.status) ? (
+            <Button size="sm" variant="secondary" onClick={() => setCancelTarget(row)}>
+              {t("cancel")}
+            </Button>
+          ) : null}
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div>
-      <PageHeader title={t("title")} subtitle={t("subtitle")} />
+      <PageHeader
+        title={t("title")}
+        subtitle={t("subtitle")}
+        actions={
+          <Link href="/collector/promises/new">
+            <Button size="sm">{t("create")}</Button>
+          </Link>
+        }
+      />
 
-      {error ? (
-        <div className="mb-4">
-          <Alert>{error}</Alert>
-        </div>
-      ) : null}
       {success ? (
         <div className="mb-4">
           <Alert tone="success">{success}</Alert>
         </div>
       ) : null}
 
-      <Panel className="mb-4 p-4">
-        <Select
-          value={status}
-          onChange={(e) => setStatus(e.target.value)}
-          className="sm:max-w-xs"
-        >
-          <option value="">{tCommon("all")}</option>
-          {[
-            "active",
-            "due_soon",
-            "due_today",
-            "overdue",
-            "fulfilled",
-            "cancelled",
-            "superseded",
-          ].map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </Select>
-      </Panel>
-
-      <Panel>
-        {loading ? (
-          <LoadingState label={tCommon("loading")} />
-        ) : rows.length === 0 ? (
-          <EmptyState label={tCommon("empty")} />
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[800px] text-start text-sm">
-              <thead className="border-b border-border bg-sand-soft/40 text-muted">
-                <tr>
-                  <th className="px-4 py-3 font-medium">{t("customer")}</th>
-                  <th className="px-4 py-3 font-medium">{t("amount")}</th>
-                  <th className="px-4 py-3 font-medium">{t("date")}</th>
-                  <th className="px-4 py-3 font-medium">{t("status")}</th>
-                  <th className="px-4 py-3 font-medium">{t("collector")}</th>
-                  <th className="px-4 py-3 font-medium">{tCommon("actions")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row) => (
-                  <tr
-                    key={row.id}
-                    className="border-b border-border last:border-0"
-                  >
-                    <td className="px-4 py-3">
-                      {row.customer?.contact_name || `#${row.customer_id}`}
-                    </td>
-                    <td className="px-4 py-3">
-                      {formatMoney(row.amount, row.currency, locale)}
-                    </td>
-                    <td className="px-4 py-3">
-                      {formatDate(row.promised_date, locale)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <StatusBadge status={row.status} />
-                    </td>
-                    <td className="px-4 py-3">
-                      {row.collector?.user?.name || "—"}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-wrap gap-2">
-                        {canManage && openStatuses.includes(row.status) ? (
-                          <Button
-                            size="sm"
-                            onClick={() => void onFulfill(row.id)}
-                          >
-                            {t("fulfill")}
-                          </Button>
-                        ) : null}
-                        {canCancel && openStatuses.includes(row.status) ? (
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            onClick={() => setCancelTarget(row)}
-                          >
-                            {t("cancel")}
-                          </Button>
-                        ) : null}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {meta.last_page > 1 ? (
-          <div className="flex items-center justify-between gap-3 border-t border-border px-4 py-3">
-            <p className="text-sm text-muted">
-              {tCommon("page", {
-                page: meta.current_page,
-                total: meta.last_page,
-              })}
-            </p>
-            <div className="flex gap-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={meta.current_page <= 1 || loading}
-                onClick={() => void load(meta.current_page - 1)}
-              >
-                {tCommon("previous")}
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={meta.current_page >= meta.last_page || loading}
-                onClick={() => void load(meta.current_page + 1)}
-              >
-                {tCommon("next")}
-              </Button>
-            </div>
-          </div>
-        ) : null}
-      </Panel>
+      {error ? (
+        <ErrorState error={error} onRetry={() => load(meta.current_page)} />
+      ) : (
+        <DataTable
+          rows={rows}
+          columns={columns}
+          rowKey={(row) => row.id}
+          loading={loading}
+          emptyLabel={tCommon("empty")}
+          page={meta.current_page}
+          lastPage={meta.last_page}
+          onPageChange={(page) => void load(page)}
+          filters={
+            <Select value={status} onChange={(e) => setStatus(e.target.value)} className="sm:max-w-xs" aria-label={t("status")}>
+              <option value="">{tCommon("all")}</option>
+              {["active", "due_soon", "due_today", "overdue", "fulfilled", "cancelled", "superseded"].map((s) => (
+                <option key={s} value={s}>
+                  {s.replace(/_/g, " ")}
+                </option>
+              ))}
+            </Select>
+          }
+        />
+      )}
 
       <Modal
         open={Boolean(cancelTarget)}

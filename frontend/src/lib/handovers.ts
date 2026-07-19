@@ -7,6 +7,7 @@ export type CashHandover = {
   handover_number?: string | null;
   collector_id: number;
   branch_id: number;
+  cashbox_id?: number | null;
   currency: string;
   declared_amount: string;
   selected_payment_total: string;
@@ -14,6 +15,13 @@ export type CashHandover = {
   approved_amount?: string | null;
   variance_amount?: string | null;
   status: string;
+  submitted_at?: string | null;
+  reviewed_at?: string | null;
+  approved_at?: string | null;
+  rejected_at?: string | null;
+  collector?: { id: number; user?: { id: number; name: string } | null } | null;
+  cashbox?: { id: number; name: string } | null;
+  branch?: { id: number; code: string; name_en: string; name_fa?: string | null } | null;
   items?: Array<{
     id: number;
     payment_id: number;

@@ -15,6 +15,7 @@ export async function listCustomers(params: CustomerListParams = {}) {
       search: params.search,
       status: params.status,
       branch_id: params.branch_id,
+      sync_status: params.sync_status,
       exclude_unmapped: params.exclude_unmapped,
     })}`,
   );

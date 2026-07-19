@@ -9,6 +9,8 @@ import { listCollectors } from "@/lib/collectors";
 import type { Collector } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { FieldError, Input, Label, Select, TextArea } from "@/components/ui/form";
+import { CustomerPicker } from "@/components/ui/pickers";
+import type { SearchableOption } from "@/components/ui/searchable-select";
 import {
   Alert,
   PageHeader,
@@ -21,7 +23,7 @@ export default function NewAssignmentPage() {
   const router = useRouter();
 
   const [collectors, setCollectors] = useState<Collector[]>([]);
-  const [customerId, setCustomerId] = useState("");
+  const [customer, setCustomer] = useState<SearchableOption | null>(null);
   const [collectorId, setCollectorId] = useState("");
   const [priority, setPriority] = useState("normal");
   const [dueDate, setDueDate] = useState("");
@@ -45,7 +47,7 @@ export default function NewAssignmentPage() {
     setWarnings([]);
     try {
       const res = await createAssignment({
-        customer_id: Number(customerId),
+        customer_id: Number(customer?.id),
         collector_id: Number(collectorId),
         priority,
         due_date: dueDate || undefined,
@@ -85,17 +87,13 @@ export default function NewAssignmentPage() {
         <form onSubmit={onSubmit} className="mx-auto max-w-lg space-y-4">
           <div>
             <Label>{t("selectCustomer")}</Label>
-            <Input
-              type="number"
-              value={customerId}
-              onChange={(e) => setCustomerId(e.target.value)}
-              required
-            />
+            <CustomerPicker value={customer} onChange={setCustomer} />
             <FieldError>{fieldErrors.customer_id?.[0]}</FieldError>
           </div>
           <div>
-            <Label>{t("collector")}</Label>
+            <Label htmlFor="collector">{t("collector")}</Label>
             <Select
+              id="collector"
               value={collectorId}
               onChange={(e) => setCollectorId(e.target.value)}
               required
@@ -110,8 +108,9 @@ export default function NewAssignmentPage() {
             <FieldError>{fieldErrors.collector_id?.[0]}</FieldError>
           </div>
           <div>
-            <Label>{t("priority")}</Label>
+            <Label htmlFor="priority">{t("priority")}</Label>
             <Select
+              id="priority"
               value={priority}
               onChange={(e) => setPriority(e.target.value)}
             >
@@ -123,22 +122,24 @@ export default function NewAssignmentPage() {
             </Select>
           </div>
           <div>
-            <Label>{t("dueDate")}</Label>
+            <Label htmlFor="dueDate">{t("dueDate")}</Label>
             <Input
+              id="dueDate"
               type="date"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
             />
           </div>
           <div>
-            <Label>{t("notes")}</Label>
+            <Label htmlFor="notes">{t("notes")}</Label>
             <TextArea
+              id="notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
             />
           </div>
           <div className="flex gap-2">
-            <Button type="submit" disabled={saving}>
+            <Button type="submit" disabled={saving || !customer}>
               {tCommon("create")}
             </Button>
             <Button

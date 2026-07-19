@@ -1,15 +1,17 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, PanelLeftClose, PanelLeft } from "lucide-react";
-import { useLocale, useTranslations } from "next-intl";
+import { PanelLeft } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { usePathname, useRouter, Link } from "@/i18n/navigation";
 import { useAuthStore } from "@/store/auth-store";
 import { LoadingState } from "@/components/ui/layout";
 import { Button } from "@/components/ui/button";
+import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { CommandMenu } from "@/components/ops/command-menu";
-import { AppHeader } from "@/components/launcher/app-header";
-import { BottomNav } from "@/components/launcher/bottom-nav";
+import { GlobalHeader } from "@/components/launcher/app-header";
+import { MobileBottomNav } from "@/components/launcher/bottom-nav";
+import { AppSidebar } from "@/components/launcher/app-sidebar";
 import {
   APP_CONTEXT_NAV,
   resolveAppFromPath,
@@ -43,7 +45,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const tShell = useTranslations("shell");
   const tApps = useTranslations("apps");
   const tCommon = useTranslations("common");
-  const locale = useLocale();
   const pathname = usePathname();
   const router = useRouter();
   const { token, user, hydrated, hasAnyPermission } = useAuthStore();
@@ -119,7 +120,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }).catch(() => undefined);
   }
 
-  const navLink = (item: AppNavItem, onNavigate?: () => void) => {
+  const mobileNavLink = (item: AppNavItem, onNavigate?: () => void) => {
     const isActive =
       item.href === "/tasks"
         ? pathname === "/tasks" || (pathname.startsWith("/tasks/") && !pathname.startsWith("/tasks/my"))
@@ -132,58 +133,27 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         key={item.href}
         href={item.href}
         onClick={onNavigate}
-        title={t(item.labelKey as "dashboard")}
         className={cn(
           "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors",
           isActive
             ? "bg-primary text-white"
             : "text-primary/90 hover:bg-sand-soft hover:text-primary",
-          sidebarCollapsed && "justify-center px-2",
         )}
       >
-        <span className={cn(sidebarCollapsed && "sr-only")}>
-          {t(item.labelKey as "dashboard")}
-        </span>
-        {sidebarCollapsed ? (
-          <span className="text-xs font-semibold" aria-hidden>
-            {(t(item.labelKey as "dashboard") || "?").slice(0, 1)}
-          </span>
-        ) : null}
+        {t(item.labelKey as "dashboard")}
       </Link>
     );
   };
 
-  const sidebarContent = (onNavigate?: () => void) => (
-    <>
-      {contextNav.length > 0 ? (
-        <div className="space-y-1">{contextNav.map((item) => navLink(item, onNavigate))}</div>
-      ) : (
-        <div className="space-y-1 px-2 py-2 text-sm text-muted">
-          <Link
-            href="/apps"
-            onClick={onNavigate}
-            className="block rounded-md px-3 py-2 font-medium text-primary hover:bg-sand-soft"
-          >
-            {t("menu")}
-          </Link>
-        </div>
-      )}
-      <Link
-        href="/change-password"
-        onClick={onNavigate}
-        className={cn(
-          "mt-auto rounded-md px-3 py-2 text-sm font-medium transition-colors",
-          isChangePassword
-            ? "bg-primary text-white"
-            : "text-muted hover:bg-sand-soft hover:text-primary",
-        )}
-      >
-        {t("changePassword")}
-      </Link>
-    </>
-  );
-
   const showDesktopSidebar = !forcePassword && !isLauncher;
+  const breadcrumbItems = forcePassword
+    ? []
+    : isLauncher
+      ? []
+      : [
+          { label: tShell("allApps"), href: "/apps" },
+          { label: currentAppLabel },
+        ];
 
   return (
     <div
@@ -194,47 +164,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       data-testid="app-shell"
     >
       {showDesktopSidebar ? (
-        <aside
-          className={cn(
-            "hidden border-e border-border bg-surface-elevated lg:flex lg:flex-col",
-            "transition-[width] duration-200",
-          )}
-          data-testid="app-sidebar"
-          data-collapsed={sidebarCollapsed ? "true" : "false"}
-        >
-          <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-3">
-            {!sidebarCollapsed ? (
-              <p className="truncate text-xs font-semibold uppercase tracking-wider text-muted">
-                {currentAppLabel}
-              </p>
-            ) : (
-              <span className="sr-only">{tShell("navLabel")}</span>
-            )}
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0"
-              aria-label={sidebarCollapsed ? tShell("expandSidebar") : tShell("collapseSidebar")}
-              onClick={toggleSidebar}
-              data-testid="sidebar-toggle"
-            >
-              {sidebarCollapsed ? (
-                locale === "fa" ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />
-              ) : (
-                <PanelLeftClose className="h-4 w-4" />
-              )}
-            </Button>
-          </div>
-          <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-2" aria-label={t("menu")}>
-            {sidebarContent()}
-          </nav>
-        </aside>
+        <AppSidebar
+          contextNav={contextNav}
+          currentAppLabel={currentAppLabel}
+          collapsed={sidebarCollapsed}
+          onToggleCollapsed={toggleSidebar}
+          isChangePassword={isChangePassword}
+        />
       ) : null}
 
       <div className="flex min-h-screen flex-col">
         {!forcePassword ? (
-          <AppHeader
+          <GlobalHeader
             onOpenCommand={canSearch ? () => setCommandOpen(true) : undefined}
             onToggleMobileNav={() => setMobileOpen((v) => !v)}
             mobileNavOpen={mobileOpen}
@@ -256,7 +197,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 {t("close")}
               </Button>
             </div>
-            {sidebarContent(() => setMobileOpen(false))}
+            {contextNav.length > 0 ? (
+              <div className="space-y-1">
+                {contextNav.map((item) => mobileNavLink(item, () => setMobileOpen(false)))}
+              </div>
+            ) : null}
+            <Link
+              href="/change-password"
+              onClick={() => setMobileOpen(false)}
+              className={cn(
+                "block rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                isChangePassword
+                  ? "bg-primary text-white"
+                  : "text-muted hover:bg-sand-soft hover:text-primary",
+              )}
+            >
+              {t("changePassword")}
+            </Link>
             <Link
               href="/apps"
               onClick={() => setMobileOpen(false)}
@@ -271,16 +228,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         ) : null}
 
         <main
-          className={cn(
-            "mx-auto w-full flex-1 px-4 py-6 sm:px-6",
-            isLauncher ? "max-w-6xl" : "max-w-6xl",
-            "pb-24 lg:pb-6",
-          )}
+          className={cn("mx-auto w-full flex-1 px-4 py-6 sm:px-6", "max-w-6xl", "pb-24 lg:pb-6")}
         >
+          {breadcrumbItems.length > 0 ? <Breadcrumbs items={breadcrumbItems} /> : null}
           {children}
         </main>
 
-        {!forcePassword ? <BottomNav /> : null}
+        {!forcePassword ? <MobileBottomNav /> : null}
       </div>
 
       {canSearch ? <CommandMenu open={commandOpen} onOpenChange={setCommandOpen} /> : null}

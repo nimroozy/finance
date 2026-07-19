@@ -1,14 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/lib/api";
 import { createPromise } from "@/lib/promises";
+import { getCustomer } from "@/lib/customers";
 import { Button } from "@/components/ui/button";
 import { Input, Label, TextArea } from "@/components/ui/form";
 import { Alert, PageHeader, Panel } from "@/components/ui/layout";
+import { CustomerPicker } from "@/components/ui/pickers";
+import type { SearchableOption } from "@/components/ui/searchable-select";
 
 export default function NewPromisePage() {
   const t = useTranslations("promisesPage");
@@ -16,9 +19,8 @@ export default function NewPromisePage() {
   const router = useRouter();
   const search = useSearchParams();
 
-  const [customerId, setCustomerId] = useState(
-    search.get("customer_id") || "",
-  );
+  const customerIdParam = search.get("customer_id") || "";
+  const [customer, setCustomer] = useState<SearchableOption | null>(null);
   const [assignmentId] = useState(search.get("assignment_id") || "");
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState("AFN");
@@ -27,13 +29,27 @@ export default function NewPromisePage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (!customerIdParam) return;
+    void getCustomer(Number(customerIdParam))
+      .then((res) =>
+        setCustomer({
+          id: res.data.id,
+          label: res.data.contact_name || res.data.company_name || `#${res.data.id}`,
+          description: res.data.customer_number ?? undefined,
+        }),
+      )
+      .catch(() => undefined);
+  }, [customerIdParam]);
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!customer) return;
     setSaving(true);
     setError(null);
     try {
       await createPromise({
-        customer_id: Number(customerId),
+        customer_id: Number(customer.id),
         assignment_id: assignmentId ? Number(assignmentId) : undefined,
         amount,
         currency: currency.trim() || undefined,
@@ -56,14 +72,8 @@ export default function NewPromisePage() {
       <Panel className="p-4">
         <form onSubmit={onSubmit} className="space-y-4">
           <div>
-            <Label>{t("customerId")}</Label>
-            <Input
-              type="number"
-              value={customerId}
-              onChange={(e) => setCustomerId(e.target.value)}
-              required
-              className="h-12"
-            />
+            <Label>{t("customer")}</Label>
+            <CustomerPicker value={customer} onChange={setCustomer} />
           </div>
           <div>
             <Label>{t("amount")}</Label>
@@ -102,7 +112,7 @@ export default function NewPromisePage() {
               onChange={(e) => setNotes(e.target.value)}
             />
           </div>
-          <Button type="submit" className="h-12 w-full" disabled={saving}>
+          <Button type="submit" className="h-12 w-full" disabled={saving || !customer}>
             {tCommon("create")}
           </Button>
         </form>
